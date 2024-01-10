@@ -1,5 +1,5 @@
 from websockets.sync.client import connect, ClientConnection
-from websockets.exceptions import *
+import websockets.exceptions
 import json
 
 import src.exception as ex

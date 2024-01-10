@@ -13,7 +13,7 @@ import src.exception as exception
 server_url_recognize_ = "https://www.google.com/speech-api/v2/recognize"
 
 
-def encode_falc(audio_data:AudioData) -> (bytes, str):
+def encode_falc(audio_data:AudioData) -> tuple[bytes, dict[str, str]]:
     flac_data = audio_data.get_flac_data(
         convert_rate=None if audio_data.sample_rate >= 8000 else 8000,  # audio samples must be at least 8 kHz
         convert_width=2  # audio samples must be 16-bit
@@ -35,7 +35,7 @@ def recognize_google_mod(recognizer, audio_data, key=None, language="en-US", pfi
         show_all,
         with_confidence)
 
-def recognize_google(audio_data:(bytes, str), timeout:float, key=None, language="en-US", pfilter=0, show_all=False, with_confidence=False):
+def recognize_google(audio_data:tuple[bytes, dict[str, str]], timeout:float | None, key=None, language="en-US", pfilter=0, show_all=False, with_confidence=False):
     if key is None:
         key = "AIzaSyBOti4mM-6x9WDnZIjIeyEU21OpBXqWBgw"
     url = f"{server_url_recognize_}?{{}}".format(urlencode({
