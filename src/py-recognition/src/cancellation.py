@@ -3,8 +3,8 @@ class CancellationObject:
         self.is_alive = True
 
     @property
-    def alive(self):
+    def alive(self) -> bool:
         return self.is_alive
 
-    def cancel(self):
+    def cancel(self) -> None:
         self.is_alive = False

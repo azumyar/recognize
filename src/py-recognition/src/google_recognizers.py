@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+from typing import Any, NamedTuple
 
 from speech_recognition.audio import AudioData
 from speech_recognition.exceptions import RequestError, UnknownValueError
@@ -12,30 +13,35 @@ import src.exception as exception
 
 server_url_recognize_ = "https://www.google.com/speech-api/v2/recognize"
 
+class EncodeData(NamedTuple):
+    audio:bytes
+    content_type:str
 
-def encode_falc(audio_data:AudioData) -> tuple[bytes, dict[str, str]]:
+class RecognizeResult(NamedTuple):
+    transcript:str
+    raw_data:str
+
+def encode_falc(audio_data:AudioData) -> EncodeData:
     flac_data = audio_data.get_flac_data(
         convert_rate=None if audio_data.sample_rate >= 8000 else 8000,  # audio samples must be at least 8 kHz
         convert_width=2  # audio samples must be 16-bit
     )
-    return (flac_data, {"Content-Type": f"audio/x-flac; rate={audio_data.sample_rate}"})
+    return EncodeData(flac_data, f"audio/x-flac; rate={audio_data.sample_rate}")
 
 
-def recognize_google_mod(recognizer, audio_data, key=None, language="en-US", pfilter=0, show_all=False, with_confidence=False):
+def recognize_google_mod(recognizer, audio_data, key=None, language="en-US", pfilter=0, show_all=False, with_confidence=False) -> Any:
     assert isinstance(audio_data, AudioData), "``audio_data`` must be audio data"
     assert key is None or isinstance(key, str), "``key`` must be ``None`` or a string"
     assert isinstance(language, str), "``language`` must be a string"
 
-    recognize_google(
+    return recognize_google(
         encode_falc(audio_data),
         recognizer.operation_timeout,
         key,
         language,
-        pfilter,
-        show_all,
-        with_confidence)
+        pfilter)
 
-def recognize_google(audio_data:tuple[bytes, dict[str, str]], timeout:float | None, key=None, language="en-US", pfilter=0, show_all=False, with_confidence=False):
+def recognize_google(audio_data:EncodeData, timeout:float | None, key:str | None=None, language:str="en-US", pfilter:int=0) -> RecognizeResult:
     if key is None:
         key = "AIzaSyBOti4mM-6x9WDnZIjIeyEU21OpBXqWBgw"
     url = f"{server_url_recognize_}?{{}}".format(urlencode({
@@ -44,7 +50,12 @@ def recognize_google(audio_data:tuple[bytes, dict[str, str]], timeout:float | No
         "key": key,
         "pFilter": pfilter
     }))
-    request = Request(url, data=audio_data[0], headers=audio_data[1])
+    request = Request(
+        url,
+         data=audio_data.audio, 
+         headers= {
+             "Content-Type": audio_data.content_type
+        })
 
     # obtain audio transcription results
     response = urlopen(request, timeout=timeout)
@@ -56,11 +67,8 @@ def recognize_google(audio_data:tuple[bytes, dict[str, str]], timeout:float | No
         if not line: continue
         result = json.loads(line)["result"]
         if len(result) != 0:
-            actual_result.append(result[0])
-
-    # return results
-    if show_all:
-        return actual_result
+            for r in result:
+                actual_result.append(r)
 
     if len(actual_result) == 0:
         #or not isinstance(actual_result[0], dict) or len(actual_result.get("alternative", [])) == 0:
@@ -72,28 +80,21 @@ def recognize_google(audio_data:tuple[bytes, dict[str, str]], timeout:float | No
         "confidence":  0.0
     }
     for rst in actual_result:
-        #for alt in rst["alternative"]:
-            alt = rst["alternative"][0] #問答無用に一番上でよい気がする
-            if not alt["confidence"]:
-                if best["confidence"] < alt["confidence"]:
+        if not rst["alternative"] is None and 0 < len(rst["alternative"]):
+            for alt in rst["alternative"]: #問答無用に一番上でよい気がする
+                if not alt["transcript"] is None:
                     best = {
                         "success": True,
-                        "transcript": alt["transcript"],
-                        "confidence":  alt["confidence"]
+                        "transcript": alt["transcript"]
                     }
-            else:
-                best = {
-                    "success": True,
-                    "transcript": alt["transcript"],
-                    "confidence": 1.0
-                }
-                break
-            # when there is no confidence available, we arbitrarily choose the first hypothesis.
-            #best_hypothesis = rst["alternative"][0]
+                    break
+        if best["success"]:
+            break
+
     if not best["success"]:
         raise UnknownValueErrorMod("レスポンスにtranscriptが存在しません", response_text)
         
-    return (best["transcript"], best["confidence"], response_text)
+    return RecognizeResult(best["transcript"], response_text)
 
 class UnknownValueErrorMod(exception.IlluminateException):
     def __init__(self, message: str, raw_data:str, inner: Exception | None = None):
