@@ -7,7 +7,7 @@ import torch
 import speech_recognition as sr
 import urllib.error as urlerr
 import numpy as np
-from typing import Optional
+from typing import cast, Optional
 import datetime
 
 from src.env import Env
@@ -17,6 +17,7 @@ from src.filter import *
 import src.transcribe as transcribe
 import src.output as output
 import src.val as val
+import src.google_recognizers as google
 
 @click.command()
 @click.option("--test", default=False, help="一度だけ認識を行います", is_flag=True, type=bool)
@@ -136,7 +137,7 @@ def main(
             env.tarce(lambda: print(f"#{type(f)}"))
 
         def onrecord(data:bytes):
-            def filter(ary:np.ndarray[np.int16]) -> np.ndarray[np.int16] | np.ndarray[np.real]:
+            def filter(ary:np.ndarray) -> np.ndarray:
                 if len(filters) == 0:
                     return ary
                 else:
@@ -161,8 +162,8 @@ def main(
                         env.tarce(lambda: print(f"#{e.message}"))
                     if isinstance(e.inner, urlerr.HTTPError) or isinstance(e.inner, urlerr.URLError):
                         print(e.message)
-                    if isinstance(e.inner, transcribe.UnknownValueErrorMod):
-                        env.tarce(lambda: print(f"#{e.message}\r\n{e.inner.raw_data}"))
+                    if isinstance(e.inner, google.UnknownValueErrorMod):
+                        env.tarce(lambda: print(f"#{e.message}\r\n{cast(google.UnknownValueErrorMod, e.inner).raw_data}"))
             except output.WsOutputException as e:
                 print(e.message)
                 if not e.inner is None:
@@ -183,4 +184,4 @@ def main(
 
 
 if __name__ == "__main__":
-    main()
+    main() # type: ignore

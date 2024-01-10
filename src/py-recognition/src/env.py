@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import ctypes
+from typing import Any, Callable
 
 class Env:
     def __init__(self, verbose:int) -> None:
@@ -29,17 +30,17 @@ class Env:
     def root(self):
         return self._root
     
-    def performance(self, func:lambda:any) ->  tuple[any, int]:
+    def performance(self, func:Callable[[], Any]) ->  tuple[Any, int]:
         start = time.perf_counter() 
         r = func()
         return (r, int((time.perf_counter()-start) * 1000))
     
 
-    def debug(self, func:lambda:any) -> any:
+    def debug(self, func:Callable[[], Any]) -> Any:
         if self.is_debug:
             return func()
 
-    def tarce(self, func:lambda:any) -> any:
+    def tarce(self, func:Callable[[], Any]) -> Any:
         if self.is_trace:
             return func()
 

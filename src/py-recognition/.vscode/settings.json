@@ -1,2 +1,10 @@
 {
+    "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.exclude": [
+        "**/__pycache__",
+        "**/dist",
+        "**/build",
+        "**/.debug"
+    ],
+    "python.analysis.typeCheckingMode": "basic"
 }

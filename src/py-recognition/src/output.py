@@ -53,7 +53,8 @@ class WebSocketOutputer(RecognitionOutputer):
             self.soc = None
             raise WsOutputException("リモートへの接続に失敗しました", e)
         try:
-            self.soc.send(text)
+            if isinstance(self.soc, ClientConnection):
+                self.soc.send(text)
         except Exception as e:
             self.soc = None
             raise WsOutputException("リモートへの送信に失敗しました", e)

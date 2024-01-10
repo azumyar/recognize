@@ -4,7 +4,7 @@ class NoiseFilter:
     def __init__(self, sampling_rate:int) -> None:
         self.sampling_rate = sampling_rate
 
-    def filter(self, data:np.ndarray[np.complex128]):
+    def filter(self, data:np.ndarray): # np.ndarray[np.complex128]
         ...
 
 class LowPassFilter(NoiseFilter):
@@ -17,7 +17,7 @@ class LowPassFilter(NoiseFilter):
         self.cutoff = cutoff
         self.cutoff_upper = sampling_rate - cutoff_upper
 
-    def filter(self, data:np.ndarray[np.complex128]):
+    def filter(self, data:np.ndarray):
         freq = np.fft.fftfreq(data.size, 1.0 / self.sampling_rate)
         cutoff = self.cutoff * np.pi / 2
         cutoff_upper = self.cutoff_upper * np.pi / 2 * -1
@@ -33,7 +33,7 @@ class HighPassFilter(NoiseFilter):
         self.cutoff = cutoff
         self.cutoff_upper = sampling_rate - cutoff_upper
 
-    def filter(self, data:np.ndarray[np.complex128]):
+    def filter(self, data:np.ndarray):
         freq = np.fft.fftfreq(data.size, 1.0 / self.sampling_rate)
         cutoff = self.cutoff * np.pi / 2
         cutoff_upper = self.cutoff_upper * np.pi / 2 * -1
