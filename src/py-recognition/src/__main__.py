@@ -114,8 +114,8 @@ def main(
         outputer:output.RecognitionOutputer = {
             "print": lambda: output.PrintOutputer(),
             "yukarinette": lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}", cancel),
-            "yukacone": lambda: output.YukaconeOutputer(f"ws://27.0.0.1:{out_yukacone}", cancel),
-#            "illuminate": lambda: output.IlluminateSpeechOutputer(f"ws://27.0.0.1:{out_illuminate}", cancel),
+            "yukacone": lambda: output.YukaconeOutputer(f"ws://localhost:{out_yukacone}", cancel),
+#            "illuminate": lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}", cancel),
         }[out]()
         env.tarce(lambda: print(f"#出力は{type(outputer)}を使用"))
 
