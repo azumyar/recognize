@@ -20,7 +20,8 @@ build.batをダブルクリックで自動的に必要コンポーネントをwi
 |:--------------|:------------|
 | whisper       |wisperモデルを使用してローカルでAI音声認識を行います|
 | faster_whisper|wisperを軽量化したfaster_whisperを使用してローカルでAI音声認識を行います|
-| google        |googleの音声認識を使用してインターネット経由で音声認識を行います|
+| google        |googleの音声認識API(v2)を使用してインターネット経由で音声認識を行います|
+| google_duplex |googleの音声認識API(全二重)を使用してインターネット経由で音声認識を行います|
 
 ### --whisper_model string
 whisper系で有効 
