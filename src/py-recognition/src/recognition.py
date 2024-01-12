@@ -40,16 +40,16 @@ class RecognitionModelWhisper(RecognitionModel):
         m = f"{model}.{language}" if (model != "large") and (model != "large-v2") and (model != "large-v3") and (language == "en") else model
         self.audio_model = whisper.load_model(m, download_root=download_root).to(device)
 
-    def transcribe(self, na:np.ndarray) -> TranscribeResult:
+    def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
         r = self.audio_model.transcribe(
-            torch.from_numpy(na.astype(np.float32) / float(np.iinfo(np.int16).max)),
+            torch.from_numpy(audio_data.astype(np.float32) / float(np.iinfo(np.int16).max)),
             language = self.__language,
             fp16 = self.__is_fp16)["text"]
         if isinstance(r, str):
             return TranscribeResult(r, None)
         if isinstance(r, list):
             return TranscribeResult("".join(r), None)
-        raise RuntimeError(f"Whisper.transcribeから意図しない戻り値型:{type(r)}")
+        raise ex.ProgramError(f"Whisper.transcribeから意図しない戻り値型:{type(r)}")
 
 class RecognitionModelWhisperFaster(RecognitionModel):
     """
@@ -70,9 +70,9 @@ class RecognitionModelWhisperFaster(RecognitionModel):
             compute_type = "float16" if device == "cuda" else "int8",
             download_root=download_root)
 
-    def transcribe(self, na:np.ndarray) -> TranscribeResult:
+    def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
         segments, _  = self.audio_model.transcribe(
-            na.astype(np.float32) / float(np.iinfo(np.int16).max),
+            audio_data.astype(np.float32) / float(np.iinfo(np.int16).max),
             language = self.__language)
         c = []
         for s in segments:
@@ -100,8 +100,8 @@ class RecognitionModelGoogleApi(RecognitionModel):
         self.__operation_timeout = timeout
         self.__max_loop = challenge
 
-    def transcribe(self, na:np.ndarray) -> TranscribeResult:
-        data = sr.AudioData(na.astype(np.int16, order="C"), self.__sample_rate, self.__sample_width)
+    def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
+        data = sr.AudioData(audio_data.astype(np.int16, order="C"), self.__sample_rate, self.__sample_width)
         loop = 0
 
         while loop < self.__max_loop:
@@ -112,18 +112,13 @@ class RecognitionModelGoogleApi(RecognitionModel):
                     language=self.__language,
                     key = self.__key)
                 return TranscribeResult(r.transcript, r.raw_data)
-
             except urlerr.HTTPError as e:
                 raise TranscribeException("google音声認識でHTTPエラー: {}".format(e.reason), e)
             except urlerr.URLError as e:
                 raise TranscribeException("google音声認識でリモート接続エラー: {}".format(e.reason), e)
-            except sr.UnknownValueError as e:
-                raise TranscribeException(
-                    "googleは音声データを検出できませんでした",
-                    e)
             except google.UnknownValueError as e:
                 raise TranscribeException(
-                    f"googleは音声データを検出できませんでした_mod",
+                    f"googleは音声データを検出できませんでした",
                     e)
             except TimeoutError:
                 if self.__max_loop == 1:

@@ -3,7 +3,6 @@ import websockets.exceptions
 import json
 
 import src.exception as ex
-from src.cancellation import CancellationObject
 
 class RecognitionOutputer:
     """
@@ -26,7 +25,7 @@ class WebSocketOutputer(RecognitionOutputer):
     """
     ウェブソケットに出力する基底クラス
     """
-    def __init__(self, uri:str, remote_name:str, _:CancellationObject):
+    def __init__(self, uri:str, remote_name:str):
         self.__uri = uri
         self.__remote_name = remote_name
         self.__soc:ClientConnection | None = None
@@ -85,8 +84,8 @@ class YukarinetteOutputer(WebSocketOutputer):
     """
     ゆかりねっと外部連携に出力する
     """
-    def __init__(self, uri:str, cancel:CancellationObject):
-        super().__init__(uri, "ゆかりねっと", cancel)
+    def __init__(self, uri:str):
+        super().__init__(uri, "ゆかりねっと")
 
     def output(self, text:str):
         super().output(f"0:{text}")
@@ -95,15 +94,15 @@ class YukaconeOutputer(WebSocketOutputer):
     """
     ゆかコネNEO外部連携に出力する
     """
-    def __init__(self, uri:str, cancel:CancellationObject):
-        super().__init__(f"{uri}/textonly", "ゆかコネNEO", cancel)
+    def __init__(self, uri:str):
+        super().__init__(f"{uri}/textonly", "ゆかコネNEO")
 
     def output(self, text:str):
         super().output(text)
 
 class IlluminateSpeechOutputer(WebSocketOutputer):
-    def __init__(self, uri:str, cancel:CancellationObject):
-        super().__init__(uri, "-", cancel)
+    def __init__(self, uri:str):
+        super().__init__(uri, "-")
 
     def output(self, text:str):
         super().output(json.dumps({
