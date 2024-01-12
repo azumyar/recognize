@@ -6,6 +6,9 @@ import speech_recognition as sr
 from src.cancellation import CancellationObject
 
 class Mic:
+    """
+    マイク操作クラス
+    """
     def __init__(
         self,
         sample_rate:int,
@@ -14,20 +17,20 @@ class Mic:
         dynamic_energy:bool,
         mic_index:Optional[int]) -> None:
 
-        self.sample_rate = sample_rate
-        self.audio_queue = queue.Queue()
+        self.__sample_rate = sample_rate
+        self.__audio_queue = queue.Queue()
 
-        self.source = sr.Microphone(
+        self.__source = sr.Microphone(
             sample_rate = sample_rate,
             device_index = mic_index)
-        self.recorder = sr.Recognizer()
-        self.recorder.energy_threshold = energy
-        self.recorder.pause_threshold = pause
-        self.recorder.dynamic_energy_threshold = dynamic_energy
-        with self.source:
-            self.recorder.adjust_for_ambient_noise(self.source)
+        self.__recorder = sr.Recognizer()
+        self.__recorder.energy_threshold = energy
+        self.__recorder.pause_threshold = pause
+        self.__recorder.dynamic_energy_threshold = dynamic_energy
+        with self.__source:
+            self.__recorder.adjust_for_ambient_noise(self.__source)
 
-        self.device_name_val = "デフォルトマイク" if mic_index is None else self.source.list_microphone_names()[mic_index]
+        self.device_name_val = "デフォルトマイク" if mic_index is None else self.__source.list_microphone_names()[mic_index]
 
     @property
     def device_name(self):
@@ -38,19 +41,22 @@ class Mic:
         is_goted = False
         start_time = time.time()
         while not is_goted or time.time() - start_time < min_time:
-            while not self.audio_queue.empty():
-                audio += self.audio_queue.get()
+            while not self.__audio_queue.empty():
+                audio += self.__audio_queue.get()
                 is_goted = True
-        return sr.AudioData(audio, self.sample_rate, 2).get_raw_data()
+        return sr.AudioData(audio, self.__sample_rate, 2).get_raw_data()
 
     def listen(self, onrecord:Callable[[bytes], None], timeout=None, phrase_time_limit=None) -> None:
+        """
+        一度だけマイクを拾う
+        """
         try:
-            with self.source as microphone:
-                audio = self.recorder.listen(
+            with self.__source as microphone:
+                audio = self.__recorder.listen(
                     source = microphone,
                     timeout = timeout,
                     phrase_time_limit = phrase_time_limit)
-            self.audio_queue.put_nowait(audio.get_raw_data())
+            self.__audio_queue.put_nowait(audio.get_raw_data())
             audio_data = self.__get_audio_data()
             onrecord(audio_data)
         except sr.WaitTimeoutError:
@@ -59,13 +65,16 @@ class Mic:
             pass
 
     def listen_loop(self, onrecord:Callable[[bytes], None], cancel:CancellationObject, phrase_time_limit=None) -> None:
+        """
+        マイクループ。処理を返しません。
+        """
         def record(_, audio:sr.AudioData) -> None:
-            self.audio_queue.put_nowait(audio.get_raw_data())
+            self.__audio_queue.put_nowait(audio.get_raw_data())
 
-        stop = self.recorder.listen_in_background(self.source, record, phrase_time_limit=phrase_time_limit)
+        stop = self.__recorder.listen_in_background(self.__source, record, phrase_time_limit=phrase_time_limit)
         try:
             while cancel.alive:
-                if not self.audio_queue.empty():
+                if not self.__audio_queue.empty():
                     audio_data = self.__get_audio_data()
                     onrecord(audio_data)
                 time.sleep(0.1)

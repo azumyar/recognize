@@ -21,7 +21,7 @@ import src.google_recognizers as google
 
 @click.command()
 @click.option("--test", default=False, help="一度だけ認識を行います", is_flag=True, type=bool)
-@click.option("-m", "--method", default="faster_whisper", help="使用する認識方法", type=click.Choice(["whisper","faster_whisper", "google"]))
+@click.option("-m", "--method", default="faster_whisper", help="使用する認識方法", type=click.Choice(["whisper","faster_whisper", "google", "google_duplex"]))
 @click.option("--whisper_model", default="base", help="(whisper)使用する推論モデル", type=click.Choice(["tiny","base", "small","medium","large","large-v2","large-v3"]))
 @click.option("--whisper_device", default=("cuda" if torch.cuda.is_available() else "cpu"), help="(whisper)使用する演算装置", type=click.Choice(["cpu","cuda"]))
 @click.option("--whisper_language", default="", help="(whisper)音声解析対象の言語", type=click.Choice(val.LANGUAGE_CODES))
@@ -83,18 +83,23 @@ def main(
         sampling_rate = 16000
 
         print("認識モデルの初期化")
-        audio_model:transcribe.AudioModel = {
-            "whisper": lambda: transcribe.AudioModelWhisper(
+        audio_model:transcribe.RecognitionModel = {
+            "whisper": lambda: transcribe.RecognitionModelWhisper(
                 model=whisper_model,
                 language=whisper_language,
                 device=whisper_device,
                 download_root=f"{env.root}{os.sep}.cache"),
-            "faster_whisper": lambda:  transcribe.AudioModelWhisperFaster(
+            "faster_whisper": lambda:  transcribe.RecognitionModelWhisperFaster(
                 model=whisper_model,
                 language=whisper_language,
                 device=whisper_device,
                 download_root=f"{env.root}{os.sep}.cache"),
-            "google": lambda: transcribe.AudioModelGoogle(
+            "google": lambda: transcribe.RecognitionModelGoogle(
+                sample_rate=sampling_rate,
+                sample_width=2,
+                language=google_language,
+                timeout=google_timeout if 0 < google_timeout else None),
+            "google_duplex": lambda: transcribe.RecognitionModelGoogleDuplex(
                 sample_rate=sampling_rate,
                 sample_width=2,
                 language=google_language,
@@ -136,8 +141,14 @@ def main(
         for f in filters:
             env.tarce(lambda: print(f"#{type(f)}"))
 
-        def onrecord(data:bytes):
+        def onrecord(data:bytes) -> None:
+            """
+            マイク認識データが返るコールバック関数
+            """
             def filter(ary:np.ndarray) -> np.ndarray:
+                """
+                フィルタ処理をする
+                """
                 if len(filters) == 0:
                     return ary
                 else:
@@ -148,28 +159,30 @@ def main(
 
             env.tarce(lambda: print(f"#録音データ取得(time={datetime.datetime.now()}, pcm={(int)(len(data)/2)})"))
             try:
-                r, time = env.performance(lambda: audio_model.transcribe(filter(np.frombuffer(data, np.int16).flatten())))
-                if r[0] not in ["", " ", "\n", None]:
-                    env.debug(lambda: print(f"認識時間[{time}ms]", end=": "))
-                    outputer.output(r[0])
+                r = env.performance(lambda: audio_model.transcribe(filter(np.frombuffer(data, np.int16).flatten())))
+                if r.result[0] not in ["", " ", "\n", None]:
+                    env.debug(lambda: print(f"認識時間[{r.time}ms]", end=": "))
+                    outputer.output(r.result[0])
                 if not r[1] is None:
-                    env.tarce(lambda: print(f"#{r[1]}"))
+                    env.tarce(lambda: print(f"{r.result[1]}"))
             except transcribe.TranscribeException as e:
                 if e.inner is None:
                     print(e.message)
                 else:
-                    if isinstance(e.inner, sr.UnknownValueError):
-                        env.tarce(lambda: print(f"#{e.message}"))
                     if isinstance(e.inner, urlerr.HTTPError) or isinstance(e.inner, urlerr.URLError):
-                        print(e.message)
-                    if isinstance(e.inner, google.UnknownValueErrorMod):
-                        env.tarce(lambda: print(f"#{e.message}\r\n{cast(google.UnknownValueErrorMod, e.inner).raw_data}"))
+                        env.debug(lambda: print(e.message))
+                    if isinstance(e.inner, google.UnknownValueError):
+                        er = cast(google.UnknownValueError, e.inner)
+                        if er.raw_data is None:
+                            env.tarce(lambda: print(f"#{e.message}"))
+                        else:
+                            env.tarce(lambda: print(f"#{e.message}\r\n{cast(google.UnknownValueError, e.inner).raw_data}"))
             except output.WsOutputException as e:
                 print(e.message)
                 if not e.inner is None:
                     env.tarce(lambda: print(f"# => {type(e.inner)}{e.inner}"))
             except Exception as e:
-                print(f"!!!!意図しない例外({type(e)}:{e})!!")
+                print(f"!!!!意図しない例外({type(e)}:{e})!!!!")
             env.tarce(lambda: print(f"#認識処理終了(time={datetime.datetime.now()})"))
 
         print("認識中…")

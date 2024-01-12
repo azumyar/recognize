@@ -1,10 +1,19 @@
 class CancellationObject:
+    """
+    非同期実行キャンセル用クラス
+    """
     def __init__(self) -> None:
-        self.is_alive = True
+        self.__is_alive = True
 
     @property
     def alive(self) -> bool:
-        return self.is_alive
+        """
+        Trueなら非同期実行を継続
+        """
+        return self.__is_alive
 
     def cancel(self) -> None:
-        self.is_alive = False
+        """
+        非同期実行のキャンセルを通知
+        """
+        self.__is_alive = False

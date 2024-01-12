@@ -1,15 +1,30 @@
 
 
 class IlluminateException(Exception):
+    """
+    例外基底クラス
+    """
     def __init__(self, message:str, inner:Exception|None = None):
         super().__init__(message)
-        self._message = message
-        self._inner = inner
+        self.__message = message
+        self.__inner = inner
 
     @property
-    def message(self):
-        return self._message
+    def message(self) -> str:
+        """
+        例外メッセージ
+        """
+        return self.__message
 
     @property
-    def inner(self):
-        return self._inner
+    def inner(self) -> Exception | None:
+        """
+        内部例外がある場合内部例外
+        """
+        return self.__inner
+    
+class ProgramError(Exception):
+    """
+    この例外はプログラムバグなので投げられても処理しないこと
+    """
+    pass
