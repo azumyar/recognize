@@ -75,8 +75,20 @@ def main(
         os.chdir(env.root)
 
     if list_devices:
-        for index, name in enumerate(sr.Microphone.list_microphone_names()):
-            print(f"{index} : {name}")
+        audio = sr.Microphone.get_pyaudio().PyAudio()
+        try:
+            for i in range(audio.get_device_count()):
+                device_info = audio.get_device_info_by_index(i)
+                host_api = device_info.get("hostApi")
+                name = device_info.get("name")
+                input = device_info.get("maxInputChannels")
+                host_api_name = "-"
+                if isinstance(host_api, int):
+                    host_api_name = audio.get_host_api_info_by_index(host_api).get("name")
+                if isinstance(input, int) and 0 < input:
+                    print(f"{i} : [{host_api_name}]{name}")            
+        finally:
+            audio.terminate()
         return
 
     cancel = CancellationObject()
