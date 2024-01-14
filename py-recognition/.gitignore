@@ -1,0 +1,7 @@
+.debug
+build
+dist
+src/__pycache__
+
+Pipfile.lock
+recognize.spec
