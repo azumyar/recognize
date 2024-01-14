@@ -4,6 +4,5 @@ pushd "%~dp0"
   --out yukacone ^
   --method google ^
   --disable_lpf ^
-  --disable_hpf  ^
-  --out_yukacone 49513 
+  --disable_hpf
 pause
