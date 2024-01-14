@@ -35,7 +35,7 @@ from src.filter import *
 @click.option("--list_devices",default=False, help="マイクデバイスのリストをプリント", is_flag=True, type=bool)
 @click.option("--out", default="print", help="認識結果の出力先", type=click.Choice(["print","yukarinette", "yukacone"]))
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
-@click.option("--out_yukacone",default=5000, help="ゆかコネNEOの外部連携ポートを指定", type=int)
+@click.option("--out_yukacone",default=None, help="ゆかコネNEOの外部連携ポートを指定", type=int)
 #@click.option("--out_illuminate",default=495134, help="未実装",type=int)
 @click.option("--filter_lpf_cutoff", default=200, help="ローパスフィルタのカットオフ周波数を設定", type=int)
 @click.option("--filter_lpf_cutoff_upper", default=200, help="ローパスフィルタのカットオフ周波数(アッパー)を設定", type=int)
@@ -59,7 +59,7 @@ def main(
     list_devices:bool,
     out:str,
     out_yukarinette:int,
-    out_yukacone:int,
+    out_yukacone:Optional[int],
 #    out_illuminate:int,
     filter_lpf_cutoff:int,
     filter_lpf_cutoff_upper:int,
@@ -132,7 +132,7 @@ def main(
         outputer:output.RecognitionOutputer = {
             "print": lambda: output.PrintOutputer(),
             "yukarinette": lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}"),
-            "yukacone": lambda: output.YukaconeOutputer(f"ws://localhost:{out_yukacone}"),
+            "yukacone": lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}"),
 #            "illuminate": lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}"),
         }[out]()
         env.tarce(lambda: print(f"#出力は{type(outputer)}を使用"))
