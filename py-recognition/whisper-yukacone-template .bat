@@ -4,6 +4,5 @@ pushd "%~dp0"
   --out yukacone ^
   --method faster_whisper ^
   --whisper_model medium ^
-  --whisper_language ja ^
-  --out_yukacone 49513 
+  --whisper_language ja
 pause

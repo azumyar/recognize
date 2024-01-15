@@ -32,10 +32,9 @@ from src.filter import *
 @click.option("--mic_energy", default=300, help="設定した値より小さいマイク音量を無音として扱います", type=float)
 @click.option("--mic_dynamic_energy", default=False,is_flag=True, help="Trueの場合周りの騒音に基づいてマイクのエネルギーレベルを動的に変更します", type=bool)
 @click.option("--mic_pause", default=0.8, help="無音として認識される秒数を指定します", type=float)
-@click.option("--list_devices",default=False, help="マイクデバイスのリストをプリント", is_flag=True, type=bool)
 @click.option("--out", default="print", help="認識結果の出力先", type=click.Choice(["print","yukarinette", "yukacone"]))
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
-@click.option("--out_yukacone",default=5000, help="ゆかコネNEOの外部連携ポートを指定", type=int)
+@click.option("--out_yukacone",default=None, help="ゆかコネNEOの外部連携ポートを指定", type=int)
 #@click.option("--out_illuminate",default=495134, help="未実装",type=int)
 @click.option("--filter_lpf_cutoff", default=200, help="ローパスフィルタのカットオフ周波数を設定", type=int)
 @click.option("--filter_lpf_cutoff_upper", default=200, help="ローパスフィルタのカットオフ周波数(アッパー)を設定", type=int)
@@ -43,6 +42,8 @@ from src.filter import *
 @click.option("--filter_hpf_cutoff_upper", default=200, help="ハイパスフィルタのカットオフ周波数(アッパー)を設定", type=int)
 @click.option("--disable_lpf", default=False, help="ローパスフィルタを使用しません", is_flag=True, type=bool)
 @click.option("--disable_hpf", default=False, help="ハイパスフィルタを使用しません", is_flag=True, type=bool)
+@click.option("--print_mics",default=False, help="マイクデバイスの一覧をプリント", is_flag=True, type=bool)
+@click.option("--list_devices",default=False, help="(廃止予定)--print_micsと同じ", is_flag=True, type=bool)
 @click.option("--verbose", default="0", help="出力ログレベルを指定", type=click.Choice(["0", "1", "2"]))
 def main(
     test:bool,
@@ -56,10 +57,9 @@ def main(
     mic_energy:float,
     mic_dynamic_energy:bool,
     mic_pause:float,
-    list_devices:bool,
     out:str,
     out_yukarinette:int,
-    out_yukacone:int,
+    out_yukacone:Optional[int],
 #    out_illuminate:int,
     filter_lpf_cutoff:int,
     filter_lpf_cutoff_upper:int,
@@ -67,6 +67,8 @@ def main(
     filter_hpf_cutoff_upper:int,
     disable_lpf:bool,
     disable_hpf:bool,
+    print_mics:bool,
+    list_devices:bool,
     verbose:str) -> None:
 
     env = Env(int(verbose))
@@ -74,7 +76,7 @@ def main(
         os.makedirs(env.root, exist_ok=True)
         os.chdir(env.root)
 
-    if list_devices:
+    if print_mics or list_devices:
         audio = sr.Microphone.get_pyaudio().PyAudio()
         try:
             for i in range(audio.get_device_count()):
@@ -132,7 +134,7 @@ def main(
         outputer:output.RecognitionOutputer = {
             "print": lambda: output.PrintOutputer(),
             "yukarinette": lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}"),
-            "yukacone": lambda: output.YukaconeOutputer(f"ws://localhost:{out_yukacone}"),
+            "yukacone": lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}"),
 #            "illuminate": lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}"),
         }[out]()
         env.tarce(lambda: print(f"#出力は{type(outputer)}を使用"))
