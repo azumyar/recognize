@@ -63,11 +63,28 @@ class RecognitionModelWhisperFaster(RecognitionModel):
         download_root:str) -> None:
         self.__language = language if language != "" else None
 
+        def get(device:str) -> tuple[str, str]:
+            if device == "cuda":
+                try:
+                    import torch
+                    if torch.cuda.is_available():
+                        mj, mi = torch.cuda.get_device_capability()
+                        if 7 <= mj:
+                            return ("cuda", "float16")
+                        elif mj == 6 and 1 <= mi:
+                            return ("cuda", "int8")
+                        else:
+                            return ("cpu", "int8")
+                except:
+                    pass
+            return ("cpu", "int8")
+
         m = f"{model}.{language}" if (model != "large") and (model != "large-v2") and (language == "en") else model
+        run_device, compute_type = get(device)
         self.audio_model = fwis.WhisperModel(
             m,
-            device,
-            compute_type = "float16" if device == "cuda" else "int8",
+            run_device,
+            compute_type = compute_type,
             download_root=download_root)
 
     def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:

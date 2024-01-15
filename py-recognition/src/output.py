@@ -1,5 +1,4 @@
 from websockets.sync.client import connect, ClientConnection
-import websockets.exceptions
 import json
 
 import src.exception as ex
@@ -99,6 +98,29 @@ class YukaconeOutputer(WebSocketOutputer):
 
     def output(self, text:str):
         super().output(text)
+
+    @staticmethod
+    def get_port(port:int | None) -> str:
+        def get() -> str:
+            import winreg
+            key:winreg.HKEYType | None = None
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\YukarinetteConnectorNeo")
+                for i in range(winreg.QueryInfoKey(key)[1]):
+                    name, val, _ = winreg.EnumValue(key, i)
+                    if name == "WebSocket":
+                        return str(val)
+                raise RuntimeError("ゆかコネが見当たりません")
+            finally:
+                if not key is None:
+                    winreg.CloseKey(key)
+
+        if not port is None:
+            return str(port)
+        else:
+            return get()
+
+
 
 class IlluminateSpeechOutputer(WebSocketOutputer):
     def __init__(self, uri:str):
