@@ -41,6 +41,7 @@ class Mic:
         is_goted = False
         start_time = time.time()
         while not is_goted or time.time() - start_time < min_time:
+            time.sleep(0.01)
             while not self.__audio_queue.empty():
                 audio += self.__audio_queue.get()
                 is_goted = True
