@@ -9,6 +9,7 @@ import speech_recognition as sr
 import urllib.error as urlerr
 import numpy as np
 import datetime as dt
+from concurrent.futures import ThreadPoolExecutor
 from typing import cast, Optional
 
 import src.recognition as recognition
@@ -94,6 +95,7 @@ def main(
         return
 
     cancel = CancellationObject()
+    thread_pool = ThreadPoolExecutor(max_workers=1)
     try:
         sampling_rate = 16000
 
@@ -171,38 +173,39 @@ def main(
                     for f in filters:
                         f.filter(fft)
                     return np.real(np.fft.ifft(fft))
-
-            env.tarce(lambda: print(f"#録音データ取得(time={dt.datetime.now()}, pcm={(int)(len(data)/2)})"))
-            try:
-                r = env.performance(lambda: recognition_model.transcribe(filter(np.frombuffer(data, np.int16).flatten())))
-                if r.result[0] not in ["", " ", "\n", None]:
-                    env.debug(lambda: print(f"認識時間[{r.time}ms]", end=": "))
-                    outputer.output(r.result[0])
-                if not r[1] is None:
-                    env.tarce(lambda: print(f"{r.result[1]}"))
-            except recognition.TranscribeException as e:
-                if e.inner is None:
-                    print(e.message)
-                else:
-                    if isinstance(e.inner, urlerr.HTTPError) or isinstance(e.inner, urlerr.URLError):
-                        env.debug(lambda: print(e.message))
-                    elif isinstance(e.inner, google.UnknownValueError):
-                        er = cast(google.UnknownValueError, e.inner)
-                        if er.raw_data is None:
-                            env.tarce(lambda: print(f"#{e.message}"))
-                        else:
-                            env.tarce(lambda: print(f"#{e.message}\r\n{er.raw_data}"))
+            def task():
+                env.tarce(lambda: print(f"#録音データ取得(time={dt.datetime.now()}, pcm={(int)(len(data)/2)})"))
+                try:
+                    r = env.performance(lambda: recognition_model.transcribe(filter(np.frombuffer(data, np.int16).flatten())))
+                    if r.result[0] not in ["", " ", "\n", None]:
+                        env.debug(lambda: print(f"認識時間[{r.time}ms]", end=": "))
+                        outputer.output(r.result[0])
+                    if not r[1] is None:
+                        env.tarce(lambda: print(f"{r.result[1]}"))
+                except recognition.TranscribeException as e:
+                    if e.inner is None:
+                        print(e.message)
                     else:
-                        env.tarce(lambda: print(f"#{e.message}"))
-                        env.tarce(lambda: print(f"#{type(e.inner)}:{e.inner}"))
-            except output.WsOutputException as e:
-                print(e.message)
-                if not e.inner is None:
-                    env.tarce(lambda: print(f"# => {type(e.inner)}:{e.inner}"))
-            except Exception as e:
-                print(f"!!!!意図しない例外({type(e)}:{e})!!!!")
-                print(traceback.format_exc())
-            env.tarce(lambda: print(f"#認識処理終了(time={dt.datetime.now()})"))
+                        if isinstance(e.inner, urlerr.HTTPError) or isinstance(e.inner, urlerr.URLError):
+                            env.debug(lambda: print(e.message))
+                        elif isinstance(e.inner, google.UnknownValueError):
+                            er = cast(google.UnknownValueError, e.inner)
+                            if er.raw_data is None:
+                                env.tarce(lambda: print(f"#{e.message}"))
+                            else:
+                                env.tarce(lambda: print(f"#{e.message}\r\n{er.raw_data}"))
+                        else:
+                            env.tarce(lambda: print(f"#{e.message}"))
+                            env.tarce(lambda: print(f"#{type(e.inner)}:{e.inner}"))
+                except output.WsOutputException as e:
+                    print(e.message)
+                    if not e.inner is None:
+                        env.tarce(lambda: print(f"# => {type(e.inner)}:{e.inner}"))
+                except Exception as e:
+                    print(f"!!!!意図しない例外({type(e)}:{e})!!!!")
+                    print(traceback.format_exc())
+                env.tarce(lambda: print(f"#認識処理終了(time={dt.datetime.now()})"))
+            thread_pool.submit(task)
 
         print("認識中…")
         if test:
