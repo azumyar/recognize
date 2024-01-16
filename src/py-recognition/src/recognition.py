@@ -21,6 +21,11 @@ class RecognitionModel:
     """
     認識モデル抽象基底クラス
     """
+
+    @property
+    def required_sample_rate(self) -> int | None:
+        ...
+
     def transcribe(self, _:np.ndarray) -> TranscribeResult:
         ...
 
@@ -39,6 +44,10 @@ class RecognitionModelWhisper(RecognitionModel):
 
         m = f"{model}.{language}" if (model != "large") and (model != "large-v2") and (model != "large-v3") and (language == "en") else model
         self.audio_model = whisper.load_model(m, download_root=download_root).to(device)
+
+    @property
+    def required_sample_rate(self) -> int | None:
+        return 16000
 
     def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
         r = self.audio_model.transcribe(
@@ -87,6 +96,10 @@ class RecognitionModelWhisperFaster(RecognitionModel):
             compute_type = compute_type,
             download_root=download_root)
 
+    @property
+    def required_sample_rate(self) -> int | None:
+        return 16000
+
     def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
         segments, _  = self.audio_model.transcribe(
             audio_data.astype(np.float32) / float(np.iinfo(np.int16).max),
@@ -105,6 +118,7 @@ class RecognitionModelGoogleApi(RecognitionModel):
         api:Callable[..., google.RecognizeResult],
         sample_rate:int,
         sample_width:int,
+        convert_sample_rete:bool=False,
         language:str="ja-JP",
         key:str | None=None,
         timeout:float | None = None,
@@ -116,6 +130,11 @@ class RecognitionModelGoogleApi(RecognitionModel):
         self.__key = key
         self.__operation_timeout = timeout
         self.__max_loop = challenge
+        self.__required_sample_rate = None if convert_sample_rete else 16000
+
+    @property
+    def required_sample_rate(self) -> int | None:
+        return self.__required_sample_rate
 
     def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
         data = sr.AudioData(audio_data.astype(np.int16, order="C"), self.__sample_rate, self.__sample_width)
@@ -148,16 +167,16 @@ class RecognitionModelGoogle(RecognitionModelGoogleApi):
     """
     認識モデルのgoogle音声認識API v2実装
     """
-    def __init__(self, sample_rate: int, sample_width: int, language: str = "ja-JP", key: str | None = None, timeout: float | None = None, challenge: int = 1):
-        super().__init__(google.recognize_google, sample_rate, sample_width, language, key, timeout, challenge)
+    def __init__(self, sample_rate: int, sample_width: int, convert_sample_rete: bool=False, language: str = "ja-JP", key: str | None = None, timeout: float | None = None, challenge: int = 1):
+        super().__init__(google.recognize_google, sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
 
 
 class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
     """
     認識モデルのgoogle全二重API実装
     """
-    def __init__(self, sample_rate: int, sample_width: int, language: str = "ja-JP", key: str | None = None, timeout: float | None = None, challenge: int = 1):
-        super().__init__(google.recognize_google_duplex, sample_rate, sample_width, language, key, timeout, challenge)
+    def __init__(self, sample_rate: int, sample_width: int, convert_sample_rete: bool=False, language: str = "ja-JP", key: str | None = None, timeout: float | None = None, challenge: int = 1):
+        super().__init__(google.recognize_google_duplex, sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
 
 
 class TranscribeException(ex.IlluminateException):
