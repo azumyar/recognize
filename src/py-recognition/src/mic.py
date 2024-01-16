@@ -39,7 +39,6 @@ class Mic:
             finally:
                 pass
 
-
         if not mic_index is None:
             audio = sr.Microphone.get_pyaudio().PyAudio()
             try:
@@ -55,6 +54,8 @@ class Mic:
         self.__recorder = sr.Recognizer()
         self.__recorder.energy_threshold = energy
         self.__recorder.pause_threshold = pause
+        if self.__recorder.pause_threshold < self.__recorder.non_speaking_duration:
+            self.__recorder.non_speaking_duration = pause / 2
         self.__recorder.dynamic_energy_threshold = dynamic_energy
 
         self.__device_name = "デフォルトマイク" if mic_index is None else self.__source.list_microphone_names()[mic_index]
