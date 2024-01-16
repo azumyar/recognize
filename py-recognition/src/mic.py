@@ -3,12 +3,17 @@ import time
 from typing import Optional, Callable
 import speech_recognition as sr
 
+import src.exception as ex
 from src.cancellation import CancellationObject
 
 class Mic:
     """
     マイク操作クラス
     """
+
+    __HOSTAPI_WASAPI = 2
+    __HOSTAPI_KS = 3
+
     def __init__(
         self,
         sample_rate:int,
@@ -17,24 +22,67 @@ class Mic:
         dynamic_energy:bool,
         mic_index:Optional[int]) -> None:
 
+        def check_mic(audio, mic_index:int, sample_rate:int):
+            try:
+                s = sr.Microphone.MicrophoneStream(
+                    audio.open(
+                        input = True,
+                        input_device_index = mic_index,
+                        channels = 1,
+                        format = sr.Microphone.get_pyaudio().paInt16,
+                        rate = sample_rate,
+                        frames_per_buffer = 1024,
+                    ))
+                s.close()
+            except Exception as e:
+                raise MicInitializeExeception("マイクの初期化に失敗しました", e)
+            finally:
+                pass
+
+        if not mic_index is None:
+            audio = sr.Microphone.get_pyaudio().PyAudio()
+            try:
+                    check_mic(audio, mic_index, sample_rate)
+            finally:
+                audio.terminate()
+
         self.__sample_rate = sample_rate
         self.__audio_queue = queue.Queue()
-
         self.__source = sr.Microphone(
             sample_rate = sample_rate,
-            device_index = mic_index)
+            device_index = mic_index)        
         self.__recorder = sr.Recognizer()
         self.__recorder.energy_threshold = energy
         self.__recorder.pause_threshold = pause
+        if self.__recorder.pause_threshold < self.__recorder.non_speaking_duration:
+            self.__recorder.non_speaking_duration = pause / 2
         self.__recorder.dynamic_energy_threshold = dynamic_energy
-        with self.__source:
-            self.__recorder.adjust_for_ambient_noise(self.__source)
 
-        self.device_name_val = "デフォルトマイク" if mic_index is None else self.__source.list_microphone_names()[mic_index]
+        self.__device_name = "デフォルトマイク" if mic_index is None else self.__source.list_microphone_names()[mic_index]
+
+        with self.__source as mic:
+            self.__recorder.adjust_for_ambient_noise(mic)
+
+    @staticmethod
+    def update_sample_rate(mic_index:int | None, sample_rate:int) -> int:
+        ret = sample_rate
+        if not mic_index is None:
+            audio = sr.Microphone.get_pyaudio().PyAudio()
+            try:
+                device_info = audio.get_device_info_by_index(mic_index)
+                host = device_info.get("hostApi")
+                # WASAPI共有モードはサンプリングレートをデバイスと一致させる必要がある
+                if isinstance(host, int) and host == Mic.__HOSTAPI_WASAPI:
+                    rate = device_info.get("defaultSampleRate")
+                    assert isinstance(rate, float)
+                    ret = int(rate)
+            finally:
+                audio.terminate()
+        return ret
 
     @property
     def device_name(self):
-        return self.device_name_val
+        return self.__device_name
     
     def __get_audio_data(self, min_time:float=-1.) -> bytes:
         audio = bytes()
@@ -82,3 +130,6 @@ class Mic:
         finally:
             stop(False)
 
+
+class MicInitializeExeception(ex.IlluminateException):
+    pass
