@@ -12,12 +12,12 @@ import datetime as dt
 from concurrent.futures import ThreadPoolExecutor
 from typing import cast, Optional
 
+import src.mic as mic_
 import src.recognition as recognition
 import src.output as output
 import src.val as val
 import src.google_recognizers as google
 from src.env import Env
-from src.mic import Mic
 from src.cancellation import CancellationObject
 from src.filter import *
 
@@ -33,6 +33,7 @@ from src.filter import *
 @click.option("--mic_energy", default=300, help="設定した値より小さいマイク音量を無音として扱います", type=float)
 @click.option("--mic_dynamic_energy", default=False,is_flag=True, help="Trueの場合周りの騒音に基づいてマイクのエネルギーレベルを動的に変更します", type=bool)
 @click.option("--mic_pause", default=0.8, help="無音として認識される秒数を指定します", type=float)
+@click.option("--mic_sampling_rate", default=16000, help="-", type=int)
 @click.option("--out", default="print", help="認識結果の出力先", type=click.Choice(["print","yukarinette", "yukacone"]))
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
 @click.option("--out_yukacone",default=None, help="ゆかコネNEOの外部連携ポートを指定", type=int)
@@ -58,6 +59,7 @@ def main(
     mic_energy:float,
     mic_dynamic_energy:bool,
     mic_pause:float,
+    mic_sampling_rate:int,
     out:str,
     out_yukarinette:int,
     out_yukacone:Optional[int],
@@ -86,10 +88,11 @@ def main(
                 name = device_info.get("name")
                 input = device_info.get("maxInputChannels")
                 host_api_name = "-"
+                rate = device_info.get("defaultSampleRate")
                 if isinstance(host_api, int):
                     host_api_name = audio.get_host_api_info_by_index(host_api).get("name")
                 if isinstance(input, int) and 0 < input:
-                    print(f"{i} : [{host_api_name}]{name}")            
+                    print(f"{i} : [{host_api_name}]{name} sample_rate={rate}")            
         finally:
             audio.terminate()
         return
@@ -97,7 +100,7 @@ def main(
     cancel = CancellationObject()
     thread_pool = ThreadPoolExecutor(max_workers=1)
     try:
-        sampling_rate = 16000
+        sampling_rate = mic_.Mic.update_sample_rate(mic, mic_sampling_rate) #16000
 
         print("認識モデルの初期化")
         recognition_model:recognition.RecognitionModel = {
@@ -122,10 +125,18 @@ def main(
                 language=google_language,
                 timeout=google_timeout if 0 < google_timeout else None),
         }[method]()
+        # エラー処理
+        # TODO: サンプリング変換実装
+        if method == "whisper" or method == "faster_whisper":
+            if sampling_rate != 16000:
+                print("whisperはサンプリング周波数==16000のみ処理できます(--mic_sampling_rate)")
+                print("WASAPIデバイスは周波数がデバイスの周波数に変更されます")
+                print("終了します")
+                return
         env.tarce(lambda: print(f"#認識モデルは{type(recognition_model)}を使用"))
 
         print("マイクの初期化")
-        mc = Mic(
+        mc = mic_.Mic(
             sampling_rate,
             mic_energy,
             mic_pause,
@@ -212,6 +223,9 @@ def main(
             mc.listen(onrecord)
         else:
             mc.listen_loop(onrecord, cancel)
+    except mic_.MicInitializeExeception as e:
+        print(e.message)
+        print(f"{type(e.inner)}{e.inner}")
     except KeyboardInterrupt:
         cancel.cancel()
         print("ctrl+c")
