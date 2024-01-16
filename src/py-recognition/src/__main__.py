@@ -125,6 +125,14 @@ def main(
                 language=google_language,
                 timeout=google_timeout if 0 < google_timeout else None),
         }[method]()
+        # エラー処理
+        # TODO: サンプリング変換実装
+        if method == "whisper" or method == "faster_whisper":
+            if sampling_rate != 16000:
+                print("whisperはサンプリング周波数==16000のみ処理できます(--mic_sampling_rate)")
+                print("WASAPIデバイスは周波数がデバイスの周波数に変更されます")
+                print("終了します")
+                return
         env.tarce(lambda: print(f"#認識モデルは{type(recognition_model)}を使用"))
 
         print("マイクの初期化")
