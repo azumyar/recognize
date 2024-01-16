@@ -50,15 +50,18 @@ class DuplexApiResult(NamedTuple):
     exception:Exception | None
 
 
-def encode_falc(audio_data:AudioData) -> EncodeData:
+def encode_falc(audio_data:AudioData, convert_rate:int | None) -> EncodeData:
     """
     FALCにエンコード
     """
+    conv = convert_rate
+    if (not conv is None and conv < 8000) or (conv is None and audio_data.sample_rate < 8000):
+        conv = 8000
     flac_data = audio_data.get_flac_data(
-        convert_rate=None if audio_data.sample_rate >= 8000 else 8000,  # audio samples must be at least 8 kHz
-        convert_width=2  # audio samples must be 16-bit
+        convert_rate = conv,
+        convert_width = 2 
     )
-    return EncodeData(flac_data, f"audio/x-flac; rate={audio_data.sample_rate}")
+    return EncodeData(flac_data, f"audio/x-flac; rate={conv if not conv is None else audio_data.sample_rate}")
 
 
 def recognize_google(audio_data:EncodeData, timeout:float | None, key:str | None=None, language:str="en-US", pfilter:int=0) -> RecognizeResult:

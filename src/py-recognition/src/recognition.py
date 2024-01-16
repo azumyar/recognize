@@ -10,6 +10,9 @@ import src.exception as ex
 import src.google_recognizers as google
 
 
+__SAMPLE_RATE_16k = 16000
+""" そのままサンプリングレート16k """
+
 class TranscribeResult(NamedTuple):
     """
     RecognitionModel#transcribeの戻り値データ型
@@ -47,7 +50,7 @@ class RecognitionModelWhisper(RecognitionModel):
 
     @property
     def required_sample_rate(self) -> int | None:
-        return 16000
+        return __SAMPLE_RATE_16k
 
     def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
         r = self.audio_model.transcribe(
@@ -98,7 +101,7 @@ class RecognitionModelWhisperFaster(RecognitionModel):
 
     @property
     def required_sample_rate(self) -> int | None:
-        return 16000
+        return __SAMPLE_RATE_16k
 
     def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
         segments, _  = self.audio_model.transcribe(
@@ -130,20 +133,22 @@ class RecognitionModelGoogleApi(RecognitionModel):
         self.__key = key
         self.__operation_timeout = timeout
         self.__max_loop = challenge
-        self.__required_sample_rate = None if convert_sample_rete else 16000
+        self.__convert_sample_rete = convert_sample_rete
 
     @property
     def required_sample_rate(self) -> int | None:
-        return self.__required_sample_rate
+        return None
 
     def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
-        data = sr.AudioData(audio_data.astype(np.int16, order="C"), self.__sample_rate, self.__sample_width)
-        loop = 0
+        flac = google.encode_falc(
+            sr.AudioData(audio_data.astype(np.int16, order="C"), self.__sample_rate, self.__sample_width),
+            None if not self.__convert_sample_rete else __SAMPLE_RATE_16k)
 
+        loop = 0
         while loop < self.__max_loop:
             try:
                 r = self.__api(
-                    google.encode_falc(data),
+                    flac,
                     self.__operation_timeout,
                     language=self.__language,
                     key = self.__key)
@@ -159,7 +164,7 @@ class RecognitionModelGoogleApi(RecognitionModel):
             except TimeoutError:
                 if self.__max_loop == 1:
                     raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
-        loop += 1
+            loop += 1
         raise TranscribeException(f"{self.__max_loop}回試行しましたが失敗しました")
  
  
