@@ -9,8 +9,13 @@ using System.Reflection;
 using System.Net.NetworkInformation;
 
 namespace Haru.Kei {
+	/// <summary>
+	/// バッチ引数
+	/// 引数の変更はPropertyGrid経由で行うことを想定
+	/// </summary>
 	[TypeConverter(typeof(DefinitionOrderTypeConverter))]
 	internal class BatArgument {
+		/// <summary>プロパティグリッドのソート順番を宣言順に行う</summary>
 		class DefinitionOrderTypeConverter : TypeConverter {
 			public override PropertyDescriptorCollection GetProperties(ITypeDescriptorContext context, object value, Attribute[] attributes) {
 				var pdc = TypeDescriptor.GetProperties(value, attributes);
@@ -20,6 +25,8 @@ namespace Haru.Kei {
 			public override bool GetPropertiesSupported(ITypeDescriptorContext context) { return true; }
 		}
 
+		/// <summary>文字列選択ボックスを出す用の基底</summary>
+		/// <typeparam name="T"></typeparam>
 		protected abstract class SelectableConverter<T> : StringConverter {
 			protected abstract T[] GetItems();
 			public override bool GetStandardValuesSupported(ITypeDescriptorContext context) { return true; }
@@ -28,6 +35,7 @@ namespace Haru.Kei {
 			}
 			public override bool GetStandardValuesExclusive(ITypeDescriptorContext context) { return true; }
 		}
+		/// <summary>--mehodの選択一覧</summary>
 		class ArgMethodConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
 				return new[] {
@@ -39,6 +47,7 @@ namespace Haru.Kei {
 				};
 			}
 		}
+		/// <summary>--whisper_modelの選択一覧</summary>
 		class ArgWhisperModelConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
 				return new[] {
@@ -53,24 +62,31 @@ namespace Haru.Kei {
 				};
 			}
 		}
+		/// <summary>--whisper_languageの選択一覧</summary>
 		class ArgWhisperLangConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
+				// jaだけでいいでしょ
 				return new[] {
 					"",
 					"ja",
 				};
 			}
+			// 自由に編集して
 			public override bool GetStandardValuesExclusive(ITypeDescriptorContext context) { return false; }
 		}
+		/// <summary>--google_languageの選択一覧</summary>
 		class ArgGoogleLangConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
+				// jaだけでいいでしょ
 				return new[] {
 					"",
 					"ja-JP",
 				};
 			}
+			// 自由に編集して
 			public override bool GetStandardValuesExclusive(ITypeDescriptorContext context) { return false; }
 		}
+		/// <summary>--outの選択一覧</summary>
 		class ArgOutConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
 				return new[] {
@@ -81,6 +97,7 @@ namespace Haru.Kei {
 				};
 			}
 		}
+		/// <summary>--verboseの選択一覧</summary>
 		class ArgVerboseConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
 				return new[] {
@@ -241,6 +258,7 @@ namespace Haru.Kei {
 		}
 	}
 
+	/// <summary>UIから使うための拡張引数クラス</summary>
 	class BatArgumentEx : BatArgument {
 		class MicDeviceConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
@@ -253,12 +271,14 @@ namespace Haru.Kei {
 
 		private BatArgumentEx() : base() { }
 
+		// MicDeviceで置き換えるので非表示する
 		[Browsable(false)]
 		public override int? ArgMic {
 			get { return base.ArgMic; }
 			set { base.ArgMic = value; }
 		}
 
+		/// <summary>デバイス名から選べるプロパティ</summary>
 		[Category(categoryMic)]
 		[DisplayName("マイクデバイス")]
 		[Description("")]
@@ -267,6 +287,7 @@ namespace Haru.Kei {
 		public string MicDevice {
 			get { return micDevice; }
 			set {
+				// ArgMicに設定する
 				micDevice = value;
 				if(!string.IsNullOrEmpty(micDevice)) {
 					int r;
@@ -305,18 +326,22 @@ namespace Haru.Kei {
 				}
 			}
 			catch(Exception) {}
-			return new BatArgument();
+			return new BatArgument(); // 取得できない場合基底クラスのインスタンスを返す
 		}
 
 	}
 
+	/// <summary>プロパティをオプション文字列に変換する</summary>
 	[AttributeUsage(AttributeTargets.Property)]
 	class ArgAttribute : Attribute {
 		private string arg;
 		private bool isFlag;
 
+		/// <summary>有効条件のターゲットプロパティ</summary>
 		public string TargetProperty;
+		/// <summary>有効な値(TargetValueSplit区切り)</summary>
 		public string TargetValue;
+		/// <summary>配列が使えないのでこの値で区切ることで複数設定</summary>
 		public char TargetValueSplit = ';';
 
 		public ArgAttribute(string arg, bool isFlag = false) {
@@ -324,7 +349,7 @@ namespace Haru.Kei {
 			this.isFlag = isFlag;
 		}
 
-		public string Gen(object v, BatArgument arg) {
+		public string Generate(object v, BatArgument arg) {
 			if((v != null) && !"".Equals(v)) {
 				if(!string.IsNullOrEmpty(TargetProperty)) {
 					var pv = arg.GetType().GetProperty(TargetProperty).GetValue(arg, null);

@@ -20,7 +20,7 @@ namespace Haru.Kei {
 				foreach(var p in this.arg.GetType().GetProperties()) {
 					var att = p.GetCustomAttribute(typeof(ArgAttribute)) as ArgAttribute;
 					if(att != null) {
-						var opt = att.Gen(p.GetValue(this.arg, null), this.arg);
+						var opt = att.Generate(p.GetValue(this.arg, null), this.arg);
 						if(!string.IsNullOrEmpty(opt)) {
 							sb.Append(" ").Append(opt);
 						}
