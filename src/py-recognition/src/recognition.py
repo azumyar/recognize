@@ -4,14 +4,12 @@ import faster_whisper as fwis
 import numpy as np
 import speech_recognition as sr
 import urllib.error as urlerr
+import requests.exceptions
 from typing import Any, NamedTuple, Callable
 
 import src.exception as ex
 import src.google_recognizers as google
 
-
-__SAMPLE_RATE_16k = 16000
-""" そのままサンプリングレート16k """
 
 class TranscribeResult(NamedTuple):
     """
@@ -50,7 +48,7 @@ class RecognitionModelWhisper(RecognitionModel):
 
     @property
     def required_sample_rate(self) -> int | None:
-        return __SAMPLE_RATE_16k
+        return 16000
 
     def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
         r = self.audio_model.transcribe(
@@ -101,7 +99,7 @@ class RecognitionModelWhisperFaster(RecognitionModel):
 
     @property
     def required_sample_rate(self) -> int | None:
-        return __SAMPLE_RATE_16k
+        return 16000
 
     def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
         segments, _  = self.audio_model.transcribe(
@@ -142,7 +140,7 @@ class RecognitionModelGoogleApi(RecognitionModel):
     def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
         flac = google.encode_falc(
             sr.AudioData(audio_data.astype(np.int16, order="C"), self.__sample_rate, self.__sample_width),
-            None if not self.__convert_sample_rete else __SAMPLE_RATE_16k)
+            None if not self.__convert_sample_rete else 16000)
 
         loop = 0
         while loop < self.__max_loop:
@@ -157,16 +155,24 @@ class RecognitionModelGoogleApi(RecognitionModel):
                 raise TranscribeException("google音声認識でHTTPエラー: {}".format(e.reason), e)
             except urlerr.URLError as e:
                 raise TranscribeException("google音声認識でリモート接続エラー: {}".format(e.reason), e)
+            except google.HttpStatusError as e:
+                raise TranscribeException("google音声認識でHTTPエラー: {}".format(e.message), e)
+            except requests.exceptions.ConnectionError as e:
+                raise TranscribeException("google音声認識でリモート接続エラー: {}".format(e), e)
+
             except google.UnknownValueError as e:
                 raise TranscribeException(
                     f"googleは音声データを検出できませんでした",
                     e)
+
+            except requests.exceptions.ReadTimeout:
+                if self.__max_loop == 1:
+                    raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
             except TimeoutError:
                 if self.__max_loop == 1:
                     raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
             loop += 1
         raise TranscribeException(f"{self.__max_loop}回試行しましたが失敗しました")
- 
  
 class RecognitionModelGoogle(RecognitionModelGoogleApi):
     """

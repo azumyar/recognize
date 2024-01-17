@@ -86,6 +86,7 @@ def main(
         try:
             for i in range(audio.get_device_count()):
                 device_info = audio.get_device_info_by_index(i)
+                index = device_info.get("index")
                 host_api = device_info.get("hostApi")
                 name = device_info.get("name")
                 input = device_info.get("maxInputChannels")
@@ -94,7 +95,7 @@ def main(
                 if isinstance(host_api, int):
                     host_api_name = audio.get_host_api_info_by_index(host_api).get("name")
                 if isinstance(input, int) and 0 < input:
-                    print(f"{i} : [{host_api_name}]{name} sample_rate={rate}")            
+                    print(f"{index} : [{host_api_name}]{name} sample_rate={rate}")            
         finally:
             audio.terminate()
         return
