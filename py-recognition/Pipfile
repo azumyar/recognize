@@ -21,6 +21,7 @@ pyaudio = "*"
 websockets = "*"
 openai-whisper = {git = "git+https://github.com/openai/whisper.git"}
 faster-whisper = {git = "git+https://github.com/guillaumekln/faster-whisper.git"}
+requests = "*"
 
 [dev-packages]
 pyinstaller = "*"
