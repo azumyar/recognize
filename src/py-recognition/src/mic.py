@@ -130,6 +130,39 @@ class Mic:
         finally:
             stop(False)
 
+    def test_mic(self, cancel:CancellationObject):
+        import speech_recognition.exceptions
+
+        timout = 5
+        phrase_time_limit = 0.5
+        print("マイクテストを行います")
+        print(f"{int(timout)}秒間マイクを監視し音を拾った場合その旨を表示します")
+        print(f"使用マイク:{self.device_name}")
+        print(f"energy_threshold:{self.__recorder.energy_threshold}")
+        print(f"pause_threshold:{self.__recorder.pause_threshold}")
+        print(f"non_speaking_duration:{self.__recorder.non_speaking_duration}")
+        print(f"dynamic_energy_threshold:{self.__recorder.dynamic_energy_threshold}")
+        print("終了する場合はctr+cを押してください")
+        print("")
+        try:
+            while cancel.alive:
+                print("計測開始")
+                try:
+                    with self.__source as microphone:
+                        audio = self.__recorder.listen(
+                            source = microphone,
+                            timeout = timout,
+                            phrase_time_limit = phrase_time_limit)
+                    if len(audio.get_raw_data()) == 0:
+                        pass
+                    else:
+                        print("音を拾いました")
+                except speech_recognition.exceptions.WaitTimeoutError:
+                    pass
+                print("")
+                time.sleep(1)
+        finally:
+            pass
 
 class MicInitializeExeception(ex.IlluminateException):
     pass
