@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import random as rnd
+import requests
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
-from typing import Any, NamedTuple
+from typing import Any, Callable, NamedTuple
 from concurrent.futures import ThreadPoolExecutor
 
 from speech_recognition.audio import AudioData
@@ -25,6 +26,17 @@ __api_key = "AIzaSyBOti4mM-6x9WDnZIjIeyEU21OpBXqWBgw"
 
 __user_agent  = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
 """ユーザエージェント"""
+
+__session = requests.session()
+
+recognize_google:Callable[[EncodeData, float|None, str|None, str, int], RecognizeResult]
+"""
+google音声認識API v2を用いて音声認識
+"""
+recognize_google_duplex:Callable[[EncodeData, float|None, str|None, str, int], RecognizeResult]
+"""
+google全二重APIを用いて音声認識
+"""
 
 class EncodeData(NamedTuple):
     """
@@ -50,18 +62,21 @@ class DuplexApiResult(NamedTuple):
     exception:Exception | None
 
 
-def encode_falc(audio_data:AudioData) -> EncodeData:
+def encode_falc(audio_data:AudioData, convert_rate:int | None) -> EncodeData:
     """
     FALCにエンコード
     """
+    conv = convert_rate
+    if (not conv is None and conv < 8000) or (conv is None and audio_data.sample_rate < 8000):
+        conv = 8000
     flac_data = audio_data.get_flac_data(
-        convert_rate=None if audio_data.sample_rate >= 8000 else 8000,  # audio samples must be at least 8 kHz
-        convert_width=2  # audio samples must be 16-bit
+        convert_rate = conv,
+        convert_width = 2 
     )
-    return EncodeData(flac_data, f"audio/x-flac; rate={audio_data.sample_rate}")
+    return EncodeData(flac_data, f"audio/x-flac; rate={conv if not conv is None else audio_data.sample_rate}")
 
 
-def recognize_google(audio_data:EncodeData, timeout:float | None, key:str | None=None, language:str="en-US", pfilter:int=0) -> RecognizeResult:
+def recognize_google_urllib(audio_data:EncodeData, timeout:float | None, key:str | None=None, language:str="en-US", pfilter:int=0) -> RecognizeResult:
     """
     google音声認識API v2を用いて音声認識
     """
@@ -84,7 +99,32 @@ def recognize_google(audio_data:EncodeData, timeout:float | None, key:str | None
         return __parse(response.read().decode("utf-8"))
 
 
-def recognize_google_duplex(audio_data:EncodeData, timeout:float | None, key:str | None=None, language:str="en-US", pfilter:int=0) -> RecognizeResult:
+def recognize_google_requests(audio_data:EncodeData, timeout:float | None, key:str | None=None, language:str="en-US", pfilter:int=0) -> RecognizeResult:
+    """
+    google音声認識API v2を用いて音声認識
+    """
+    if key is None:
+        key = __api_key
+    url = f"{__server_url_recognize}?{{}}".format(urlencode({
+        "client": "chromium",
+        "lang": language,
+        "key": key,
+        "pFilter": pfilter
+    }))
+    res = __session.get(
+        url,
+        data=audio_data.audio, 
+        headers= {
+           "Content-Type": audio_data.content_type,
+            "User-Agent": __user_agent
+        },
+        timeout=timeout)
+    if res.status_code != 200:
+        raise HttpStatusError(f"HTTPリクエストは{res.status_code}で失敗しました")
+    return __parse(res.content.decode("utf-8"))
+
+
+def recognize_google_duplex_urllib(audio_data:EncodeData, timeout:float | None, key:str | None=None, language:str="en-US", pfilter:int=0) -> RecognizeResult:
     """
     google全二重APIを用いて音声認識
     """
@@ -157,6 +197,80 @@ def recognize_google_duplex(audio_data:EncodeData, timeout:float | None, key:str
     raise exception.ProgramError()
 
 
+def recognize_google_duplex_requests(audio_data:EncodeData, timeout:float | None, key:str | None=None, language:str="en-US", pfilter:int=0) -> RecognizeResult:
+    """
+    google全二重APIを用いて音声認識
+    """
+    def generate_pair() -> str:
+        """
+        識別用ペアを生成
+        """
+        b = []
+        for i in [rnd.randint(0, len(__charset)-1) for _ in range(16)]:
+            b.append(__charset[i])
+        return "".join(b)
+
+    def up(pair:str, audio_data:EncodeData, timeout:float | None, key:str | None=None, language:str="en-US", pfilter:int=0) -> None:
+        """
+        up APIを呼び出し
+        """
+        __session.post(
+            f"{__server_url_full_duplex}/up?{{}}".format(urlencode({
+                "key": key,
+                "pair": pair,
+                "output": "json",
+                "app": "chromium",
+                "lang": language,
+                "pFilter": pfilter,
+            })),
+            data = audio_data.audio,
+            headers = {
+                "Content-Type": audio_data.content_type,
+                "User-Agent": __user_agent
+            },
+            timeout=timeout)
+
+    def down(pair:str, timeout:float | None, key:str | None) -> DuplexApiResult:
+        """
+        down APIを呼び出し
+        """
+        try:
+            res = __session.get(
+                f"{__server_url_full_duplex}/down?{{}}".format(urlencode({
+                    "key": key,
+                    "pair": pair,
+                    "output": "json",
+                })),
+                headers = {
+                    "User-Agent": __user_agent
+                },
+                timeout=timeout)
+            if res.status_code == 200:
+                response_text = res.content.decode("utf-8")
+                return DuplexApiResult(True, response_text, None)
+            else:
+                return DuplexApiResult(False, "", HttpStatusError(f"HTTPリクエストは{res.status_code}で失敗しました"))
+        except Exception as e:
+            return DuplexApiResult(False, "", e)
+    if key is None:
+        key = __api_key
+    pair = generate_pair()
+    thread_pool = ThreadPoolExecutor(max_workers=6)
+    future = thread_pool.submit(down, pair, timeout, key)
+    thread_pool.submit(up, pair, audio_data, timeout, key, language, pfilter)
+    thread_pool.shutdown()
+
+    r = future.result()
+    if r.sucess:
+        return __parse(r.transcript)
+    else:
+        assert not r.exception is None
+        if not r.exception is None:
+            raise r.exception
+    raise exception.ProgramError()
+
+
+
 def __parse(response_text:str) -> RecognizeResult:
     """
     APIの戻り値をパース
@@ -203,3 +317,6 @@ class UnknownValueError(exception.IlluminateException):
         Noneでない場合APIの戻り値生データが入る
         """
         return self._raw_data
+    
+class HttpStatusError(exception.IlluminateException):
+    pass
