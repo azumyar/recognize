@@ -29,6 +29,7 @@ from src.filter import *
 @click.option("--whisper_language", default="", help="(whisper)音声解析対象の言語", type=click.Choice(val.LANGUAGE_CODES))
 @click.option("--google_language", default="ja-JP", help="(google)音声解析対象の言語", type=str)
 @click.option("--google_timeout", default=5.0, help="(google)最大認識待ち時間", type=float)
+@click.option("--google_convert_sampling_rate", default=False, help="(google)マイク入力を16kに変換します", is_flag=True, type=bool)
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
 @click.option("--mic_energy", default=300, help="設定した値より小さいマイク音量を無音として扱います", type=float)
 @click.option("--mic_dynamic_energy", default=False,is_flag=True, help="Trueの場合周りの騒音に基づいてマイクのエネルギーレベルを動的に変更します", type=bool)
@@ -55,6 +56,7 @@ def main(
     whisper_language:str,
     google_language:str,
     google_timeout:float,
+    google_convert_sampling_rate:bool,
     mic:Optional[int],
     mic_energy:float,
     mic_dynamic_energy:bool,
@@ -84,6 +86,7 @@ def main(
         try:
             for i in range(audio.get_device_count()):
                 device_info = audio.get_device_info_by_index(i)
+                index = device_info.get("index")
                 host_api = device_info.get("hostApi")
                 name = device_info.get("name")
                 input = device_info.get("maxInputChannels")
@@ -92,7 +95,7 @@ def main(
                 if isinstance(host_api, int):
                     host_api_name = audio.get_host_api_info_by_index(host_api).get("name")
                 if isinstance(input, int) and 0 < input:
-                    print(f"{i} : [{host_api_name}]{name} sample_rate={rate}")            
+                    print(f"{index} : [{host_api_name}]{name} sample_rate={rate}")            
         finally:
             audio.terminate()
         return
@@ -117,22 +120,16 @@ def main(
             "google": lambda: recognition.RecognitionModelGoogle(
                 sample_rate=sampling_rate,
                 sample_width=2,
+                convert_sample_rete=google_convert_sampling_rate,
                 language=google_language,
                 timeout=google_timeout if 0 < google_timeout else None),
             "google_duplex": lambda: recognition.RecognitionModelGoogleDuplex(
                 sample_rate=sampling_rate,
                 sample_width=2,
+                convert_sample_rete=google_convert_sampling_rate,
                 language=google_language,
                 timeout=google_timeout if 0 < google_timeout else None),
         }[method]()
-        # エラー処理
-        # TODO: サンプリング変換実装
-        if method == "whisper" or method == "faster_whisper":
-            if sampling_rate != 16000:
-                print("whisperはサンプリング周波数==16000のみ処理できます(--mic_sampling_rate)")
-                print("WASAPIデバイスは周波数がデバイスの周波数に変更されます")
-                print("終了します")
-                return
         env.tarce(lambda: print(f"#認識モデルは{type(recognition_model)}を使用"))
 
         print("マイクの初期化")
@@ -187,7 +184,12 @@ def main(
             def task():
                 env.tarce(lambda: print(f"#録音データ取得(time={dt.datetime.now()}, pcm={(int)(len(data)/2)})"))
                 try:
-                    r = env.performance(lambda: recognition_model.transcribe(filter(np.frombuffer(data, np.int16).flatten())))
+                    if recognition_model.required_sample_rate is None:
+                        d = data
+                    else:
+                        d = sr.AudioData(data, sampling_rate, 2).get_wav_data(recognition_model.required_sample_rate, 2)
+
+                    r = env.performance(lambda: recognition_model.transcribe(filter(np.frombuffer(d, np.int16).flatten())))
                     if r.result[0] not in ["", " ", "\n", None]:
                         env.debug(lambda: print(f"認識時間[{r.time}ms]", end=": "))
                         outputer.output(r.result[0])
