@@ -6,11 +6,11 @@ using System.Reflection;
 
 namespace Haru.Kei {
 	public partial class Form1 : Form {
-		private BatArg arg = new BatArg();
+		private BatArgument arg;
 
 		public Form1() {
 			InitializeComponent();
-
+			this.arg = BatArgumentEx.Init(@"..\py-recognition\dist\recognize\recognize.exe");
 			this.propertyGrid.SelectedObject = arg;
 			this.button.Click += (_, __) => {
 				var sb = new StringBuilder();

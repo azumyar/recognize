@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.ComponentModel;
 using System.Reflection;
 using System.Net.NetworkInformation;
-using Haru.Kei;
 
 namespace Haru.Kei {
 	[TypeConverter(typeof(DefinitionOrderTypeConverter))]
-	internal class BatArg {
+	internal class BatArgument {
 		class DefinitionOrderTypeConverter : TypeConverter {
 			public override PropertyDescriptorCollection GetProperties(ITypeDescriptorContext context, object value, Attribute[] attributes) {
 				var pdc = TypeDescriptor.GetProperties(value, attributes);
@@ -20,7 +20,7 @@ namespace Haru.Kei {
 			public override bool GetPropertiesSupported(ITypeDescriptorContext context) { return true; }
 		}
 
-		public abstract class SelectableConverter<T> : StringConverter {
+		protected abstract class SelectableConverter<T> : StringConverter {
 			protected abstract T[] GetItems();
 			public override bool GetStandardValuesSupported(ITypeDescriptorContext context) { return true; }
 			public override StandardValuesCollection GetStandardValues(ITypeDescriptorContext context) {
@@ -28,7 +28,7 @@ namespace Haru.Kei {
 			}
 			public override bool GetStandardValuesExclusive(ITypeDescriptorContext context) { return true; }
 		}
-		public class ArgMethodConverter : SelectableConverter<string> {
+		class ArgMethodConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
 				return new[] {
 					"",
@@ -39,7 +39,7 @@ namespace Haru.Kei {
 				};
 			}
 		}
-		public class ArgWhisperModelConverter : SelectableConverter<string> {
+		class ArgWhisperModelConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
 				return new[] {
 					"",
@@ -53,7 +53,7 @@ namespace Haru.Kei {
 				};
 			}
 		}
-		public class ArgWhisperLangConverter : SelectableConverter<string> {
+		class ArgWhisperLangConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
 				return new[] {
 					"",
@@ -62,7 +62,7 @@ namespace Haru.Kei {
 			}
 			public override bool GetStandardValuesExclusive(ITypeDescriptorContext context) { return false; }
 		}
-		public class ArgGoogleLangConverter : SelectableConverter<string> {
+		class ArgGoogleLangConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
 				return new[] {
 					"",
@@ -71,7 +71,7 @@ namespace Haru.Kei {
 			}
 			public override bool GetStandardValuesExclusive(ITypeDescriptorContext context) { return false; }
 		}
-		public class ArgOutConverter : SelectableConverter<string> {
+		class ArgOutConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
 				return new[] {
 					"",
@@ -81,7 +81,7 @@ namespace Haru.Kei {
 				};
 			}
 		}
-		public class ArgVerboseConverter : SelectableConverter<string> {
+		class ArgVerboseConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
 				return new[] {
 					"",
@@ -92,11 +92,11 @@ namespace Haru.Kei {
 			}
 		}
 
-		const string categoryOutput = "00.出力設定";
-		const string categoryModel = "01.認識モデル";
-		const string categoryMic = "02.マイク";
-		const string categoryOut = "03.出力";
-		const string categoryFilter = "04.フィルタ";
+		protected const string categoryOutput = "00.出力設定";
+		protected const string categoryModel = "01.認識モデル";
+		protected const string categoryMic = "02.マイク";
+		protected const string categoryOut = "03.出力";
+		protected const string categoryFilter = "04.フィルタ";
 
 		[Category(categoryOutput)]
 		[DisplayName("バッチファイル名")]
@@ -111,7 +111,7 @@ namespace Haru.Kei {
 		[Category(categoryOutput)]
 		[DisplayName("recognize.exeパス")]
 		[Description("バッチファイルからみたrecognize.exeのパス\r\n(通常変更しません)")]
-		[DefaultValue(".\\dist\\recognize.exe")]
+		[DefaultValue(".\\dist\\recognize\\recognize.exe")]
 		public string RecognizeExePath { get; set; }
 
 
@@ -168,7 +168,7 @@ namespace Haru.Kei {
 		[Description("マイクのデバイスIndex\r\nマイクのデバイスリストを見るには--print_micsで実行してください")]
 		[DefaultValue(null)]
 		[ArgAttribute("--mic")]
-		public int? ArgMic { get; set; }
+		public virtual int? ArgMic { get; set; }
 
 		[Category(categoryMic)]
 		[DisplayName("無音レベルの閾値")]
@@ -231,7 +231,7 @@ namespace Haru.Kei {
 		[ArgAttribute("--verbose")]
 		public string ArgVerbose { get; set; }
 
-		public BatArg() { 
+		public BatArgument() { 
 			foreach(var p in this.GetType().GetProperties()) {
 				var dva = p.GetCustomAttribute(typeof(DefaultValueAttribute)) as DefaultValueAttribute;
 				if(dva != null) {
@@ -239,6 +239,75 @@ namespace Haru.Kei {
 				}
 			}
 		}
+	}
+
+	class BatArgumentEx : BatArgument {
+		class MicDeviceConverter : SelectableConverter<string> {
+			protected override string[] GetItems() {
+				return s_mic_devices.ToArray();
+			}
+		}
+		private static IEnumerable<string> s_mic_devices;
+
+		private string micDevice = "";
+
+		private BatArgumentEx() : base() { }
+
+		[Browsable(false)]
+		public override int? ArgMic {
+			get { return base.ArgMic; }
+			set { base.ArgMic = value; }
+		}
+
+		[Category(categoryMic)]
+		[DisplayName("マイクデバイス")]
+		[Description("")]
+		[TypeConverter(typeof(MicDeviceConverter))]
+		[DefaultValue("")]
+		public string MicDevice {
+			get { return micDevice; }
+			set {
+				micDevice = value;
+				if(!string.IsNullOrEmpty(micDevice)) {
+					int r;
+					if(int.TryParse(micDevice.Split(' ')[0], out r)) {
+						this.ArgMic = r;
+					}
+				} else {
+					this.ArgMic = null;
+				}
+			}
+		}
+
+
+		public static BatArgument Init(string recognizeExe) {
+			try {
+				if(File.Exists(recognizeExe)) {
+					var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
+						FileName = recognizeExe,
+						Arguments = "--print_mics",
+						RedirectStandardOutput = true,
+						UseShellExecute = false,
+						WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+						CreateNoWindow = true,
+					});
+					p.WaitForExit();
+					if(p.ExitCode == 0) {
+						string s;
+						var list = new List<string>();
+						list.Add("");
+						while((s = p.StandardOutput.ReadLine()) != null) {
+							list.Add(s);
+						}
+						s_mic_devices = list;
+						return new BatArgumentEx();
+					}
+				}
+			}
+			catch(Exception) {}
+			return new BatArgument();
+		}
+
 	}
 
 	[AttributeUsage(AttributeTargets.Property)]
@@ -255,7 +324,7 @@ namespace Haru.Kei {
 			this.isFlag = isFlag;
 		}
 
-		public string Gen(object v, BatArg arg) {
+		public string Gen(object v, BatArgument arg) {
 			if((v != null) && !"".Equals(v)) {
 				if(!string.IsNullOrEmpty(TargetProperty)) {
 					var pv = arg.GetType().GetProperty(TargetProperty).GetValue(arg, null);
