@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "batmake", "batmake.csproj", "{9B293B5D-4C82-42F3-BF43-E72F0823AC45}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "recognize-frontend", "recognize-frontend.csproj", "{9B293B5D-4C82-42F3-BF43-E72F0823AC45}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -14,7 +14,7 @@ namespace Haru.Kei {
 	/// 引数の変更はPropertyGrid経由で行うことを想定
 	/// </summary>
 	[TypeConverter(typeof(DefinitionOrderTypeConverter))]
-	internal class BatArgument {
+	internal class RecognizeExeArgument {
 		/// <summary>プロパティグリッドのソート順番を宣言順に行う</summary>
 		class DefinitionOrderTypeConverter : TypeConverter {
 			public override PropertyDescriptorCollection GetProperties(ITypeDescriptorContext context, object value, Attribute[] attributes) {
@@ -109,26 +109,17 @@ namespace Haru.Kei {
 			}
 		}
 
-		protected const string categoryOutput = "00.出力設定";
+		protected const string categoryOutput = "00.環境";
 		protected const string categoryModel = "01.認識モデル";
 		protected const string categoryMic = "02.マイク";
 		protected const string categoryOut = "03.出力";
 		protected const string categoryFilter = "04.フィルタ";
 
-		[Category(categoryOutput)]
-		[DisplayName("バッチファイル名")]
-		[Description("作成するバッチファイル名")]
-		[DefaultValue("execute-recognize.bat")]
-		public string BatFile { get; set; }
-		[Category(categoryOutput)]
-		[DisplayName("出力先")]
-		[Description("作成先フォルダパス\r\n(通常変更しません)")]
-		[DefaultValue("..\\py-recognition")]
-		public string OutputPath { get; set; }
+
 		[Category(categoryOutput)]
 		[DisplayName("recognize.exeパス")]
-		[Description("バッチファイルからみたrecognize.exeのパス\r\n(通常変更しません)")]
-		[DefaultValue(".\\dist\\recognize\\recognize.exe")]
+		[Description("recognize.exeのパスをフルパスまたは相対パスで指定")]
+		[DefaultValue(".\\py-recognition\\dist\\recognize\\recognize.exe")]
 		public string RecognizeExePath { get; set; }
 
 
@@ -176,7 +167,7 @@ namespace Haru.Kei {
 		[DisplayName("サンプル周波数16k変換(google)")]
 		[Description("trueにすると16kに変換してgoogleサーバに送信します。データサイズの減量を狙います。")]
 		[DefaultValue(null)]
-		[ArgAttribute("--google_convert_sampling_rate", isFlag:true, TargetProperty = "ArgMethod", TargetValue = "google;google_duplex")]
+		[ArgAttribute("--google_convert_sampling_rate", IsFlag = true, TargetProperty = "ArgMethod", TargetValue = "google;google_duplex")]
 		public bool? ArgGoogleConvertSamplingRate { get; set; }
 
 
@@ -198,7 +189,7 @@ namespace Haru.Kei {
 		[DisplayName("動的マイク感度の変更")]
 		[Description("trueの場合周りの騒音に応じて動的にマイクの感度を変更します")]
 		[DefaultValue(null)]
-		[ArgAttribute("--mic_dynamic_energy", isFlag:true)]
+		[ArgAttribute("--mic_dynamic_energy", IsFlag = true)]
 		public bool? ArgMicDynamicEnergy { get; set; }
 
 		[Category(categoryMic)]
@@ -232,13 +223,13 @@ namespace Haru.Kei {
 		[DisplayName("LPFを無効化")]
 		[DefaultValue(null)]
 		[Description("LPFフィルタを無効にする場合trueにします。google音声認識を使用する場合trueを推奨します")]
-		[ArgAttribute("--disable_lpf", isFlag:true)]
+		[ArgAttribute("--disable_lpf", IsFlag = true)]
 		public bool? ArgDisableLpf { get; set; }
 		[Category(categoryFilter)]
 		[DefaultValue(null)]
 		[DisplayName("HPFを無効化")]
 		[Description("HPFフィルタを無効にする場合trueにします。google音声認識を使用する場合trueを推奨します")]
-		[ArgAttribute("--disable_hpf", isFlag:true)]
+		[ArgAttribute("--disable_hpf", IsFlag = true)]
 		public bool? ArgDisableHpf { get; set; }
 
 		[DisplayName("ログレベル")]
@@ -248,7 +239,7 @@ namespace Haru.Kei {
 		[ArgAttribute("--verbose")]
 		public string ArgVerbose { get; set; }
 
-		public BatArgument() { 
+		public RecognizeExeArgument() { 
 			foreach(var p in this.GetType().GetProperties()) {
 				var dva = p.GetCustomAttribute(typeof(DefaultValueAttribute)) as DefaultValueAttribute;
 				if(dva != null) {
@@ -259,7 +250,7 @@ namespace Haru.Kei {
 	}
 
 	/// <summary>UIから使うための拡張引数クラス</summary>
-	class BatArgumentEx : BatArgument {
+	class RecognizeExeArgumentEx : RecognizeExeArgument {
 		class MicDeviceConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
 				return s_mic_devices.ToArray();
@@ -269,7 +260,7 @@ namespace Haru.Kei {
 
 		private string micDevice = "";
 
-		private BatArgumentEx() : base() { }
+		private RecognizeExeArgumentEx() : base() { }
 
 		// MicDeviceで置き換えるので非表示する
 		[Browsable(false)]
@@ -301,32 +292,33 @@ namespace Haru.Kei {
 		}
 
 
-		public static BatArgument Init(string recognizeExe) {
+		public static RecognizeExeArgument Init(string recognizeExe) {
 			try {
 				if(File.Exists(recognizeExe)) {
-					var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
+					using(var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
 						FileName = recognizeExe,
 						Arguments = "--print_mics",
 						RedirectStandardOutput = true,
 						UseShellExecute = false,
 						WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
 						CreateNoWindow = true,
-					});
-					p.WaitForExit();
-					if(p.ExitCode == 0) {
-						string s;
-						var list = new List<string>();
-						list.Add("");
-						while((s = p.StandardOutput.ReadLine()) != null) {
-							list.Add(s);
+					})) {
+						p.WaitForExit();
+						if(p.ExitCode == 0) {
+							string s;
+							var list = new List<string>();
+							list.Add("");
+							while((s = p.StandardOutput.ReadLine()) != null) {
+								list.Add(s);
+							}
+							s_mic_devices = list;
+							return new RecognizeExeArgumentEx();
 						}
-						s_mic_devices = list;
-						return new BatArgumentEx();
 					}
 				}
 			}
 			catch(Exception) {}
-			return new BatArgument(); // 取得できない場合基底クラスのインスタンスを返す
+			return new RecognizeExeArgument(); // 取得できない場合基底クラスのインスタンスを返す
 		}
 
 	}
@@ -335,7 +327,7 @@ namespace Haru.Kei {
 	[AttributeUsage(AttributeTargets.Property)]
 	class ArgAttribute : Attribute {
 		private string arg;
-		private bool isFlag;
+		public bool IsFlag = false;
 
 		/// <summary>有効条件のターゲットプロパティ</summary>
 		public string TargetProperty;
@@ -344,12 +336,11 @@ namespace Haru.Kei {
 		/// <summary>配列が使えないのでこの値で区切ることで複数設定</summary>
 		public char TargetValueSplit = ';';
 
-		public ArgAttribute(string arg, bool isFlag = false) {
+		public ArgAttribute(string arg) {
 			this.arg = arg;
-			this.isFlag = isFlag;
 		}
 
-		public string Generate(object v, BatArgument arg) {
+		public string Generate(object v, RecognizeExeArgument arg) {
 			if((v != null) && !"".Equals(v)) {
 				if(!string.IsNullOrEmpty(TargetProperty)) {
 					var pv = arg.GetType().GetProperty(TargetProperty).GetValue(arg, null);
@@ -357,7 +348,7 @@ namespace Haru.Kei {
 						goto end;
 					}
 				}
-				if(isFlag) {
+				if(IsFlag) {
 					if(v is bool && (bool)v) {
 						return this.arg;
 					}

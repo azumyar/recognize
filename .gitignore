@@ -4,5 +4,6 @@
 .vs/
 packages/
 *.csproj.user
-batmake/batmake.exe
+recognize-gui.exe
+frontend.conf
 
