@@ -2,6 +2,19 @@
 定数モジュール
 """
 
+TEST_VALUE_RECOGNITION = "recognition"
+TEST_VALUE_MIC = "mic"
+
+METHOD_VALUE_WHISPER = "whisper"
+METHOD_VALUE_WHISPER_FASTER = "faster_whisper"
+METHOD_VALUE_GOOGLE= "google"
+METHOD_VALUE_GOOGLE_DUPLEX = "google_duplex"
+
+OUT_VALUE_PRINT = "print"
+OUT_VALUE_YUKARINETTE = "yukarinette"
+OUT_VALUE_YUKACONE = "yukacone"
+OUT_VALUE_ILLUMINATE= "illuminate"
+
 LANGUAGE_CODES = [
     "",
     "af",

@@ -111,7 +111,7 @@ def recognize_google_requests(audio_data:EncodeData, timeout:float | None, key:s
         "key": key,
         "pFilter": pfilter
     }))
-    res = __session.get(
+    res = __session.post(
         url,
         data=audio_data.audio, 
         headers= {
