@@ -5,7 +5,7 @@ if (-not($?)) {
     winget install python3.10
     if($LASTEXITCODE -ne 0) {
         echo インストールが失敗またはキャンセルされました
-        exit
+        exit 1
     }
 }
 echo ok
@@ -17,7 +17,7 @@ if(-not($?)) {
     winget install git.git
     if($LASTEXITCODE -ne 0) {
         echo インストールが失敗またはキャンセルされました
-        exit
+        exit 1
     }
 }
 echo ok
@@ -28,7 +28,7 @@ echo python環境にpipenvをインストールします
 pip3 install pipenv
 if($LASTEXITCODE -ne 0) {
     echo インストールに失敗しました
-    exit
+    exit 1
 }
 echo ok
 
@@ -36,12 +36,12 @@ echo 仮想環境を作成しpython依存関係を復元します
 python -m pipenv install
 if($LASTEXITCODE -ne 0) {
     echo python依存関係の復元に失敗しました
-    exit
+    exit 1
 }
 python -m pipenv install --dev
 if($LASTEXITCODE -ne 0) {
     echo python依存関係の復元に失敗しました
-    exit
+    exit 1
 }
 echo ok
 
@@ -49,7 +49,7 @@ echo exe化を実行します
 python -m pipenv run archive1
 if($LASTEXITCODE -ne 0) {
     echo exe化に失敗しました
-    exit
+    exit 1
 }
 $cd = Get-Location
 echo "$cd\dist\recognize に作成しました"
@@ -59,7 +59,7 @@ echo 仮想環境を削除します
 python -m pipenv --rm
 if($LASTEXITCODE -ne 0) {
     echo 削除に失敗しました
-    exit
+    exit 1
 }
 echo ok
 
@@ -68,3 +68,4 @@ echo 正常に終了しました
 echo ""
 echo "ビルドされたexeの場所："
 echo "$cd\dist\recognize"
+exit 0
