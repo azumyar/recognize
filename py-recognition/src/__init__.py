@@ -12,7 +12,7 @@
 
 import src.google_recognizers as google
 
-google.recognize_google = google.recognize_google_urllib
-#google.recognize_google = google.recognize_google_requests
+#google.recognize_google = google.recognize_google_urllib
 #google.recognize_google_duplex = google.recognize_google_duplex_urllib
+google.recognize_google = google.recognize_google_requests
 google.recognize_google_duplex = google.recognize_google_duplex_requests
