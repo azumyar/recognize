@@ -1,3 +1,4 @@
+import os
 import torch
 import whisper
 import faster_whisper as fwis
@@ -17,6 +18,20 @@ class TranscribeResult(NamedTuple):
     """
     transcribe:str
     extend_data:Any
+
+class GoogleTranscribeExtend(NamedTuple):
+    """
+    RecognitionModel#transcribeの戻り値データ型
+    """
+    raw_data:str
+    retry_history:list[Exception]
+
+    def __str__(self) -> str:
+        if 0 < len(self.retry_history):
+            clazz = os.linesep.join([f"{type(i)}:{i}"for i in self.retry_history])
+            return f"{self.raw_data}{os.linesep}retry-stack{os.linesep}{clazz}"
+        else:
+            return self.raw_data
 
 class RecognitionModel:
     """
@@ -130,7 +145,7 @@ class RecognitionModelGoogleApi(RecognitionModel):
         self.__language = language
         self.__key = key
         self.__operation_timeout = timeout
-        self.__max_loop = challenge
+        self.__max_loop = max(1, challenge)
         self.__convert_sample_rete = convert_sample_rete
 
     @property
@@ -142,6 +157,7 @@ class RecognitionModelGoogleApi(RecognitionModel):
             sr.AudioData(audio_data.astype(np.int16, order="C"), self.__sample_rate, self.__sample_width),
             None if not self.__convert_sample_rete else 16000)
 
+        his = []
         loop = 0
         while loop < self.__max_loop:
             try:
@@ -150,13 +166,19 @@ class RecognitionModelGoogleApi(RecognitionModel):
                     self.__operation_timeout,
                     language=self.__language,
                     key = self.__key)
-                return TranscribeResult(r.transcript, r.raw_data)
+                return TranscribeResult(r.transcript, GoogleTranscribeExtend(r.raw_data, his))
             except urlerr.HTTPError as e:
-                raise TranscribeException("google音声認識でHTTPエラー: {}".format(e.reason), e)
+                if (e.code == 500) and (1 < self.__max_loop):
+                    his.append(e)
+                else:
+                    raise TranscribeException("google音声認識でHTTPエラー: {}".format(e.reason), e)
             except urlerr.URLError as e:
                 raise TranscribeException("google音声認識でリモート接続エラー: {}".format(e.reason), e)
             except google.HttpStatusError as e:
-                raise TranscribeException("google音声認識でHTTPエラー: {}".format(e.message), e)
+                if (e.status_code == 500) and (1 < self.__max_loop):
+                    his.append(e)
+                else:
+                    raise TranscribeException("google音声認識でHTTPエラー: {}".format(e.message), e)
             except requests.exceptions.ConnectionError as e:
                 raise TranscribeException("google音声認識でリモート接続エラー: {}".format(e), e)
 
@@ -165,14 +187,21 @@ class RecognitionModelGoogleApi(RecognitionModel):
                     f"googleは音声データを検出できませんでした",
                     e)
 
-            except requests.exceptions.ReadTimeout:
-                if self.__max_loop == 1:
-                    raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
-            except TimeoutError:
-                if self.__max_loop == 1:
-                    raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
+            except requests.exceptions.ReadTimeout as e:
+                raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
+                #if self.__max_loop == 1:
+                #    raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
+                #else:
+                #    his.append(e)
+            except TimeoutError as e:
+                raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
+                #if self.__max_loop == 1:
+                #    raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
+                #else:
+                #    his.append(e)
             loop += 1
-        raise TranscribeException(f"{self.__max_loop}回試行しましたが失敗しました")
+        clazz = ",".join([f"{type(i)}"for i in his])
+        raise TranscribeException(f"{self.__max_loop}回試行しましたが失敗しました({clazz}])")
  
 class RecognitionModelGoogle(RecognitionModelGoogleApi):
     """

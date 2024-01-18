@@ -120,7 +120,7 @@ def recognize_google_requests(audio_data:EncodeData, timeout:float | None, key:s
         },
         timeout=timeout)
     if res.status_code != 200:
-        raise HttpStatusError(f"HTTPリクエストは{res.status_code}で失敗しました")
+        raise HttpStatusError(f"HTTPリクエストは{res.status_code}で失敗しました", res.status_code)
     return __parse(res.content.decode("utf-8"))
 
 
@@ -249,7 +249,7 @@ def recognize_google_duplex_requests(audio_data:EncodeData, timeout:float | None
                 response_text = res.content.decode("utf-8")
                 return DuplexApiResult(True, response_text, None)
             else:
-                return DuplexApiResult(False, "", HttpStatusError(f"HTTPリクエストは{res.status_code}で失敗しました"))
+                return DuplexApiResult(False, "", HttpStatusError(f"HTTPリクエストは{res.status_code}で失敗しました", res.status_code))
         except Exception as e:
             return DuplexApiResult(False, "", e)
     if key is None:
@@ -319,4 +319,10 @@ class UnknownValueError(exception.IlluminateException):
         return self._raw_data
     
 class HttpStatusError(exception.IlluminateException):
-    pass
+    def __init__(self, message:str, status_code:int, inner:Exception | None = None):
+        super().__init__(message, inner)
+        self.__status_code = status_code
+
+    @property
+    def status_code(self) -> int:
+        return self.__status_code
