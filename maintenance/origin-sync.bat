@@ -9,4 +9,4 @@ if exist ".py-recognition-origin" (
   git checkout
   cd ..
 )
-robocopy .py-recognition-origin\src\py-recognition py-recognition /mir /xd .git
+robocopy .py-recognition-origin\src\py-recognition ../py-recognition /mir /xd .git
