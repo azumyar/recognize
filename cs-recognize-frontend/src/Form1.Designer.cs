@@ -40,6 +40,7 @@ namespace Haru.Kei {
 			this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripSeparator();
 			this.yukarinetteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.yukaconeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.testmicToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.menuStrip1.SuspendLayout();
 			this.SuspendLayout();
 			// 
@@ -77,6 +78,7 @@ namespace Haru.Kei {
 			// 
 			this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.batToolStripMenuItem,
+            this.testmicToolStripMenuItem,
             this.toolStripMenuItem1,
             this.exitToolStripMenuItem});
 			this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
@@ -141,6 +143,12 @@ namespace Haru.Kei {
 			this.yukaconeToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
 			this.yukaconeToolStripMenuItem.Text = "ゆかコネNEOと連携";
 			// 
+			// testmicToolStripMenuItem
+			// 
+			this.testmicToolStripMenuItem.Name = "testmicToolStripMenuItem";
+			this.testmicToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+			this.testmicToolStripMenuItem.Text = "マイクテスト";
+			// 
 			// Form1
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -173,5 +181,6 @@ namespace Haru.Kei {
 		private ToolStripSeparator toolStripMenuItem2;
 		private ToolStripMenuItem yukarinetteToolStripMenuItem;
 		private ToolStripMenuItem yukaconeToolStripMenuItem;
+		private ToolStripMenuItem testmicToolStripMenuItem;
 	}
 }

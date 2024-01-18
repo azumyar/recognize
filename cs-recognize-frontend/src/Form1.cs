@@ -29,6 +29,17 @@ namespace Haru.Kei {
 				}
 				catch(System.IO.IOException) { }
 			};
+			this.testmicToolStripMenuItem.Click += (_, __) => {
+				var properties = this.arg.GetType().GetProperties();
+				try {
+					using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
+						FileName = this.arg.RecognizeExePath,
+						Arguments = string.Format("--test mic {0}", this.GenExeArguments(properties)),
+						UseShellExecute = true,
+					})) { }
+				}
+				catch(Exception) { }
+			};
 			this.exitToolStripMenuItem.Click += (_, __) => this.Close();
 
 			this.whisperToolStripMenuItem.Click+= (_, __) => {
