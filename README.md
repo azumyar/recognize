@@ -3,16 +3,17 @@
 ## 概要
 ゆかりねっと-Yukarinette-の音声認識エンジンを別処理で認識させるためのツールです。  
 実行ファイルは使用者の環境でビルドして作成する形になります。  
-実行ファイルの作り方や実行オプションなどは[py-recognition配下のREADME.md](py-recognition/README.md)を参照してください。  
+build-all.batを実行してexeを作成してください。  
+バックエンドの実行オプションなどは[py-recognition配下のREADME.md](py-recognition/README.md)を参照してください。  
 
 ## ビルドするためのソースコードの取得
 右上のコードボタンから[zip](https://gitlab.com/HARUKei66494739/recognize/-/archive/main/recognize-main.zip)をダウンロードできます。
 
-## 起動する順番(recognize.exeを作成後からの手順)
+## クイックスタート(recognize.exeを作成後からの手順)
 1. ゆかりねっとを起動。  
 2. ゆかりねっとの[設定]から[音声認識エンジン]の[サードパーティー製の音声認識エンジンを使用する]にチェックを入れる。  
 3. ゆかりねっとの音声認識を開始。  
-4. recognize.exeをコマンドプロンプトから起動。  
+4. recognize-gui.exeを起動し必要な設定をして起動ボタン(設定は次回以降に保存されます)
 
 ## その他
 google認識を指定した場合別処理を経由しているとは言え最終的に認識させているエンジンはgoogleになります。  
