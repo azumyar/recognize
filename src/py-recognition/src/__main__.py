@@ -198,6 +198,7 @@ def main(
                     return np.real(np.fft.ifft(fft))
 
             env.tarce(lambda: print(f"#録音データ取得(time={dt.datetime.now()}, pcm={(int)(len(data)/2)},{round(len(data)/sampling_rate, 2)}s)"))
+            env.tarce(lambda: print(f"#録音データ取得(time={dt.datetime.now()}, pcm={(int)(len(data)/2)},{round(len(data)/2/sampling_rate, 2)}s)"))
             try:
                 if recognition_model.required_sample_rate is None:
                     d = data
