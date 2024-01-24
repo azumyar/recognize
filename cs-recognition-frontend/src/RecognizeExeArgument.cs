@@ -170,6 +170,19 @@ namespace Haru.Kei {
 		[ArgAttribute("--google_convert_sampling_rate", IsFlag = true, TargetProperty = "ArgMethod", TargetValue = "google;google_duplex")]
 		public bool? ArgGoogleConvertSamplingRate { get; set; }
 
+		[Category(categoryModel)]
+		[DisplayName("500エラーリトライ(google)")]
+		[Description("500エラーでエラーを返さず認識処理を指定した回数実行します")]
+		[DefaultValue(null)]
+		[ArgAttribute("--google_error_retry", TargetProperty = "ArgMethod", TargetValue = "google;google_duplex")]
+		public int? ArgGoogleErrorRetry { get; set; }
+
+		[Category(categoryModel)]
+		[DisplayName("並列認識呼び出し(google_duplex)")]
+		[Description("認識リクエスト並列で呼び出し500エラーを抑制します")]
+		[DefaultValue(null)]
+		[ArgAttribute("--google_duplex_parallel", IsFlag = true, TargetProperty = "ArgMethod", TargetValue = "google_duplex")]
+		public bool? ArgGoogleDuplexParallelRun { get; set; }
 
 		[Category(categoryMic)]
 		[DisplayName("マイクデバイス")]
