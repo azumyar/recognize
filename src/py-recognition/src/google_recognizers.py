@@ -29,11 +29,11 @@ __user_agent  = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like
 
 __session = requests.session()
 
-recognize_google:Callable[[EncodeData, float|None, str|None, str, int], RecognizeResult]
+recognize_google:Callable[[EncodeData, float|None, str|None, str|None, int], RecognizeResult]
 """
 google音声認識API v2を用いて音声認識
 """
-recognize_google_duplex:Callable[[EncodeData, float|None, str|None, str, int], RecognizeResult]
+recognize_google_duplex:Callable[[EncodeData, float|None, str|None, str|None, int], RecognizeResult]
 """
 google全二重APIを用いて音声認識
 """
