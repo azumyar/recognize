@@ -1,3 +1,4 @@
+import os
 import torch
 import whisper
 import faster_whisper as fwis
@@ -5,6 +6,7 @@ import numpy as np
 import speech_recognition as sr
 import urllib.error as urlerr
 import requests.exceptions
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, NamedTuple, Callable
 
 import src.exception as ex
@@ -17,6 +19,20 @@ class TranscribeResult(NamedTuple):
     """
     transcribe:str
     extend_data:Any
+
+class GoogleTranscribeExtend(NamedTuple):
+    """
+    RecognitionModel#transcribeの戻り値データ型
+    """
+    raw_data:str
+    retry_history:list[Exception]
+
+    def __str__(self) -> str:
+        if 0 < len(self.retry_history):
+            clazz = os.linesep.join([f"{type(i)}:{i}"for i in self.retry_history])
+            return f"{self.raw_data}{os.linesep}retry-stack{os.linesep}{clazz}"
+        else:
+            return self.raw_data
 
 class RecognitionModel:
     """
@@ -116,7 +132,6 @@ class RecognitionModelGoogleApi(RecognitionModel):
     """
     def __init__(
         self,
-        api:Callable[..., google.RecognizeResult],
         sample_rate:int,
         sample_width:int,
         convert_sample_rete:bool=False,
@@ -124,14 +139,13 @@ class RecognitionModelGoogleApi(RecognitionModel):
         key:str | None=None,
         timeout:float | None = None,
         challenge:int = 1):
-        self.__api = api
         self.__sample_rate = sample_rate
         self.__sample_width = sample_width
-        self.__language = language
-        self.__key = key
-        self.__operation_timeout = timeout
-        self.__max_loop = challenge
+        self.__max_loop = max(1, challenge)
         self.__convert_sample_rete = convert_sample_rete
+        self._language = language
+        self._key = key
+        self._operation_timeout = timeout
 
     @property
     def required_sample_rate(self) -> int | None:
@@ -142,21 +156,24 @@ class RecognitionModelGoogleApi(RecognitionModel):
             sr.AudioData(audio_data.astype(np.int16, order="C"), self.__sample_rate, self.__sample_width),
             None if not self.__convert_sample_rete else 16000)
 
+        his = []
         loop = 0
         while loop < self.__max_loop:
             try:
-                r = self.__api(
-                    flac,
-                    self.__operation_timeout,
-                    language=self.__language,
-                    key = self.__key)
-                return TranscribeResult(r.transcript, r.raw_data)
+                r = self._transcribe_impl(flac)
+                return TranscribeResult(r.transcribe, GoogleTranscribeExtend(r.extend_data, his))
             except urlerr.HTTPError as e:
-                raise TranscribeException("google音声認識でHTTPエラー: {}".format(e.reason), e)
+                if (e.code == 500) and (1 < self.__max_loop):
+                    his.append(e)
+                else:
+                    raise TranscribeException("google音声認識でHTTPエラー: {}".format(e.reason), e)
             except urlerr.URLError as e:
                 raise TranscribeException("google音声認識でリモート接続エラー: {}".format(e.reason), e)
             except google.HttpStatusError as e:
-                raise TranscribeException("google音声認識でHTTPエラー: {}".format(e.message), e)
+                if (e.status_code == 500) and (1 < self.__max_loop):
+                    his.append(e)
+                else:
+                    raise TranscribeException("google音声認識でHTTPエラー: {}".format(e.message), e)
             except requests.exceptions.ConnectionError as e:
                 raise TranscribeException("google音声認識でリモート接続エラー: {}".format(e), e)
 
@@ -165,29 +182,93 @@ class RecognitionModelGoogleApi(RecognitionModel):
                     f"googleは音声データを検出できませんでした",
                     e)
 
-            except requests.exceptions.ReadTimeout:
-                if self.__max_loop == 1:
-                    raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
-            except TimeoutError:
-                if self.__max_loop == 1:
-                    raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
+            except requests.exceptions.ReadTimeout as e:
+                raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
+                #if self.__max_loop == 1:
+                #    raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
+                #else:
+                #    his.append(e)
+            except TimeoutError as e:
+                raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
+                #if self.__max_loop == 1:
+                #    raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
+                #else:
+                #    his.append(e)
             loop += 1
-        raise TranscribeException(f"{self.__max_loop}回試行しましたが失敗しました")
+        clazz = ",".join([f"{type(i)}"for i in his])
+        raise TranscribeException(f"{self.__max_loop}回試行しましたが失敗しました({clazz}])")
  
+    def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
+        ...
+
 class RecognitionModelGoogle(RecognitionModelGoogleApi):
     """
     認識モデルのgoogle音声認識API v2実装
     """
     def __init__(self, sample_rate: int, sample_width: int, convert_sample_rete: bool=False, language: str = "ja-JP", key: str | None = None, timeout: float | None = None, challenge: int = 1):
-        super().__init__(google.recognize_google, sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
+        super().__init__(sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
+
+
+    def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
+        r = google.recognize_google(
+            flac,
+            self._operation_timeout,
+            self._key,
+            self._language,
+            0)
+        return TranscribeResult(r.transcript, r.raw_data)
 
 
 class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
     """
     認識モデルのgoogle全二重API実装
     """
-    def __init__(self, sample_rate: int, sample_width: int, convert_sample_rete: bool=False, language: str = "ja-JP", key: str | None = None, timeout: float | None = None, challenge: int = 1):
-        super().__init__(google.recognize_google_duplex, sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
+    def __init__(self, sample_rate: int, sample_width: int, convert_sample_rete: bool=False, language: str = "ja-JP", key: str | None = None, timeout: float | None = None, challenge: int = 1, is_parallel_run:bool = False):
+        super().__init__(sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
+        self.__is_parallel_run = is_parallel_run
+
+    def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
+        if self.__is_parallel_run:
+            def func() -> tuple[TranscribeResult|None, Exception|None]:
+                ex:Exception|None = None
+                try:
+                    r = google.recognize_google_duplex(
+                        flac,
+                        self._operation_timeout,
+                        self._key,
+                        self._language,
+                        0)
+                    return (TranscribeResult(r.transcript, r.raw_data), None)
+                except Exception as e:
+                    ex = e
+                return (None, ex)
+
+            thread_pool = ThreadPoolExecutor(max_workers=6)
+            try:
+                futures = [
+                    thread_pool.submit(func),
+                    thread_pool.submit(func),
+                    thread_pool.submit(func),
+                ]
+                ex:Exception | None = None
+                for f in futures:
+                    r = f.result()
+                    if not r[0] is None:
+                        return r[0]
+                    if ex is None:
+                        ex = r[1]
+                assert not ex is None
+                raise ex
+            finally:
+                thread_pool.shutdown(wait=False)
+        else:
+            r = google.recognize_google(
+                flac,
+                self._operation_timeout,
+                self._key,
+                self._language,
+                0)
+            return TranscribeResult(r.transcript, r.raw_data)
 
 
 class TranscribeException(ex.IlluminateException):
