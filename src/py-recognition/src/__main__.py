@@ -32,7 +32,7 @@ from src.filter import *
 @click.option("--google_timeout", default=5.0, help="(google)最大認識待ち時間", type=float)
 @click.option("--google_convert_sampling_rate", default=False, help="(google)マイク入力を16kに変換します", is_flag=True, type=bool)
 @click.option("--google_error_retry", default=1, help="(google)500エラー時にリトライ試行する回数", type=int)
-@click.option("--google_duplex_parallel", default=False, help="(google_duplex)", is_flag=True, type=bool)
+@click.option("--google_duplex_parallel", default=False, help="(google_duplexのみ)複数並列リクエストを投げエラーの抑制を図ります", is_flag=True, type=bool)
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
 @click.option("--mic_energy", default=300, help="設定した値より小さいマイク音量を無音として扱います", type=float)
 @click.option("--mic_dynamic_energy", default=False,is_flag=True, help="Trueの場合周りの騒音に基づいてマイクのエネルギーレベルを動的に変更します", type=bool)
