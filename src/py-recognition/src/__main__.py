@@ -51,9 +51,9 @@ from src.filter import *
 @click.option("--print_mics",default=False, help="マイクデバイスの一覧をプリント", is_flag=True, type=bool)
 @click.option("--list_devices",default=False, help="(廃止予定)--print_micsと同じ", is_flag=True, type=bool)
 @click.option("--verbose", default="0", help="出力ログレベルを指定", type=click.Choice(["0", "1", "2"]))
-@click.option("--record",default=False, help="-", is_flag=True, type=bool)
-@click.option("--record_file", default="record", help="-", type=str)
-@click.option("--record_directory", default=None, help="-", type=str)
+@click.option("--record",default=False, help="録音した音声をファイルとして出力します", is_flag=True, type=bool)
+@click.option("--record_file", default="record", help="録音データの出力ファイル名を指定します", type=str)
+@click.option("--record_directory", default=None, help="録音データの出力先ディレクトリを指定します", type=str)
 def main(
     test:str,
     method:str,
@@ -96,6 +96,8 @@ def main(
     
     if record_directory is None:
         record_directory = env.root
+    else:
+         os.makedirs(record_directory, exist_ok=True)
 
     if print_mics or list_devices:
         audio = speech_recognition.Microphone.get_pyaudio().PyAudio()
@@ -278,5 +280,6 @@ def save_wav(record:bool, record_directory:str, record_file:str, index:int, data
     if record:
         with open(f"{record_directory}{os.sep}{record_file}-{str(index).zfill(4)}.wav", "wb") as fout:      
             fout.write(speech_recognition.AudioData(data, sampling_rate, 2).get_wav_data())
+
 if __name__ == "__main__":
     main() # type: ignore
