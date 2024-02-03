@@ -1,7 +1,9 @@
 import queue
 import time
-from typing import Optional, Callable
 import speech_recognition as sr
+import speech_recognition.exceptions
+from concurrent.futures import ThreadPoolExecutor
+from typing import Optional, Callable
 
 import src.exception as ex
 from src.cancellation import CancellationObject
@@ -95,7 +97,7 @@ class Mic:
                 is_goted = True
         return sr.AudioData(audio, self.__sample_rate, 2).get_raw_data()
 
-    def listen(self, onrecord:Callable[[bytes], None], timeout=None, phrase_time_limit=None) -> None:
+    def listen(self, onrecord:Callable[[int, bytes], None], timeout=None, phrase_time_limit=None) -> None:
         """
         一度だけマイクを拾う
         """
@@ -107,36 +109,46 @@ class Mic:
                     phrase_time_limit = phrase_time_limit)
             self.__audio_queue.put_nowait(audio.get_raw_data())
             audio_data = self.__get_audio_data()
-            onrecord(audio_data)
+            onrecord(1, audio_data)
         except sr.WaitTimeoutError:
             pass
         except sr.UnknownValueError:
             pass
 
-    def listen_loop(self, onrecord:Callable[[bytes], None], cancel:CancellationObject, phrase_time_limit=None) -> None:
+    def listen_loop(self, onrecord:Callable[[int, bytes], None], cancel:CancellationObject, phrase_time_limit=None) -> None:
         """
         マイクループ。処理を返しません。
         """
-        def record(_, audio:sr.AudioData) -> None:
-            self.__audio_queue.put_nowait(audio.get_raw_data())
+        def listen_mic():
+            with self.__source as s:
+                while cancel.alive:
+                    try:
+                        audio = self.__recorder.listen(s, 0.25, phrase_time_limit)
+                    except speech_recognition.exceptions.WaitTimeoutError:
+                        pass
+                    else:
+                        if cancel.alive:
+                            self.__audio_queue.put_nowait(audio.get_raw_data())
 
-        stop = self.__recorder.listen_in_background(self.__source, record, phrase_time_limit=phrase_time_limit)
+        thread_pool = ThreadPoolExecutor(max_workers=2)
+        thread_pool.submit(listen_mic)
         try:
+            index = 1
             while cancel.alive:
                 if not self.__audio_queue.empty():
                     audio_data = self.__get_audio_data()
-                    onrecord(audio_data)
+                    onrecord(index, audio_data)
+                    index += 1
                 time.sleep(0.1)
         finally:
-            stop(False)
+            thread_pool.shutdown(wait=False)
+            pass
 
-    def test_mic(self, cancel:CancellationObject):
-        import speech_recognition.exceptions
-
-        timout = 5
-        phrase_time_limit = 0.5
+    def test_mic(self, cancel:CancellationObject, onrecord:Callable[[int, bytes], None] | None = None):
+        timemax = 5
+        timeout = 0.25
         print("マイクテストを行います")
-        print(f"{int(timout)}秒間マイクを監視し音を拾った場合その旨を表示します")
+        print(f"{int(timemax)}秒間マイクを監視し音を拾った場合その旨を表示します")
         print(f"使用マイク:{self.device_name}")
         print(f"energy_threshold:{self.__recorder.energy_threshold}")
         print(f"pause_threshold:{self.__recorder.pause_threshold}")
@@ -144,21 +156,31 @@ class Mic:
         print(f"dynamic_energy_threshold:{self.__recorder.dynamic_energy_threshold}")
         print("終了する場合はctr+cを押してください")
         print("")
+
         try:
+            index = 1
             while cancel.alive:
-                print("計測開始")
-                try:
-                    with self.__source as microphone:
-                        audio = self.__recorder.listen(
-                            source = microphone,
-                            timeout = timout,
-                            phrase_time_limit = phrase_time_limit)
-                    if len(audio.get_raw_data()) == 0:
+                print(f"計測開始 #{str(index).zfill(2)}")
+                audio:sr.AudioData | None = None
+                for _ in range(int(timemax / timeout)):
+                    try:
+                        with self.__source as microphone:
+                            audio = self.__recorder.listen(
+                                source = microphone,
+                                timeout = timeout,
+                                phrase_time_limit = None)
+                    except speech_recognition.exceptions.WaitTimeoutError:
                         pass
                     else:
-                        print("音を拾いました")
-                except speech_recognition.exceptions.WaitTimeoutError:
-                    pass
+                        break
+                if not audio is None:
+                    b = audio.get_raw_data()
+                    sec = len(b) / 2 / self.__sample_rate
+                    print("認識終了")
+                    print(f"{round(sec, 2)}秒音を拾いました")
+                    if not onrecord is None:
+                        onrecord(index, b)
+                index += 1
                 print("")
                 time.sleep(1)
         finally:

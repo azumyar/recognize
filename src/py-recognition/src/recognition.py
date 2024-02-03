@@ -231,7 +231,6 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
     def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
         if self.__is_parallel_run:
             def func() -> TranscribeResult:
-                ex:Exception|None = None
                 r = google.recognize_google_duplex(
                     flac,
                     self._operation_timeout,

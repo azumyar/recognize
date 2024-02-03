@@ -5,7 +5,7 @@ import sys
 import traceback
 import click
 import torch
-import speech_recognition as sr
+import speech_recognition
 import urllib.error as urlerr
 import numpy as np
 import datetime as dt
@@ -51,6 +51,9 @@ from src.filter import *
 @click.option("--print_mics",default=False, help="マイクデバイスの一覧をプリント", is_flag=True, type=bool)
 @click.option("--list_devices",default=False, help="(廃止予定)--print_micsと同じ", is_flag=True, type=bool)
 @click.option("--verbose", default="0", help="出力ログレベルを指定", type=click.Choice(["0", "1", "2"]))
+@click.option("--record",default=False, help="-", is_flag=True, type=bool)
+@click.option("--record_file", default="record", help="-", type=str)
+@click.option("--record_directory", default=None, help="-", type=str)
 def main(
     test:str,
     method:str,
@@ -79,16 +82,23 @@ def main(
     disable_hpf:bool,
     print_mics:bool,
     list_devices:bool,
-    verbose:str) -> None:
+    verbose:str,
+    record:bool,
+    record_file:str,
+    record_directory:Optional[str]
+    ) -> None:
 
 
     env = Env(int(verbose))
     if not env.is_exe:
         os.makedirs(env.root, exist_ok=True)
         os.chdir(env.root)
+    
+    if record_directory is None:
+        record_directory = env.root
 
     if print_mics or list_devices:
-        audio = sr.Microphone.get_pyaudio().PyAudio()
+        audio = speech_recognition.Microphone.get_pyaudio().PyAudio()
         try:
             for i in range(audio.get_device_count()):
                 device_info = audio.get_device_info_by_index(i)
@@ -112,12 +122,15 @@ def main(
         sampling_rate = mic_.Mic.update_sample_rate(mic, mic_sampling_rate) #16000
 
         if test == val.TEST_VALUE_MIC:
+            def onrecord(index:int, data:bytes) -> None:
+                save_wav(record, record_directory, record_file, index, data, sampling_rate)
+
             mic_.Mic(
                 sampling_rate,
                 mic_energy,
                 mic_pause,
                 mic_dynamic_energy,
-                mic).test_mic(cancel)
+                mic).test_mic(cancel, onrecord)
             return
 
         print("認識モデルの初期化")
@@ -184,7 +197,7 @@ def main(
         for f in filters:
             env.tarce(lambda: print(f"#{type(f)}"))
 
-        def onrecord(data:bytes) -> None:
+        def onrecord(index:int, data:bytes) -> None:
             """
             マイク認識データが返るコールバック関数
             """
@@ -200,16 +213,21 @@ def main(
                         f.filter(fft)
                     return np.real(np.fft.ifft(fft))
 
-            env.tarce(lambda: print(f"#録音データ取得(time={dt.datetime.now()}, pcm={(int)(len(data)/2)},{round(len(data)/2/sampling_rate, 2)}s)"))
+            pcm_sec = len(data) / 2 / sampling_rate
+            env.tarce(lambda: print(f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)},{round(pcm_sec, 2)}s)"))
             try:
+                save_wav(record, record_directory, record_file, index, data, sampling_rate)
                 if recognition_model.required_sample_rate is None:
                     d = data
                 else:
-                    d = sr.AudioData(data, sampling_rate, 2).get_wav_data(recognition_model.required_sample_rate, 2)
+                    d = speech_recognition.AudioData(data, sampling_rate, 2).get_wav_data(recognition_model.required_sample_rate, 2)
 
                 r = env.performance(lambda: recognition_model.transcribe(filter(np.frombuffer(d, np.int16).flatten())))
                 if r.result[0] not in ["", " ", "\n", None]:
-                    env.debug(lambda: print(f"認識時間[{r.time}ms]", end=": "))
+                    if env.is_trace:
+                        env.debug(lambda: print(f"認識時間[{r.time}ms],PCM[{pcm_sec}s]{round(r.time/1000.0/pcm_sec, 2)}tps", end=": "))
+                    else:
+                        env.debug(lambda: print(f"認識時間[{r.time}ms]", end=": "))
                     outputer.output(r.result[0])
                 if not r[1] is None:
                     env.tarce(lambda: print(f"{r.result[1]}"))
@@ -235,10 +253,10 @@ def main(
             except Exception as e:
                 print(f"!!!!意図しない例外({type(e)}:{e})!!!!")
                 print(traceback.format_exc())
-            env.tarce(lambda: print(f"#認識処理終了(time={dt.datetime.now()})"))
+            env.tarce(lambda: print(f"#認識処理終了(#{index}, time={dt.datetime.now()})"))
 
-        def onrecord_async(data:bytes) -> None:
-            thread_pool.submit(onrecord, data)
+        def onrecord_async(index:int, data:bytes) -> None:
+            thread_pool.submit(onrecord, index, data)
 
 
         print("認識中…")
@@ -252,9 +270,13 @@ def main(
         print(f"{type(e.inner)}{e.inner}")
     except KeyboardInterrupt:
         cancel.cancel()
+        thread_pool.shutdown()
         print("ctrl+c")
     sys.exit()
 
-
+def save_wav(record:bool, record_directory:str, record_file:str, index:int, data:bytes, sampling_rate) -> None:
+    if record:
+        with open(f"{record_directory}{os.sep}{record_file}-{str(index).zfill(4)}.wav", "wb") as fout:      
+            fout.write(speech_recognition.AudioData(data, sampling_rate, 2).get_wav_data())
 if __name__ == "__main__":
     main() # type: ignore
