@@ -20,7 +20,7 @@ import src.google_recognizers as google
 from src.env import Env
 from src.cancellation import CancellationObject
 from src.filter import *
-
+from src.interop import print
 
 @click.command()
 @click.option("--test", default="", help="テストを行います",type=click.Choice(["", val.TEST_VALUE_RECOGNITION, val.TEST_VALUE_MIC]))
@@ -272,11 +272,15 @@ def main(
         print(f"{type(e.inner)}{e.inner}")
     except KeyboardInterrupt:
         cancel.cancel()
-        thread_pool.shutdown()
         print("ctrl+c")
+    finally:
+        thread_pool.shutdown()
     sys.exit()
 
 def save_wav(record:bool, record_directory:str, record_file:str, index:int, data:bytes, sampling_rate) -> None:
+    """
+    音声データをwavに保存
+    """
     if record:
         with open(f"{record_directory}{os.sep}{record_file}-{str(index).zfill(4)}.wav", "wb") as fout:      
             fout.write(speech_recognition.AudioData(data, sampling_rate, 2).get_wav_data())
