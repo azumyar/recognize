@@ -17,7 +17,7 @@ import src.recognition as recognition
 import src.output as output
 import src.val as val
 import src.google_recognizers as google
-from src.env import Env
+from src.env import Env, print
 from src.cancellation import CancellationObject
 from src.filter import *
 
