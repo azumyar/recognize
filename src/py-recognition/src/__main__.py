@@ -7,6 +7,7 @@ import click
 import torch
 import speech_recognition
 import urllib.error as urlerr
+import audioop
 import numpy as np
 import datetime as dt
 from concurrent.futures import ThreadPoolExecutor
@@ -222,10 +223,16 @@ def main(
             env.tarce(lambda: print(f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)},{round(pcm_sec, 2)}s)"))
             try:
                 save_wav(record, record_directory, record_file, index, data, sampling_rate)
-                if recognition_model.required_sample_rate is None:
+                if recognition_model.required_sample_rate is None or sampling_rate == recognition_model.required_sample_rate:
                     d = data
                 else:
-                    d = speech_recognition.AudioData(data, sampling_rate, 2).get_wav_data(recognition_model.required_sample_rate, 2)
+                    d, _ = audioop.ratecv(
+                        data,
+                        2, # sample_width
+                        1,
+                        sampling_rate,
+                        recognition_model.required_sample_rate,
+                        None)
 
                 r = env.performance(lambda: recognition_model.transcribe(filter(np.frombuffer(d, np.int16).flatten())))
                 if r.result[0] not in ["", " ", "\n", None]:
