@@ -9,6 +9,9 @@ def print(
     #file: SupportsWrite[str] | None = None,
     file:Any | None = None,
     flush:Literal[False] = False) -> None:
+    """
+    cp932に安全に変換してprintする
+    """
 
     __print(
         str(*values).encode("cp932", errors="ignore").decode('cp932'),

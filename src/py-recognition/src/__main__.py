@@ -125,6 +125,9 @@ def main(
 
         if test == val.TEST_VALUE_MIC:
             def onrecord(index:int, data:bytes) -> None:
+                """
+                マイク認識データが返るコールバック関数
+                """
                 save_wav(record, record_directory, record_file, index, data, sampling_rate)
 
             mic_.Mic(
@@ -258,6 +261,9 @@ def main(
             env.tarce(lambda: print(f"#認識処理終了(#{index}, time={dt.datetime.now()})"))
 
         def onrecord_async(index:int, data:bytes) -> None:
+            """
+            マイク認識データが返るコールバック関数の非同期版
+            """
             thread_pool.submit(onrecord, index, data)
 
 
