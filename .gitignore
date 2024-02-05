@@ -6,4 +6,5 @@ packages/
 *.csproj.user
 recognize-gui.exe
 frontend.conf
+Record/*
 

@@ -6,7 +6,7 @@ import numpy as np
 import speech_recognition as sr
 import urllib.error as urlerr
 import requests.exceptions
-from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
 from typing import Any, NamedTuple, Callable
 
 import src.exception as ex
@@ -223,27 +223,24 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
     """
     認識モデルのgoogle全二重API実装
     """
+
     def __init__(self, sample_rate: int, sample_width: int, convert_sample_rete: bool=False, language: str = "ja-JP", key: str | None = None, timeout: float | None = None, challenge: int = 1, is_parallel_run:bool = False):
         super().__init__(sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
         self.__is_parallel_run = is_parallel_run
 
     def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
         if self.__is_parallel_run:
-            def func() -> tuple[TranscribeResult|None, Exception|None]:
-                ex:Exception|None = None
-                try:
-                    r = google.recognize_google_duplex(
-                        flac,
-                        self._operation_timeout,
-                        self._key,
-                        self._language,
-                        0)
-                    return (TranscribeResult(r.transcript, r.raw_data), None)
-                except Exception as e:
-                    ex = e
-                return (None, ex)
+            def func() -> TranscribeResult:
+                r = google.recognize_google_duplex(
+                    flac,
+                    self._operation_timeout,
+                    self._key,
+                    self._language,
+                    0)
+                r =TranscribeResult(r.transcript, r.raw_data)
+                return r
 
-            thread_pool = ThreadPoolExecutor(max_workers=6)
+            thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=6)
             try:
                 futures = [
                     thread_pool.submit(func),
@@ -251,12 +248,12 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
                     thread_pool.submit(func),
                 ]
                 ex:Exception | None = None
-                for f in futures:
-                    r = f.result()
-                    if not r[0] is None:
-                        return r[0]
-                    if ex is None:
-                        ex = r[1]
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        return future.result()
+                    except Exception as e:
+                        if ex is None:
+                            ex = e
                 assert not ex is None
                 raise ex
             finally:
