@@ -24,6 +24,8 @@ class Mic:
         energy:float,
         pause:float,
         dynamic_energy:bool,
+        phrase:float | None,
+        non_speaking:float | None,
         mic_index:int | None) -> None:
 
         def check_mic(audio, mic_index:int, sample_rate:int):
@@ -43,23 +45,27 @@ class Mic:
             finally:
                 pass
 
-        if not mic_index is None:
-            audio = sr.Microphone.get_pyaudio().PyAudio()
-            try:
+        audio = sr.Microphone.get_pyaudio().PyAudio()
+        try:
+            if not mic_index is None:
                 check_mic(audio, mic_index, sample_rate)
-            finally:
-                audio.terminate()
+                self.__device_name = audio.get_device_info_by_index(mic_index).get("name")
+            else:
+                self.__device_name = "デフォルトマイク"
+        finally:
+            audio.terminate()
 
         self.__mic_index = mic_index
         self.__energy = energy
         self.__pause = pause
         self.__dynamic_energy = dynamic_energy
+        self.__phrase = phrase
+        self.__non_speaking = non_speaking
 
         self.__sample_rate = sample_rate
         self.__audio_queue = queue.Queue()
         self.__source = Mic.__create_mic(sample_rate, mic_index)        
-        self.__recorder = Mic.__create_recognizer(energy, pause, dynamic_energy)
-        self.__device_name = "デフォルトマイク" if mic_index is None else self.__source.list_microphone_names()[mic_index]
+        self.__recorder = Mic.__create_recognizer(energy, pause, dynamic_energy, phrase, non_speaking)
 
         with self.__source as mic:
             self.__recorder.adjust_for_ambient_noise(mic)
@@ -71,12 +77,17 @@ class Mic:
             device_index = mic_index)
 
     @staticmethod
-    def __create_recognizer(energy:float, pause:float, dynamic_energy:bool) -> sr.Recognizer:
+    def __create_recognizer(energy:float, pause:float, dynamic_energy:bool, phrase:float | None, non_speaking:float | None,) -> sr.Recognizer:
         r = sr.Recognizer()
         r.energy_threshold = energy
         r.pause_threshold = pause
-        if r.pause_threshold < r.non_speaking_duration:
-            r.non_speaking_duration = pause / 2
+        if non_speaking is None:
+            if r.pause_threshold < r.non_speaking_duration:
+                r.non_speaking_duration = pause / 2
+        else:
+            r.non_speaking_duration = non_speaking
+        if not phrase is None:
+            r.phrase_threshold = phrase
         r.dynamic_energy_threshold = dynamic_energy
         return r
 
@@ -168,12 +179,14 @@ class Mic:
         energy:float,
         pause:float,
         dynamic_energy:bool,
+        phrase:float | None,
+        non_speaking:float | None,
         mic_index:int | None,
         cancel,
         out:multiprocessing.Queue):
 
         mic = Mic.__create_mic(sample_rate, mic_index)
-        rec = Mic.__create_recognizer(energy, pause, dynamic_energy)
+        rec = Mic.__create_recognizer(energy, pause, dynamic_energy, phrase, non_speaking)
         with mic as s:
             rec.adjust_for_ambient_noise(s)
             while cancel.value != 0:
@@ -197,6 +210,8 @@ class Mic:
                 self.__energy,
                 self.__pause,
                 self.__dynamic_energy,
+                self.__phrase,
+                self.__non_speaking,
                 self.__mic_index,
                 cancel,
                 queue))
@@ -204,7 +219,7 @@ class Mic:
         p.start()
 
         try:
-            while cancel.alive:
+            while cancel.value != 0:
                 time.sleep(0.1)
         finally:
             cancel.value = 0 # type: ignore

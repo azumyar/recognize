@@ -48,6 +48,8 @@ class Record(NamedTuple):
 @click.option("--mic_energy", default=300, help="設定した値より小さいマイク音量を無音として扱います", type=float)
 @click.option("--mic_dynamic_energy", default=False,is_flag=True, help="Trueの場合周りの騒音に基づいてマイクのエネルギーレベルを動的に変更します", type=bool)
 @click.option("--mic_pause", default=0.8, help="無音として認識される秒数を指定します", type=float)
+@click.option("--mic_phrase", default=None, help="-", type=float)
+@click.option("--mic_non_speaking", default=None, help="-", type=float)
 @click.option("--mic_sampling_rate", default=16000, help="-", type=int)
 @click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice([val.OUT_VALUE_PRINT,val.OUT_VALUE_YUKARINETTE, val.OUT_VALUE_YUKACONE]))
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
@@ -81,6 +83,8 @@ def main(
     mic_energy:float,
     mic_dynamic_energy:bool,
     mic_pause:float,
+    mic_phrase:Optional[float],
+    mic_non_speaking:Optional[float],
     mic_sampling_rate:int,
     out:str,
     out_yukarinette:int,
@@ -113,7 +117,6 @@ def main(
 
     cancel = CancellationObject()
     cancel_mp = multiprocessing.Value("i", 1)
-    thread_pool = ThreadPoolExecutor(max_workers=1)
     try:
         if record_directory is None:
             record_directory = env.root
@@ -128,6 +131,8 @@ def main(
             mic_energy,
             mic_pause,
             mic_dynamic_energy,
+            mic_phrase,
+            mic_non_speaking,
             mic)
         print(f"マイクは{mc.device_name}を使用します")
 
@@ -229,7 +234,6 @@ def main(
                 outputer,
                 filters,
                 rec,
-                thread_pool,
                 env,
                 cancel,
                 test == val.TEST_VALUE_RECOGNITION,
@@ -242,7 +246,7 @@ def main(
         cancel_mp.value = 0 # type: ignore
         print("ctrl+c")
     finally:
-        thread_pool.shutdown()
+        pass
     sys.exit()
 
 
@@ -286,7 +290,6 @@ def __main_run(
     outputer:output.RecognitionOutputer,
     filters:list[NoiseFilter],
     record:Record,
-    thread_pool:ThreadPoolExecutor,
     env:Env,
     cancel:CancellationObject,
     is_test:bool,
@@ -294,6 +297,8 @@ def __main_run(
     """
     メイン実行
     """
+
+    thread_pool = ThreadPoolExecutor(max_workers=1)
     def onrecord(index:int, data:bytes) -> None:
         """
         マイク認識データが返るコールバック関数
@@ -341,11 +346,11 @@ def __main_run(
                 if isinstance(e.inner, urlerr.HTTPError) or isinstance(e.inner, urlerr.URLError):
                     env.debug(lambda: print(e.message))
                 elif isinstance(e.inner, google.UnknownValueError):
-                    er = cast(google.UnknownValueError, e.inner)
-                    if er.raw_data is None:
+                    raw = e.inner.raw_data
+                    if raw is None:
                         env.tarce(lambda: print(f"#{e.message}"))
                     else:
-                        env.tarce(lambda: print(f"#{e.message}\r\n{er.raw_data}"))
+                        env.tarce(lambda: print(f"#{e.message}\r\n{raw}"))
                 else:
                     env.tarce(lambda: print(f"#{e.message}"))
                     env.tarce(lambda: print(f"#{type(e.inner)}:{e.inner}"))
@@ -364,10 +369,13 @@ def __main_run(
         """
         thread_pool.submit(onrecord, index, data)
 
-    if is_test:
-        mic.listen(onrecord)
-    else:
-        mic.listen_loop(onrecord_async, cancel)
+    try:
+        if is_test:
+            mic.listen(onrecord)
+        else:
+            mic.listen_loop(onrecord_async, cancel)
+    finally:
+        thread_pool.shutdown()
 
 def is_feature(feature:str, func:str) -> bool:
     """

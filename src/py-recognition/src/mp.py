@@ -146,11 +146,11 @@ def main_feature_mp(
                 if isinstance(e.inner, urlerr.HTTPError) or isinstance(e.inner, urlerr.URLError):
                     env.debug(lambda: print(e.message))
                 elif isinstance(e.inner, google.UnknownValueError):
-                    er = cast(google.UnknownValueError, e.inner) # type: ignore
-                    if er.raw_data is None:
+                    raw = e.inner.raw_data
+                    if raw is None:
                         env.tarce(lambda: print(f"#{e.message}"))
                     else:
-                        env.tarce(lambda: print(f"#{e.message}\r\n{er.raw_data}"))
+                        env.tarce(lambda: print(f"#{e.message}\r\n{raw}"))
                 else:
                     env.tarce(lambda: print(f"#{e.message}"))
                     env.tarce(lambda: print(f"#{type(e.inner)}:{e.inner}"))
