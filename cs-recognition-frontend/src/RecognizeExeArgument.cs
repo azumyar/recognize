@@ -376,8 +376,9 @@ namespace Haru.Kei {
 		public string Generate(object v, RecognizeExeArgument arg) {
 			if((v != null) && !"".Equals(v)) {
 				if(!string.IsNullOrEmpty(TargetProperty)) {
-					var pv = arg.GetType().GetProperty(TargetProperty).GetValue(arg, null)?.ToString();
-					if(!TargetValue.Split(TargetValueSplit).Any(x => IgnoreCase ? x.ToLower().Equals(pv?.ToLower()) : x.Equals(pv))) {
+					Func<object, string> toLower = (x) => x == null ? null : x.ToString().ToLower();
+					var pv = arg.GetType().GetProperty(TargetProperty).GetValue(arg, null);
+					if(!TargetValue.Split(TargetValueSplit).Any(x => IgnoreCase ? x.ToLower().Equals(toLower(pv)) : x.Equals(pv))) {
 						goto end;
 					}
 				}
