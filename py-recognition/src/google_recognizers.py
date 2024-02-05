@@ -181,21 +181,23 @@ def recognize_google_duplex_urllib(audio_data:EncodeData, timeout:float | None, 
             return DuplexApiResult(False, "", e)
     if key is None:
         key = __api_key
+
     pair = generate_pair()
     thread_pool = ThreadPoolExecutor(max_workers=6)
-    future = thread_pool.submit(down, pair, timeout, key)
-    thread_pool.submit(up, pair, audio_data, timeout, key, language, pfilter)
-    thread_pool.shutdown()
+    try:
+        future = thread_pool.submit(down, pair, timeout, key)
+        thread_pool.submit(up, pair, audio_data, timeout, key, language, pfilter)
 
-    r = future.result()
-    if r.sucess:
-        return __parse(r.transcript)
-    else:
-        assert not r.exception is None
-        if not r.exception is None:
-            raise r.exception
-    raise exception.ProgramError()
-
+        r = future.result()
+        if r.sucess:
+            return __parse(r.transcript)
+        else:
+            assert not r.exception is None
+            if not r.exception is None:
+                raise r.exception
+        raise exception.ProgramError()
+    finally:
+        thread_pool.shutdown(wait=False)
 
 def recognize_google_duplex_requests(audio_data:EncodeData, timeout:float | None, key:str | None=None, language:str="en-US", pfilter:int=0) -> RecognizeResult:
     """
@@ -254,21 +256,23 @@ def recognize_google_duplex_requests(audio_data:EncodeData, timeout:float | None
             return DuplexApiResult(False, "", e)
     if key is None:
         key = __api_key
+
     pair = generate_pair()
     thread_pool = ThreadPoolExecutor(max_workers=6)
-    future = thread_pool.submit(down, pair, timeout, key)
-    thread_pool.submit(up, pair, audio_data, timeout, key, language, pfilter)
-    thread_pool.shutdown()
+    try:
+        future = thread_pool.submit(down, pair, timeout, key)
+        thread_pool.submit(up, pair, audio_data, timeout, key, language, pfilter)
 
-    r = future.result()
-    if r.sucess:
-        return __parse(r.transcript)
-    else:
-        assert not r.exception is None
-        if not r.exception is None:
-            raise r.exception
-    raise exception.ProgramError()
-
+        r = future.result()
+        if r.sucess:
+            return __parse(r.transcript)
+        else:
+            assert not r.exception is None
+            if not r.exception is None:
+                raise r.exception
+        raise exception.ProgramError()
+    finally:
+        thread_pool.shutdown(wait=False)
 
 
 def __parse(response_text:str) -> RecognizeResult:
