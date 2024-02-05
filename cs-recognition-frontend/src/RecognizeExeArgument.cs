@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -252,6 +252,23 @@ namespace Haru.Kei {
 		[ArgAttribute("--verbose")]
 		public string ArgVerbose { get; set; }
 
+		[DisplayName("録音")]
+		[DefaultValue(null)]
+		[Description("録音データを保存する場合trueにします")]
+		[ArgAttribute("--record", IsFlag = true)]
+		public bool? ArgRecord { get; set; }
+
+		[DisplayName("録音ファイル名")]
+		[Description("録音ファイル名を指定します。最終的なファイル名は{指定ファイル名}-{連番}.wavになります。")]
+		[DefaultValue("record")]
+		[ArgAttribute("--record_file", TargetProperty = "ArgRecord", TargetValue = "true", IgnoreCase = true)]
+		public string ArgRecordFile { get; set; }
+
+		[DisplayName("録音格納先")]
+		[Description("録音ファイル出力先フォルダパスを指定します")]
+		[ArgAttribute("--record_directory", TargetProperty = "ArgRecord", TargetValue = "true", IgnoreCase = true)]
+		public string ArgRecordDirectory { get; set; }
+
 		public RecognizeExeArgument() { 
 			foreach(var p in this.GetType().GetProperties()) {
 				var dva = p.GetCustomAttribute(typeof(DefaultValueAttribute)) as DefaultValueAttribute;
@@ -259,6 +276,7 @@ namespace Haru.Kei {
 					p.SetValue(this, dva.Value);
 				}
 			}
+			this.ArgRecordDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Record");
 		}
 	}
 
@@ -348,6 +366,8 @@ namespace Haru.Kei {
 		public string TargetValue;
 		/// <summary>配列が使えないのでこの値で区切ることで複数設定</summary>
 		public char TargetValueSplit = ';';
+		/// <summary>TargetValueの大文字小文字を無視</summary>
+		public bool IgnoreCase = false;
 
 		public ArgAttribute(string arg) {
 			this.arg = arg;
@@ -356,8 +376,9 @@ namespace Haru.Kei {
 		public string Generate(object v, RecognizeExeArgument arg) {
 			if((v != null) && !"".Equals(v)) {
 				if(!string.IsNullOrEmpty(TargetProperty)) {
+					Func<object, string> toLower = (x) => x == null ? null : x.ToString().ToLower();
 					var pv = arg.GetType().GetProperty(TargetProperty).GetValue(arg, null);
-					if(!TargetValue.Split(TargetValueSplit).Any(x => x.Equals(pv))) {
+					if(!TargetValue.Split(TargetValueSplit).Any(x => IgnoreCase ? x.ToLower().Equals(toLower(pv)) : x.Equals(pv))) {
 						goto end;
 					}
 				}

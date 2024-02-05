@@ -1,7 +1,7 @@
 import os
 import sys
 import time
-from typing import Any, Callable, NamedTuple, Literal
+from typing import Any, Callable, NamedTuple
 
 class PerformanceResult(NamedTuple):
     result:Any
@@ -71,18 +71,3 @@ class Env:
         if self.is_trace:
             return func()
 
-__print = print 
-def print(
-    *values:object,
-    sep:str | None = " ",
-    end:str | None = "\n",
-    #file: SupportsWrite[str] | None = None,
-    file:Any | None = None,
-    flush:Literal[False] = False) -> None:
-
-    __print(
-        str(*values).encode("cp932", errors="ignore").decode('cp932'),
-        sep=sep,
-        end=end,
-        file=file,
-        flush=flush)
