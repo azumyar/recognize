@@ -87,6 +87,10 @@ class Mic:
     def device_name(self):
         return self.__device_name
     
+    @property
+    def sample_rate(self):
+        return self.__sample_rate
+
     def __get_audio_data(self, min_time:float=-1.) -> bytes:
         audio = bytes()
         is_goted = False

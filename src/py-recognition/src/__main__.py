@@ -11,7 +11,7 @@ import audioop
 import numpy as np
 import datetime as dt
 from concurrent.futures import ThreadPoolExecutor
-from typing import cast, Optional
+from typing import cast, Optional, NamedTuple
 
 import src.mic as mic_
 import src.recognition as recognition
@@ -22,6 +22,14 @@ from src.env import Env
 from src.cancellation import CancellationObject
 from src.filter import *
 from src.interop import print
+
+class Record(NamedTuple):
+    """
+    録音設定
+    """
+    is_record:bool
+    file:str
+    directory:str
 
 @click.command()
 @click.option("--test", default="", help="テストを行います",type=click.Choice(["", val.TEST_VALUE_RECOGNITION, val.TEST_VALUE_MIC]))
@@ -95,79 +103,19 @@ def main(
         os.makedirs(env.root, exist_ok=True)
         os.chdir(env.root)
     
-    if record_directory is None:
-        record_directory = env.root
-    else:
-         os.makedirs(record_directory, exist_ok=True)
-
     if print_mics or list_devices:
-        audio = speech_recognition.Microphone.get_pyaudio().PyAudio()
-        try:
-            for i in range(audio.get_device_count()):
-                device_info = audio.get_device_info_by_index(i)
-                index = device_info.get("index")
-                host_api = device_info.get("hostApi")
-                name = device_info.get("name")
-                input = device_info.get("maxInputChannels")
-                host_api_name = "-"
-                rate = device_info.get("defaultSampleRate")
-                if isinstance(host_api, int):
-                    host_api_name = audio.get_host_api_info_by_index(host_api).get("name")
-                if isinstance(input, int) and 0 < input:
-                    print(f"{index} : [{host_api_name}]{name} sample_rate={rate}")            
-        finally:
-            audio.terminate()
+        __main_print_mics()
         return
 
     cancel = CancellationObject()
     thread_pool = ThreadPoolExecutor(max_workers=1)
     try:
+        if record_directory is None:
+            record_directory = env.root
+        else:
+            os.makedirs(record_directory, exist_ok=True)
         sampling_rate = mic_.Mic.update_sample_rate(mic, mic_sampling_rate) #16000
-
-        if test == val.TEST_VALUE_MIC:
-            def onrecord(index:int, data:bytes) -> None:
-                """
-                マイク認識データが返るコールバック関数
-                """
-                save_wav(record, record_directory, record_file, index, data, sampling_rate)
-
-            mic_.Mic(
-                sampling_rate,
-                mic_energy,
-                mic_pause,
-                mic_dynamic_energy,
-                mic).test_mic(cancel, onrecord)
-            return
-
-        print("認識モデルの初期化")
-        recognition_model:recognition.RecognitionModel = {
-            val.METHOD_VALUE_WHISPER: lambda: recognition.RecognitionModelWhisper(
-                model=whisper_model,
-                language=whisper_language,
-                device=whisper_device,
-                download_root=f"{env.root}{os.sep}.cache"),
-            val.METHOD_VALUE_WHISPER_FASTER: lambda:  recognition.RecognitionModelWhisperFaster(
-                model=whisper_model,
-                language=whisper_language,
-                device=whisper_device,
-                download_root=f"{env.root}{os.sep}.cache"),
-            val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
-                sample_rate=sampling_rate,
-                sample_width=2,
-                convert_sample_rete=google_convert_sampling_rate,
-                language=google_language,
-                timeout=google_timeout if 0 < google_timeout else None,
-                challenge=google_error_retry),
-            val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.RecognitionModelGoogleDuplex(
-                sample_rate=sampling_rate,
-                sample_width=2,
-                convert_sample_rete=google_convert_sampling_rate,
-                language=google_language,
-                timeout=google_timeout if 0 < google_timeout else None,
-                challenge=google_error_retry,
-                is_parallel_run=google_duplex_parallel),
-        }[method]()
-        env.tarce(lambda: print(f"#認識モデルは{type(recognition_model)}を使用"))
+        rec = Record(record, record_file, record_directory)
 
         print("マイクの初期化")
         mc = mic_.Mic(
@@ -178,108 +126,75 @@ def main(
             mic)
         print(f"マイクは{mc.device_name}を使用します")
 
-        outputer:output.RecognitionOutputer = {
-            val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
-            val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}"),
-            val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}"),
-#            val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}"),
-        }[out]()
-        env.tarce(lambda: print(f"#出力は{type(outputer)}を使用"))
+        if test == val.TEST_VALUE_MIC:
+            __main_test_mic(mc, rec, cancel)
+        else:
+            print("認識モデルの初期化")
+            recognition_model:recognition.RecognitionModel = {
+                val.METHOD_VALUE_WHISPER: lambda: recognition.RecognitionModelWhisper(
+                    model=whisper_model,
+                    language=whisper_language,
+                    device=whisper_device,
+                    download_root=f"{env.root}{os.sep}.cache"),
+                val.METHOD_VALUE_WHISPER_FASTER: lambda:  recognition.RecognitionModelWhisperFaster(
+                    model=whisper_model,
+                    language=whisper_language,
+                    device=whisper_device,
+                    download_root=f"{env.root}{os.sep}.cache"),
+                val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
+                    sample_rate=sampling_rate,
+                    sample_width=2,
+                    convert_sample_rete=google_convert_sampling_rate,
+                    language=google_language,
+                    timeout=google_timeout if 0 < google_timeout else None,
+                    challenge=google_error_retry),
+                val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.RecognitionModelGoogleDuplex(
+                    sample_rate=sampling_rate,
+                    sample_width=2,
+                    convert_sample_rete=google_convert_sampling_rate,
+                    language=google_language,
+                    timeout=google_timeout if 0 < google_timeout else None,
+                    challenge=google_error_retry,
+                    is_parallel_run=google_duplex_parallel),
+            }[method]()
+            env.tarce(lambda: print(f"#認識モデルは{type(recognition_model)}を使用"))
 
-        filters:list[NoiseFilter] = []
-        if not disable_lpf:
-            filters.append(
-                LowPassFilter(
-                    sampling_rate,
-                    filter_lpf_cutoff,
-                    filter_lpf_cutoff_upper))
-        if not disable_hpf:
-            filters.append(
-                HighPassFilter(
-                    sampling_rate,
-                    filter_hpf_cutoff,
-                    filter_hpf_cutoff_upper))
-        env.tarce(lambda: print(f"#使用音声フィルタ({len(filters)}):"))
-        for f in filters:
-            env.tarce(lambda: print(f"#{type(f)}"))
+            outputer:output.RecognitionOutputer = {
+                val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
+                val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}"),
+                val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}"),
+    #            val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}"),
+            }[out]()
+            env.tarce(lambda: print(f"#出力は{type(outputer)}を使用"))
 
-        def onrecord(index:int, data:bytes) -> None:
-            """
-            マイク認識データが返るコールバック関数
-            """
-            def filter(ary:np.ndarray) -> np.ndarray:
-                """
-                フィルタ処理をする
-                """
-                if len(filters) == 0:
-                    return ary
-                else:
-                    fft = np.fft.fft(ary)
-                    for f in filters:
-                        f.filter(fft)
-                    return np.real(np.fft.ifft(fft))
-
-            pcm_sec = len(data) / 2 / sampling_rate
-            env.tarce(lambda: print(f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)},{round(pcm_sec, 2)}s)"))
-            try:
-                save_wav(record, record_directory, record_file, index, data, sampling_rate)
-                if recognition_model.required_sample_rate is None or sampling_rate == recognition_model.required_sample_rate:
-                    d = data
-                else:
-                    d, _ = audioop.ratecv(
-                        data,
-                        2, # sample_width
-                        1,
+            filters:list[NoiseFilter] = []
+            if not disable_lpf:
+                filters.append(
+                    LowPassFilter(
                         sampling_rate,
-                        recognition_model.required_sample_rate,
-                        None)
+                        filter_lpf_cutoff,
+                        filter_lpf_cutoff_upper))
+            if not disable_hpf:
+                filters.append(
+                    HighPassFilter(
+                        sampling_rate,
+                        filter_hpf_cutoff,
+                        filter_hpf_cutoff_upper))        
+            env.tarce(lambda: print(f"#使用音声フィルタ({len(filters)}):"))
+            for f in filters:
+                env.tarce(lambda: print(f"#{type(f)}"))
 
-                r = env.performance(lambda: recognition_model.transcribe(filter(np.frombuffer(d, np.int16).flatten())))
-                if r.result[0] not in ["", " ", "\n", None]:
-                    if env.is_trace:
-                        env.debug(lambda: print(f"認識時間[{r.time}ms],PCM[{pcm_sec}s]{round(r.time/1000.0/pcm_sec, 2)}tps", end=": "))
-                    else:
-                        env.debug(lambda: print(f"認識時間[{r.time}ms]", end=": "))
-                    outputer.output(r.result[0])
-                if not r[1] is None:
-                    env.tarce(lambda: print(f"{r.result[1]}"))
-            except recognition.TranscribeException as e:
-                if e.inner is None:
-                    print(e.message)
-                else:
-                    if isinstance(e.inner, urlerr.HTTPError) or isinstance(e.inner, urlerr.URLError):
-                        env.debug(lambda: print(e.message))
-                    elif isinstance(e.inner, google.UnknownValueError):
-                        er = cast(google.UnknownValueError, e.inner)
-                        if er.raw_data is None:
-                            env.tarce(lambda: print(f"#{e.message}"))
-                        else:
-                            env.tarce(lambda: print(f"#{e.message}\r\n{er.raw_data}"))
-                    else:
-                        env.tarce(lambda: print(f"#{e.message}"))
-                        env.tarce(lambda: print(f"#{type(e.inner)}:{e.inner}"))
-            except output.WsOutputException as e:
-                print(e.message)
-                if not e.inner is None:
-                    env.tarce(lambda: print(f"# => {type(e.inner)}:{e.inner}"))
-            except Exception as e:
-                print(f"!!!!意図しない例外({type(e)}:{e})!!!!")
-                print(traceback.format_exc())
-            env.tarce(lambda: print(f"#認識処理終了(#{index}, time={dt.datetime.now()})"))
-
-        def onrecord_async(index:int, data:bytes) -> None:
-            """
-            マイク認識データが返るコールバック関数の非同期版
-            """
-            thread_pool.submit(onrecord, index, data)
-
-
-        print("認識中…")
-        if test == val.TEST_VALUE_RECOGNITION:
-            mc.listen(onrecord)
-            return
-
-        mc.listen_loop(onrecord_async, cancel)
+            print("認識中…")
+            __main_run(
+                mc,
+                recognition_model,
+                outputer,
+                filters,
+                rec,
+                thread_pool,
+                env,
+                cancel,
+                test == val.TEST_VALUE_RECOGNITION)
     except mic_.MicInitializeExeception as e:
         print(e.message)
         print(f"{type(e.inner)}{e.inner}")
@@ -290,12 +205,136 @@ def main(
         thread_pool.shutdown()
     sys.exit()
 
-def save_wav(record:bool, record_directory:str, record_file:str, index:int, data:bytes, sampling_rate) -> None:
+
+def __main_print_mics() -> None:
+    """
+    マイク情報出力
+    """
+    audio = speech_recognition.Microphone.get_pyaudio().PyAudio()
+    try:
+        for i in range(audio.get_device_count()):
+            device_info = audio.get_device_info_by_index(i)
+            index = device_info.get("index")
+            host_api = device_info.get("hostApi")
+            name = device_info.get("name")
+            input = device_info.get("maxInputChannels")
+            host_api_name = "-"
+            rate = device_info.get("defaultSampleRate")
+            if isinstance(host_api, int):
+                host_api_name = audio.get_host_api_info_by_index(host_api).get("name")
+            if isinstance(input, int) and 0 < input:
+                print(f"{index} : [{host_api_name}]{name} sample_rate={rate}")            
+    finally:
+        audio.terminate()
+
+def __main_test_mic(mic:mic_.Mic, rec:Record, cancel:CancellationObject) -> None:
+    """
+    マイクテスト
+    """
+    def onrecord(index:int, data:bytes) -> None:
+        """
+        マイク認識データが返るコールバック関数
+        """
+        save_wav(rec, index, data, mic.sample_rate)
+
+    mic.test_mic(cancel, onrecord)
+    return
+
+def __main_run(
+    mic:mic_.Mic,
+    recognition_model:recognition.RecognitionModel,
+    outputer:output.RecognitionOutputer,
+    filters:list[NoiseFilter],
+    record:Record,
+    thread_pool:ThreadPoolExecutor,
+    env:Env,
+    cancel:CancellationObject,
+    is_test) -> None:
+    """
+    メイン実行
+    """
+    def onrecord(index:int, data:bytes) -> None:
+        """
+        マイク認識データが返るコールバック関数
+        """
+        def filter(ary:np.ndarray) -> np.ndarray:
+            """
+            フィルタ処理をする
+            """
+            if len(filters) == 0:
+                return ary
+            else:
+                fft = np.fft.fft(ary)
+                for f in filters:
+                    f.filter(fft)
+                return np.real(np.fft.ifft(fft))
+
+        pcm_sec = len(data) / 2 / mic.sample_rate
+        env.tarce(lambda: print(f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)},{round(pcm_sec, 2)}s)"))
+        try:
+            save_wav(record, index, data, mic.sample_rate)
+            if recognition_model.required_sample_rate is None or mic.sample_rate == recognition_model.required_sample_rate:
+                d = data
+            else:
+                d, _ = audioop.ratecv(
+                    data,
+                    2, # sample_width
+                    1,
+                    mic.sample_rate,
+                    recognition_model.required_sample_rate,
+                    None)
+
+            r = env.performance(lambda: recognition_model.transcribe(filter(np.frombuffer(d, np.int16).flatten())))
+            if r.result[0] not in ["", " ", "\n", None]:
+                if env.is_trace:
+                    env.debug(lambda: print(f"認識時間[{r.time}ms],PCM[{round(pcm_sec, 2)}s],{round(r.time/1000.0/pcm_sec, 2)}tps", end=": "))
+                else:
+                    env.debug(lambda: print(f"認識時間[{r.time}ms]", end=": "))
+                outputer.output(r.result[0])
+            if not r[1] is None:
+                env.tarce(lambda: print(f"{r.result[1]}"))
+        except recognition.TranscribeException as e:
+            if e.inner is None:
+                print(e.message)
+            else:
+                if isinstance(e.inner, urlerr.HTTPError) or isinstance(e.inner, urlerr.URLError):
+                    env.debug(lambda: print(e.message))
+                elif isinstance(e.inner, google.UnknownValueError):
+                    er = cast(google.UnknownValueError, e.inner)
+                    if er.raw_data is None:
+                        env.tarce(lambda: print(f"#{e.message}"))
+                    else:
+                        env.tarce(lambda: print(f"#{e.message}\r\n{er.raw_data}"))
+                else:
+                    env.tarce(lambda: print(f"#{e.message}"))
+                    env.tarce(lambda: print(f"#{type(e.inner)}:{e.inner}"))
+        except output.WsOutputException as e:
+            print(e.message)
+            if not e.inner is None:
+                env.tarce(lambda: print(f"# => {type(e.inner)}:{e.inner}"))
+        except Exception as e:
+            print(f"!!!!意図しない例外({type(e)}:{e})!!!!")
+            print(traceback.format_exc())
+        env.tarce(lambda: print(f"#認識処理終了(#{index}, time={dt.datetime.now()})"))
+
+    def onrecord_async(index:int, data:bytes) -> None:
+        """
+        マイク認識データが返るコールバック関数の非同期版
+        """
+        thread_pool.submit(onrecord, index, data)
+
+    if is_test:
+        mic.listen(onrecord)
+    else:
+        mic.listen_loop(onrecord_async, cancel)
+
+
+def save_wav(record:Record, index:int, data:bytes, sampling_rate) -> None:
     """
     音声データをwavに保存
     """
-    if record:
-        with open(f"{record_directory}{os.sep}{record_file}-{str(index).zfill(4)}.wav", "wb") as fout:      
+    if record.is_record:
+        with open(f"{record.directory}{os.sep}{record.file}-{str(index).zfill(4)}.wav", "wb") as fout:      
             fout.write(speech_recognition.AudioData(data, sampling_rate, 2).get_wav_data())
 
 if __name__ == "__main__":
