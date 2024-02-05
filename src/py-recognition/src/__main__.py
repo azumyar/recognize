@@ -7,6 +7,7 @@ import click
 import torch
 import speech_recognition
 import urllib.error as urlerr
+import multiprocessing
 import audioop
 import numpy as np
 import datetime as dt
@@ -18,6 +19,7 @@ import src.recognition as recognition
 import src.output as output
 import src.val as val
 import src.google_recognizers as google
+import src.mp
 from src.env import Env
 from src.cancellation import CancellationObject
 from src.filter import *
@@ -63,6 +65,7 @@ class Record(NamedTuple):
 @click.option("--record",default=False, help="録音した音声をファイルとして出力します", is_flag=True, type=bool)
 @click.option("--record_file", default="record", help="録音データの出力ファイル名を指定します", type=str)
 @click.option("--record_directory", default=None, help="録音データの出力先ディレクトリを指定します", type=str)
+@click.option("--feature", default="", help="-", type=str) 
 def main(
     test:str,
     method:str,
@@ -94,7 +97,8 @@ def main(
     verbose:str,
     record:bool,
     record_file:str,
-    record_directory:Optional[str]
+    record_directory:Optional[str],
+    feature:str
     ) -> None:
 
 
@@ -104,10 +108,11 @@ def main(
         os.chdir(env.root)
     
     if print_mics or list_devices:
-        __main_print_mics()
+        __main_print_mics(feature)
         return
 
     cancel = CancellationObject()
+    cancel_mp = multiprocessing.Value("i", 1)
     thread_pool = ThreadPoolExecutor(max_workers=1)
     try:
         if record_directory is None:
@@ -127,7 +132,40 @@ def main(
         print(f"マイクは{mc.device_name}を使用します")
 
         if test == val.TEST_VALUE_MIC:
-            __main_test_mic(mc, rec, cancel)
+            __main_test_mic(mc, rec, cancel, feature)
+        elif is_feature(feature, "mp"):
+            print("実験的機能：マルチプロセスでマイクの監視を行います")
+            print("--recordは実装されていません")
+
+            q = multiprocessing.Queue()
+            p = multiprocessing.Process(target=src.mp.main_feature_mp, args=(
+                q,
+                cancel_mp,
+                sampling_rate,
+                method,
+                whisper_model,
+                whisper_language,
+                whisper_device,
+                google_convert_sampling_rate,
+                google_language,
+                google_timeout,
+                google_error_retry,
+                google_duplex_parallel,
+                out,
+                out_yukarinette,
+                out_yukacone,
+                disable_lpf,
+                filter_lpf_cutoff,
+                filter_lpf_cutoff_upper,
+                disable_hpf,
+                filter_hpf_cutoff,
+                filter_hpf_cutoff_upper,
+                0,
+                verbose,
+                feature))
+            p.daemon = True
+            p.start()
+            mc.listen_loop_mp(q, cancel_mp)
         else:
             print("認識モデルの初期化")
             recognition_model:recognition.RecognitionModel = {
@@ -194,19 +232,21 @@ def main(
                 thread_pool,
                 env,
                 cancel,
-                test == val.TEST_VALUE_RECOGNITION)
+                test == val.TEST_VALUE_RECOGNITION,
+                feature)
     except mic_.MicInitializeExeception as e:
         print(e.message)
         print(f"{type(e.inner)}{e.inner}")
     except KeyboardInterrupt:
         cancel.cancel()
+        cancel_mp.value = 0 # type: ignore
         print("ctrl+c")
     finally:
         thread_pool.shutdown()
     sys.exit()
 
 
-def __main_print_mics() -> None:
+def __main_print_mics(_:str) -> None:
     """
     マイク情報出力
     """
@@ -227,7 +267,7 @@ def __main_print_mics() -> None:
     finally:
         audio.terminate()
 
-def __main_test_mic(mic:mic_.Mic, rec:Record, cancel:CancellationObject) -> None:
+def __main_test_mic(mic:mic_.Mic, rec:Record, cancel:CancellationObject, _:str) -> None:
     """
     マイクテスト
     """
@@ -249,7 +289,8 @@ def __main_run(
     thread_pool:ThreadPoolExecutor,
     env:Env,
     cancel:CancellationObject,
-    is_test) -> None:
+    is_test:bool,
+    _:str) -> None:
     """
     メイン実行
     """
@@ -328,6 +369,14 @@ def __main_run(
     else:
         mic.listen_loop(onrecord_async, cancel)
 
+def is_feature(feature:str, func:str) -> bool:
+    """
+    featureにfuncが含まれるか判定
+    """
+    def strip(s:str) -> str:
+        return str.strip(s)
+    return func in map(strip, feature.split(","))
+
 
 def save_wav(record:Record, index:int, data:bytes, sampling_rate) -> None:
     """
@@ -338,4 +387,5 @@ def save_wav(record:Record, index:int, data:bytes, sampling_rate) -> None:
             fout.write(speech_recognition.AudioData(data, sampling_rate, 2).get_wav_data())
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method("spawn")
     main() # type: ignore

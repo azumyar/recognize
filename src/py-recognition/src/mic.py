@@ -1,9 +1,10 @@
 import queue
 import time
+import multiprocessing
 import speech_recognition as sr
 import speech_recognition.exceptions
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, Callable
+from typing import Callable
 
 import src.exception as ex
 from src.cancellation import CancellationObject
@@ -23,7 +24,7 @@ class Mic:
         energy:float,
         pause:float,
         dynamic_energy:bool,
-        mic_index:Optional[int]) -> None:
+        mic_index:int | None) -> None:
 
         def check_mic(audio, mic_index:int, sample_rate:int):
             try:
@@ -45,26 +46,39 @@ class Mic:
         if not mic_index is None:
             audio = sr.Microphone.get_pyaudio().PyAudio()
             try:
-                    check_mic(audio, mic_index, sample_rate)
+                check_mic(audio, mic_index, sample_rate)
             finally:
                 audio.terminate()
 
+        self.__mic_index = mic_index
+        self.__energy = energy
+        self.__pause = pause
+        self.__dynamic_energy = dynamic_energy
+
         self.__sample_rate = sample_rate
         self.__audio_queue = queue.Queue()
-        self.__source = sr.Microphone(
-            sample_rate = sample_rate,
-            device_index = mic_index)        
-        self.__recorder = sr.Recognizer()
-        self.__recorder.energy_threshold = energy
-        self.__recorder.pause_threshold = pause
-        if self.__recorder.pause_threshold < self.__recorder.non_speaking_duration:
-            self.__recorder.non_speaking_duration = pause / 2
-        self.__recorder.dynamic_energy_threshold = dynamic_energy
-
+        self.__source = Mic.__create_mic(sample_rate, mic_index)        
+        self.__recorder = Mic.__create_recognizer(energy, pause, dynamic_energy)
         self.__device_name = "デフォルトマイク" if mic_index is None else self.__source.list_microphone_names()[mic_index]
 
         with self.__source as mic:
             self.__recorder.adjust_for_ambient_noise(mic)
+
+    @staticmethod
+    def __create_mic(sample_rate:int, mic_index:int | None) -> sr.Microphone:
+        return sr.Microphone(
+            sample_rate = sample_rate,
+            device_index = mic_index)
+
+    @staticmethod
+    def __create_recognizer(energy:float, pause:float, dynamic_energy:bool) -> sr.Recognizer:
+        r = sr.Recognizer()
+        r.energy_threshold = energy
+        r.pause_threshold = pause
+        if r.pause_threshold < r.non_speaking_duration:
+            r.non_speaking_duration = pause / 2
+        r.dynamic_energy_threshold = dynamic_energy
+        return r
 
     @staticmethod
     def update_sample_rate(mic_index:int | None, sample_rate:int) -> int:
@@ -147,7 +161,54 @@ class Mic:
                 time.sleep(0.1)
         finally:
             thread_pool.shutdown(wait=False)
-            pass
+
+    @staticmethod
+    def listen_mic_process(
+        sample_rate:int,
+        energy:float,
+        pause:float,
+        dynamic_energy:bool,
+        mic_index:int | None,
+        cancel,
+        out:multiprocessing.Queue):
+
+        mic = Mic.__create_mic(sample_rate, mic_index)
+        rec = Mic.__create_recognizer(energy, pause, dynamic_energy)
+        with mic as s:
+            rec.adjust_for_ambient_noise(s)
+            while cancel.value != 0:
+                try:
+                    audio = rec.listen(s, 0.25, None)
+                except speech_recognition.exceptions.WaitTimeoutError:
+                    pass
+                else:
+                    if cancel.value != 0:
+                        out.put_nowait(audio.get_raw_data())
+
+    def listen_loop_mp(self, queue:multiprocessing.Queue, cancel) -> None:
+        """
+        マイクループ。処理を返しません。(マルチプロセス実装)
+        """
+
+        p = multiprocessing.Process(
+            target=Mic.listen_mic_process, 
+            args=(
+                self.__sample_rate,
+                self.__energy,
+                self.__pause,
+                self.__dynamic_energy,
+                self.__mic_index,
+                cancel,
+                queue))
+        p.daemon = True
+        p.start()
+
+        try:
+            while cancel.alive:
+                time.sleep(0.1)
+        finally:
+            cancel.value = 0 # type: ignore
+            p.join()
 
     def test_mic(self, cancel:CancellationObject, onrecord:Callable[[int, bytes], None] | None = None):
         timemax = 5
