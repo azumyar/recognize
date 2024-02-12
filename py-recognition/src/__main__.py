@@ -44,11 +44,15 @@ class Record(NamedTuple):
 @click.option("--google_convert_sampling_rate", default=False, help="(google)マイク入力を16kに変換します", is_flag=True, type=bool)
 @click.option("--google_error_retry", default=1, help="(google)500エラー時にリトライ試行する回数", type=int)
 @click.option("--google_duplex_parallel", default=False, help="(google_duplexのみ)複数並列リクエストを投げエラーの抑制を図ります", is_flag=True, type=bool)
+@click.option("--google_duplex_parallel_max", default=None, help="(google_duplexのみ)複数並列リクエスト数増減時の最大並列数", type=int)
+@click.option("--google_duplex_parallel_reduce_count", default=None, help="(google_duplexのみ)増加した並列数を減少するために必要な成功数", type=int)
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
 @click.option("--mic_energy", default=300, help="設定した値より小さいマイク音量を無音として扱います", type=float)
-@click.option("--mic_dynamic_energy", default=False,is_flag=True, help="Trueの場合周りの騒音に基づいてマイクのエネルギーレベルを動的に変更します", type=bool)
+@click.option("--mic_dynamic_energy", default=False, is_flag=True, help="Trueの場合周りの騒音に基づいてマイクのエネルギーレベルを動的に変更します", type=bool)
+@click.option("--mic_dynamic_energy_ratio", default=1.5, help="--mic_dynamic_energyで--mic_energyを変更する場合の最小係数", type=float)
+@click.option("--mic_dynamic_energy_min", default=100, help="--mic_dynamic_energyを指定した場合動的設定される--mic_energy最低値", type=float)
 @click.option("--mic_pause", default=0.8, help="無音として認識される秒数を指定します", type=float)
-@click.option("--mic_phrase", default=None, help="-", type=float)
+@click.option("--mic_phrase", default=None, help="発話音声として認識される最小秒数", type=float)
 @click.option("--mic_non_speaking", default=None, help="-", type=float)
 @click.option("--mic_sampling_rate", default=16000, help="-", type=int)
 @click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice([val.OUT_VALUE_PRINT,val.OUT_VALUE_YUKARINETTE, val.OUT_VALUE_YUKACONE]))
@@ -79,9 +83,13 @@ def main(
     google_convert_sampling_rate:bool,
     google_error_retry:int,
     google_duplex_parallel:bool,
+    google_duplex_parallel_max:Optional[int],
+    google_duplex_parallel_reduce_count:Optional[int],
     mic:Optional[int],
     mic_energy:float,
     mic_dynamic_energy:bool,
+    mic_dynamic_energy_ratio:float,
+    mic_dynamic_energy_min:float,
     mic_pause:float,
     mic_phrase:Optional[float],
     mic_non_speaking:Optional[float],
@@ -131,6 +139,8 @@ def main(
             mic_energy,
             mic_pause,
             mic_dynamic_energy,
+            mic_dynamic_energy_ratio,
+            mic_dynamic_energy_min,
             mic_phrase,
             mic_non_speaking,
             mic)
@@ -198,7 +208,9 @@ def main(
                     language=google_language,
                     timeout=google_timeout if 0 < google_timeout else None,
                     challenge=google_error_retry,
-                    is_parallel_run=google_duplex_parallel),
+                    is_parallel_run=google_duplex_parallel,
+                    parallel_max=google_duplex_parallel_max,
+                    parallel_reduce_count=google_duplex_parallel_reduce_count),
             }[method]()
             env.tarce(lambda: print(f"#認識モデルは{type(recognition_model)}を使用"))
 
@@ -315,8 +327,13 @@ def __main_run(
                     f.filter(fft)
                 return np.real(np.fft.ifft(fft))
 
+        insert:str
+        if 0 < mic.end_insert_sec:
+            insert = f", {round(mic.end_insert_sec, 2)}s挿入"
+        else:
+            insert = ""
         pcm_sec = len(data) / 2 / mic.sample_rate
-        env.tarce(lambda: print(f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)},{round(pcm_sec, 2)}s)"))
+        env.tarce(lambda: print(f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)}, {round(pcm_sec, 2)}s{insert})"))
         try:
             save_wav(record, index, data, mic.sample_rate)
             if recognition_model.required_sample_rate is None or mic.sample_rate == recognition_model.required_sample_rate:
