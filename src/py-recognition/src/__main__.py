@@ -48,9 +48,11 @@ class Record(NamedTuple):
 @click.option("--google_duplex_parallel_reduce_count", default=None, help="(google_duplexのみ)増加した並列数を減少するために必要な成功数", type=int)
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
 @click.option("--mic_energy", default=300, help="設定した値より小さいマイク音量を無音として扱います", type=float)
-@click.option("--mic_dynamic_energy", default=False,is_flag=True, help="Trueの場合周りの騒音に基づいてマイクのエネルギーレベルを動的に変更します", type=bool)
+@click.option("--mic_dynamic_energy", default=False, is_flag=True, help="Trueの場合周りの騒音に基づいてマイクのエネルギーレベルを動的に変更します", type=bool)
+@click.option("--mic_dynamic_energy_ratio", default=1.5, help="--mic_dynamic_energyで--mic_energyを変更する場合の最小係数", type=float)
+@click.option("--mic_dynamic_energy_min", default=100, help="--mic_dynamic_energyを指定した場合動的設定される--mic_energy最低値", type=float)
 @click.option("--mic_pause", default=0.8, help="無音として認識される秒数を指定します", type=float)
-@click.option("--mic_phrase", default=None, help="-", type=float)
+@click.option("--mic_phrase", default=None, help="発話音声として認識される最小秒数", type=float)
 @click.option("--mic_non_speaking", default=None, help="-", type=float)
 @click.option("--mic_sampling_rate", default=16000, help="-", type=int)
 @click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice([val.OUT_VALUE_PRINT,val.OUT_VALUE_YUKARINETTE, val.OUT_VALUE_YUKACONE]))
@@ -86,6 +88,8 @@ def main(
     mic:Optional[int],
     mic_energy:float,
     mic_dynamic_energy:bool,
+    mic_dynamic_energy_ratio:float,
+    mic_dynamic_energy_min:float,
     mic_pause:float,
     mic_phrase:Optional[float],
     mic_non_speaking:Optional[float],
@@ -135,6 +139,8 @@ def main(
             mic_energy,
             mic_pause,
             mic_dynamic_energy,
+            mic_dynamic_energy_ratio,
+            mic_dynamic_energy_min,
             mic_phrase,
             mic_non_speaking,
             mic)
@@ -321,8 +327,13 @@ def __main_run(
                     f.filter(fft)
                 return np.real(np.fft.ifft(fft))
 
+        insert:str
+        if 0 < mic.end_insert_sec:
+            insert = f", {round(mic.end_insert_sec, 2)}s挿入"
+        else:
+            insert = ""
         pcm_sec = len(data) / 2 / mic.sample_rate
-        env.tarce(lambda: print(f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)},{round(pcm_sec, 2)}s)"))
+        env.tarce(lambda: print(f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)}, {round(pcm_sec, 2)}s{insert})"))
         try:
             save_wav(record, index, data, mic.sample_rate)
             if recognition_model.required_sample_rate is None or mic.sample_rate == recognition_model.required_sample_rate:
