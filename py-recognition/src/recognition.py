@@ -1,4 +1,6 @@
 import os
+import time
+import math
 import torch
 import whisper
 import faster_whisper as fwis
@@ -92,7 +94,6 @@ class RecognitionModelWhisperFaster(RecognitionModel):
         def get(device:str) -> tuple[str, str]:
             if device == "cuda":
                 try:
-                    import torch
                     if torch.cuda.is_available():
                         mj, mi = torch.cuda.get_device_capability()
                         if 7 <= mj:
@@ -224,48 +225,83 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
     認識モデルのgoogle全二重API実装
     """
 
-    def __init__(self, sample_rate: int, sample_width: int, convert_sample_rete: bool=False, language: str = "ja-JP", key: str | None = None, timeout: float | None = None, challenge: int = 1, is_parallel_run:bool = False):
+    __MAX_PARALLEL_SUCESS = 3
+    '''スレッド数を下げるために必要な平行実行の成功回数'''
+    __MIN_PARALLEL = 3
+    '''変動スレッド数の最低値'''
+    __MAX_PARALLEL = 6
+    '''変動スレッド数の最大値'''
+
+    def __init__(
+        self,
+        sample_rate:int,
+        sample_width:int,
+        convert_sample_rete:bool=False,
+        language:str = "ja-JP",
+        key:str|None = None,
+        timeout:float|None = None,
+        challenge:int = 1,
+        is_parallel_run:bool = False,
+        parallel_max:int|None = None,
+        parallel_reduce_count:int|None = None):
+
         super().__init__(sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
         self.__is_parallel_run = is_parallel_run
+        self.__parallel = 3
+        '''平行実行のスレッド数'''
+        self.__parallel_successed = 0
+        '''平行実行の成功回数'''
+        self.__parallel_max = RecognitionModelGoogleDuplex.__MAX_PARALLEL
+        '''平行実行の最大数'''
+        if not parallel_max is None:
+            self.__parallel_max = 0
+        self.__parallel_reduce_count = RecognitionModelGoogleDuplex.__MAX_PARALLEL_SUCESS
+        '''平行実行を減少させるための必要な成功数'''
+        if not parallel_reduce_count is None:
+            self.__parallel_reduce_count = parallel_reduce_count
 
     def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
-        if self.__is_parallel_run:
-            def func() -> TranscribeResult:
-                r = google.recognize_google_duplex(
-                    flac,
-                    self._operation_timeout,
-                    self._key,
-                    self._language,
-                    0)
-                r =TranscribeResult(r.transcript, r.raw_data)
-                return r
-
-            thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=6)
-            try:
-                futures = [
-                    thread_pool.submit(func),
-                    thread_pool.submit(func),
-                    thread_pool.submit(func),
-                ]
-                ex:Exception | None = None
-                for future in concurrent.futures.as_completed(futures):
-                    try:
-                        return future.result()
-                    except Exception as e:
-                        if ex is None:
-                            ex = e
-                assert not ex is None
-                raise ex
-            finally:
-                thread_pool.shutdown(wait=False)
-        else:
-            r = google.recognize_google(
+        def func(index:int = 0) -> TranscribeResult:
+            if RecognitionModelGoogleDuplex.__MIN_PARALLEL < index:
+                # 増加スレッドは遅延させてから実行する
+                wait = math.ceil(index / RecognitionModelGoogleDuplex.__MIN_PARALLEL) - 1
+                if(0 < wait):
+                    time.sleep(wait * 0.1)
+            r = google.recognize_google_duplex(
                 flac,
                 self._operation_timeout,
                 self._key,
                 self._language,
                 0)
             return TranscribeResult(r.transcript, r.raw_data)
+
+        if self.__is_parallel_run:
+            thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=self.__parallel)
+            try:
+                e500 = 0
+                futures = [thread_pool.submit(func, i) for i in range(self.__parallel)]
+                ex:Exception | None = None
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        self.__parallel_successed += 1
+                        if(self.__parallel_reduce_count < self.__parallel_successed):
+                            self.__parallel_successed = 0
+                            self.__parallel = max(self.__parallel - 1, RecognitionModelGoogleDuplex.__MIN_PARALLEL)
+                        return future.result()
+                    except Exception as e:
+                        if isinstance(e, google.HttpStatusError) and e.status_code == 500:
+                            e500 += 1
+                        if ex is None:
+                            ex = e
+                if e500 == self.__parallel:
+                    self.__parallel_successed = 0
+                    self.__parallel = min(self.__parallel + 1, self.__parallel_max)
+                assert not ex is None
+                raise ex
+            finally:
+                thread_pool.shutdown(wait=False)
+        else:
+            return func()
 
 
 class TranscribeException(ex.IlluminateException):

@@ -29,36 +29,44 @@ build.batをダブルクリックで自動的に必要コンポーネントをwi
 | google_duplex |googleの音声認識API(全二重)を使用してインターネット経由で音声認識を行います|
 
 ### --whisper_model string
-whisper系で有効 
+whisper系で有効  
 使用する推論モデル(tiny|base|small|medium|large|large-v2|large-v3)を指定します。指定がない場合mediumが設定されます。推論モデルは初回の使用時にダウンロードされます。
 
 ###  --whisper_device string
-whisper系で有効 
+whisper系で有効  
 推論を行う演算装置(cpu|cuda)を指定します。指定がない場合cudaが設定されますがcudaが使用できない環境の場合cpuにバックフォールされます。
 
 ### --whisper_language string
-whisper系で有効 
+whisper系で有効  
 推論言語を限定したい場合(en|ja|...)を指定します。指定がない場合全言語を対象に推移されます。指定しておくことを推奨します。
 
 ### --google_language string
-google系で有効 
+google系で有効  
 推論言語を限定したい場合(en-US|ja-JP|...)を指定します。指定がない場合ja-JPが設定されます。
 
 ### --google_timeout float
-google系で有効 
+google系で有効  
 googleサーバからのタイムアウト時間(秒)を指定します。標準で5.0が設定されています。0を指定するとタイムアウト時間が無限と解釈されます。
 
 ### --google_convert_sampling_rate
-google系で有効 
+google系で有効  
 マイク入力を16kに変換して送信します。WASAPIデバイスはデバイスの周波数で録音するためデータの肥大化を抑えます。
 
 ### --google_error_retry int
-google系で有効 
+google系で有効  
 指定回数500エラー時に再試行します。指定がない場合1が設定されます。1回のみ実行、つまり再試行されません。
 
 ### --google_duplex_parallel
-google_duplexのみで有効
+google_duplexのみで有効  
 このオプションが指定された場合3並列でリクエストを投げ500エラーの抑制を図ります。
+
+### --google_duplex_parallel_max int
+google_duplexのみで有効  
+エラー時に増やしていく並列数の最大増加数。指定がない場合6が設定されます。
+
+### --google_duplex_parallel_reduce_count int
+google_duplexのみで有効  
+増加した並列数を減らすために必要な成功数。指定がない場合3が設定されます。
 
 ### --mic int
 使用するマイクの番号を指定します。指定がない場合標準のマイクが使用されます。実行環境マイクデバイスの一覧を取得するには一度--print_micsオプションを指定してexeを実行してください。
@@ -69,8 +77,17 @@ google_duplexのみで有効
 ### --mic_dynamic_energy
 このオプションを指定すると周りの騒音レベルに応じてマイクの収音レベルを動的に変更します。使用しているライブラリは一般的な環境では有効にすることを推奨しています。
 
+### --mic_dynamic_energy_ratio float
+騒音レベルで--mic_energyにかかる係数を指定します。指定がない場合1.5が設定されます。
+
+### --mic_dynamic_energy_min float
+しゃべっていないと補正により--mic_energyが減衰していくためこの値よりは下がらない値を指定します。指定がない場合100が設定されなます。
+
 ### --mic_pause float
 無音として認識される秒数を指定します。指定がない場合0.8秒が設定されます。
+
+### --mic_phrase float
+この時間発声すると有効な音声によにして認識される秒数を指定します。指定がない場合0.3秒が設定されます。
 
 ### --out string
 認識結果出力方法を指定(print|yukarinette|yukacone)します。指定がない場合printが設定されます。
