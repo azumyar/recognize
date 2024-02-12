@@ -44,6 +44,7 @@ class Record(NamedTuple):
 @click.option("--google_convert_sampling_rate", default=False, help="(google)マイク入力を16kに変換します", is_flag=True, type=bool)
 @click.option("--google_error_retry", default=1, help="(google)500エラー時にリトライ試行する回数", type=int)
 @click.option("--google_duplex_parallel", default=False, help="(google_duplexのみ)複数並列リクエストを投げエラーの抑制を図ります", is_flag=True, type=bool)
+@click.option("--google_duplex_parallel_max", default=None, help="(google_duplexのみ)複数並列リクエスト数増減時の最大並列数を指定します", type=int)
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
 @click.option("--mic_energy", default=300, help="設定した値より小さいマイク音量を無音として扱います", type=float)
 @click.option("--mic_dynamic_energy", default=False,is_flag=True, help="Trueの場合周りの騒音に基づいてマイクのエネルギーレベルを動的に変更します", type=bool)
@@ -79,6 +80,7 @@ def main(
     google_convert_sampling_rate:bool,
     google_error_retry:int,
     google_duplex_parallel:bool,
+    google_duplex_parallel_max:Optional[int],
     mic:Optional[int],
     mic_energy:float,
     mic_dynamic_energy:bool,
@@ -198,7 +200,8 @@ def main(
                     language=google_language,
                     timeout=google_timeout if 0 < google_timeout else None,
                     challenge=google_error_retry,
-                    is_parallel_run=google_duplex_parallel),
+                    is_parallel_run=google_duplex_parallel,
+                    parallel_max=google_duplex_parallel_max),
             }[method]()
             env.tarce(lambda: print(f"#認識モデルは{type(recognition_model)}を使用"))
 
