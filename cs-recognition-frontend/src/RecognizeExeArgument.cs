@@ -206,6 +206,27 @@ namespace Haru.Kei {
 		public bool? ArgMicDynamicEnergy { get; set; }
 
 		[Category(categoryMic)]
+		[DisplayName("動的マイク感度変更係数")]
+		[Description("マイク感度を変更する場合マイク感度にかかる係数を指定します")]
+		[DefaultValue(null)]
+		[ArgAttribute("--mic_dynamic_energy_ratio")]
+		public float? ArgMicDynamicEnergyRate { get; set; }
+
+		[Category(categoryMic)]
+		[DisplayName("動的マイク感度最低値")]
+		[Description("動的にマイク感度を変更する場合でもこの値未満には感度は落ち込みません")]
+		[DefaultValue(null)]
+		[ArgAttribute("--mic_dynamic_energy_min")]
+		public float? ArgMicDynamicEnergyMin { get; set; }
+
+		[Category(categoryMic)]
+		[DisplayName("発声時間閾値")]
+		[Description("この時間発声していると有効な認識とします(秒)")]
+		[DefaultValue(null)]
+		[ArgAttribute("--mic_phrase")]
+		public float? ArgMicPharse { get; set; }
+
+		[Category(categoryMic)]
 		[DisplayName("無音時間閾値")]
 		[Description("この時間無音であるばあいしゃべり終わったと判断します(秒)")]
 		[DefaultValue(null)]
