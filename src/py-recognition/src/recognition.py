@@ -225,7 +225,7 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
     認識モデルのgoogle全二重API実装
     """
 
-    __MAX_PARALLEL_SUCESS = 5
+    __MAX_PARALLEL_SUCESS = 3
     '''スレッド数を下げるために必要な平行実行の成功回数'''
     __MIN_PARALLEL = 3
     '''変動スレッド数の最低値'''
@@ -242,7 +242,8 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
         timeout:float|None = None,
         challenge:int = 1,
         is_parallel_run:bool = False,
-        parallel_max:int|None = None):
+        parallel_max:int|None = None,
+        parallel_reduce_count:int|None = None):
 
         super().__init__(sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
         self.__is_parallel_run = is_parallel_run
@@ -254,6 +255,10 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
         '''平行実行の最大数'''
         if not parallel_max is None:
             self.__parallel_max = 0
+        self.__parallel_reduce_count = RecognitionModelGoogleDuplex.__MAX_PARALLEL_SUCESS
+        '''平行実行を減少させるための必要な成功数'''
+        if not parallel_reduce_count is None:
+            self.__parallel_reduce_count = parallel_reduce_count
 
     def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
         def func(index:int = 0) -> TranscribeResult:
@@ -279,7 +284,7 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
                 for future in concurrent.futures.as_completed(futures):
                     try:
                         self.__parallel_successed += 1
-                        if(RecognitionModelGoogleDuplex.__MAX_PARALLEL_SUCESS < self.__parallel_successed):
+                        if(self.__parallel_reduce_count < self.__parallel_successed):
                             self.__parallel_successed = 0
                             self.__parallel = max(self.__parallel - 1, RecognitionModelGoogleDuplex.__MIN_PARALLEL)
                         return future.result()
