@@ -35,13 +35,13 @@ class Record(NamedTuple):
     file:str
     directory:str
 
-class Logger:
-    def __init__(self, dir:str) -> None:
-        self.__dir = dir
-        self.__file_io = self.__file(dir)
 
-    def __file(self, dir:str):
-        return open(f"{dir}{os.sep}log.txt", "w", encoding="UTF-8")
+class Logger:
+    def __init__(self, dir:str, file:str) -> None:
+        self.__file_io = self.__file(dir, file)
+
+    def __file(self, dir:str, file:str):
+        return open(f"{dir}{os.sep}{file}", "w", encoding="UTF-8")
 
     def log(self, arg:object) -> None:
         time = dt.datetime.now()
@@ -52,8 +52,6 @@ class Logger:
             s = f"{arg}"
         self.__file_io.write(f"{time}{os.linesep}{s}{os.linesep}{os.linesep}")
         self.__file_io.flush()
-
-
 
 @click.command()
 @click.option("--test", default="", help="テストを行います",type=click.Choice(["", val.TEST_VALUE_RECOGNITION, val.TEST_VALUE_MIC]))
@@ -92,7 +90,8 @@ class Logger:
 @click.option("--print_mics",default=False, help="マイクデバイスの一覧をプリント", is_flag=True, type=bool)
 @click.option("--list_devices",default=False, help="(廃止予定)--print_micsと同じ", is_flag=True, type=bool)
 @click.option("--verbose", default="0", help="出力ログレベルを指定", type=click.Choice(["0", "1", "2"]))
-@click.option("--log", default=False, help="-", is_flag=True, type=bool)
+@click.option("--log_file", default="recognize.log", help="ログファイルの出力ファイル名を指定します", type=str)
+@click.option("--log_directory", default=None, help="ログ格納先のディレクトリを指定します", type=str)
 @click.option("--record",default=False, help="録音した音声をファイルとして出力します", is_flag=True, type=bool)
 @click.option("--record_file", default="record", help="録音データの出力ファイル名を指定します", type=str)
 @click.option("--record_directory", default=None, help="録音データの出力先ディレクトリを指定します", type=str)
@@ -134,7 +133,8 @@ def main(
     print_mics:bool,
     list_devices:bool,
     verbose:str,
-    log:bool,
+    log_file:str,
+    log_directory:Optional[str],
     record:bool,
     record_file:str,
     record_directory:Optional[str],
@@ -147,7 +147,9 @@ def main(
         os.makedirs(env.root, exist_ok=True)
         os.chdir(env.root)
 
-    logger = Logger(env.root)
+    logger = Logger(
+        log_directory if not log_directory is None else env.root,
+        log_file)
     logger.log([
         "起動",
         f"platform = {platform.platform()}",
