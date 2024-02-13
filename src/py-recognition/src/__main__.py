@@ -154,6 +154,16 @@ def main(
     if print_mics or list_devices:
         __main_print_mics(feature)
         return
+    
+    if is_feature(feature, "energy"):
+        __main_print_energy(
+            mic,
+            mic_sampling_rate,
+            mic_dynamic_energy_ratio,
+            mic_dynamic_energy_adjustment_damping,
+            3.0,
+            feature)
+        pass
 
     cancel = CancellationObject()
     cancel_mp = multiprocessing.Value("i", 1)
@@ -326,6 +336,61 @@ def __main_print_mics(_:str) -> None:
                 print(f"{index} : [{host_api_name}]{name} sample_rate={rate}")            
     finally:
         audio.terminate()
+
+def __main_print_energy(
+        device:int|None,
+        sample_rate:int,
+        dynamic_energy_ratio:float|None,
+        dynamic_energy_adjustment_damping:float|None,
+        timeout:float,
+        _:str) -> None:
+    import speech_recognition as sr
+    def value(v:float|None, default:float) -> float: return v if not v is None else default
+
+    rate = mic_.Mic.update_sample_rate(device, sample_rate)
+    mic = sr.Microphone(sample_rate = rate, device_index = device)
+
+    print("feature function:energy")
+    print("exit ctrl+c")
+    try:
+        while True:
+            elapsed_time = 0
+            energy_threshold = 0.0
+            energy_total = 0.0
+            dynamic_energy_ratio_ = value(dynamic_energy_ratio, 1.5)
+            dynamic_energy_adjustment_damping_ = value(dynamic_energy_adjustment_damping, 0.15)
+
+            print(f"start record {round(timeout, 2)} sec")
+            with mic as source:
+                count = 0
+                seconds_per_buffer = float(source.CHUNK) / source.SAMPLE_RATE
+                while elapsed_time <= timeout:
+                    count += 1
+                    elapsed_time += seconds_per_buffer
+
+                    buffer = source.stream.read(source.CHUNK) # type: ignore
+                    if len(buffer) == 0:
+                        break 
+                    energy = audioop.rms(buffer, source.SAMPLE_WIDTH)
+                    energy_total += energy
+                    damping = dynamic_energy_adjustment_damping_ ** seconds_per_buffer 
+                    target_energy = energy * dynamic_energy_ratio_
+                    energy_threshold = energy_threshold * damping + target_energy * (1 - damping)
+                
+                print("done.")
+                print("--------------------------------------")
+                print(f"input energy average       : {round(energy_total / count, 2)}")
+                print(f"calcurate energy threshold : {round(energy_threshold, 2)}")
+                print("--------------------------------------")
+                print("")
+    except Exception as e:
+        print(f"except Exception as {type(e)}")
+        print(e)
+        print(traceback.format_exc())
+    finally:
+        sys.exit()
+
+
 
 def __main_test_mic(mic:mic_.Mic, rec:Record, cancel:CancellationObject, _:str) -> None:
     """
