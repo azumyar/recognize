@@ -28,6 +28,13 @@ class Env:
         return sys.argv[0].endswith(".exe")
 
     @property
+    def verbose(self) -> int:
+        """
+        verbose
+        """
+        return self.__verbose
+
+    @property
     def is_debug(self) -> bool:
         """
         ログレベルがDEBUG以上で実行されている場合TRUE

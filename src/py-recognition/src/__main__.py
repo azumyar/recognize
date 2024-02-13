@@ -2,6 +2,7 @@
 
 import os
 import sys
+import platform
 import traceback
 import click
 import torch
@@ -19,8 +20,9 @@ import src.recognition as recognition
 import src.output as output
 import src.val as val
 import src.google_recognizers as google
+import src.env as env_
 import src.mp
-from src.env import Env
+import src.exception
 from src.cancellation import CancellationObject
 from src.filter import *
 from src.interop import print
@@ -32,6 +34,26 @@ class Record(NamedTuple):
     is_record:bool
     file:str
     directory:str
+
+class Logger:
+    def __init__(self, dir:str) -> None:
+        self.__dir = dir
+        self.__file_io = self.__file(dir)
+
+    def __file(self, dir:str):
+        return open(f"{dir}{os.sep}log.txt", "w", encoding="UTF-8")
+
+    def log(self, arg:object) -> None:
+        time = dt.datetime.now()
+        s:str
+        if hasattr(arg, "__iter__"):
+            s = "\n".join(list(map(lambda x: f"{x}", arg))) # type: ignore
+        else:
+            s = f"{arg}"
+        self.__file_io.write(f"{time}\n{s}\n\n")
+        self.__file_io.flush()
+
+
 
 @click.command()
 @click.option("--test", default="", help="テストを行います",type=click.Choice(["", val.TEST_VALUE_RECOGNITION, val.TEST_VALUE_MIC]))
@@ -68,6 +90,7 @@ class Record(NamedTuple):
 @click.option("--print_mics",default=False, help="マイクデバイスの一覧をプリント", is_flag=True, type=bool)
 @click.option("--list_devices",default=False, help="(廃止予定)--print_micsと同じ", is_flag=True, type=bool)
 @click.option("--verbose", default="0", help="出力ログレベルを指定", type=click.Choice(["0", "1", "2"]))
+@click.option("--log", default=False, help="-", is_flag=True, type=bool)
 @click.option("--record",default=False, help="録音した音声をファイルとして出力します", is_flag=True, type=bool)
 @click.option("--record_file", default="record", help="録音データの出力ファイル名を指定します", type=str)
 @click.option("--record_directory", default=None, help="録音データの出力先ディレクトリを指定します", type=str)
@@ -107,6 +130,7 @@ def main(
     print_mics:bool,
     list_devices:bool,
     verbose:str,
+    log:bool,
     record:bool,
     record_file:str,
     record_directory:Optional[str],
@@ -114,11 +138,19 @@ def main(
     ) -> None:
 
 
-    env = Env(int(verbose))
+    env = env_.Env(int(verbose))
     if not env.is_exe:
         os.makedirs(env.root, exist_ok=True)
         os.chdir(env.root)
-    
+
+    logger = Logger(env.root)
+    logger.log([
+        "起動",
+        f"platform = {platform.platform()}",
+        f"python = {sys.version}",
+        f"arg = {sys.argv}",
+    ])
+
     if print_mics or list_devices:
         __main_print_mics(feature)
         return
@@ -145,6 +177,8 @@ def main(
             mic_non_speaking,
             mic)
         print(f"マイクは{mc.device_name}を使用します")
+        env.tarce(lambda: print(f"input energy={mic_energy}"))
+        env.tarce(lambda: print(f"current energy=-"))
 
         if test == val.TEST_VALUE_MIC:
             __main_test_mic(mc, rec, cancel, feature)
@@ -239,6 +273,15 @@ def main(
             for f in filters:
                 env.tarce(lambda: print(f"#{type(f)}"))
 
+
+            logger.log([
+                f"マイク: {mc.device_name}",
+                f"{mc.get_mic_info()}",
+                f"認識モデル: {type(recognition_model)}",
+                f"出力 = {type(outputer)}",
+                f"フィルタ = {','.join(list(map(lambda x: f'{type(x)}', filters)))}"
+            ])
+
             print("認識中…")
             __main_run(
                 mc,
@@ -249,6 +292,7 @@ def main(
                 env,
                 cancel,
                 test == val.TEST_VALUE_RECOGNITION,
+                logger,
                 feature)
     except mic_.MicInitializeExeception as e:
         print(e.message)
@@ -302,9 +346,10 @@ def __main_run(
     outputer:output.RecognitionOutputer,
     filters:list[NoiseFilter],
     record:Record,
-    env:Env,
+    env:env_.Env,
     cancel:CancellationObject,
     is_test:bool,
+    logger:Logger,
     _:str) -> None:
     """
     メイン実行
@@ -334,6 +379,8 @@ def __main_run(
             insert = ""
         pcm_sec = len(data) / 2 / mic.sample_rate
         env.tarce(lambda: print(f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)}, {round(pcm_sec, 2)}s{insert})"))
+        r = env_.PerformanceResult(None, -1)
+        ex:Exception | None = None
         try:
             save_wav(record, index, data, mic.sample_rate)
             if recognition_model.required_sample_rate is None or mic.sample_rate == recognition_model.required_sample_rate:
@@ -354,9 +401,10 @@ def __main_run(
                 else:
                     env.debug(lambda: print(f"認識時間[{r.time}ms]", end=": "))
                 outputer.output(r.result[0])
-            if not r[1] is None:
+            if not r.result[1] is None:
                 env.tarce(lambda: print(f"{r.result[1]}"))
         except recognition.TranscribeException as e:
+            ex = e
             if e.inner is None:
                 print(e.message)
             else:
@@ -372,13 +420,54 @@ def __main_run(
                     env.tarce(lambda: print(f"#{e.message}"))
                     env.tarce(lambda: print(f"#{type(e.inner)}:{e.inner}"))
         except output.WsOutputException as e:
+            ex = e
             print(e.message)
             if not e.inner is None:
                 env.tarce(lambda: print(f"# => {type(e.inner)}:{e.inner}"))
         except Exception as e:
+            ex = e
             print(f"!!!!意図しない例外({type(e)}:{e})!!!!")
             print(traceback.format_exc())
+        for it in [("", mic.get_verbose(env.verbose)), ("", recognition_model.get_verbose(env.verbose))]:
+            pass
         env.tarce(lambda: print(f"#認識処理終了(#{index}, time={dt.datetime.now()})"))
+
+        # ログ出力
+        try:
+            log_transcribe:str
+            log_time = " - "
+            log_exception = " - "
+            if ex is None:
+                log_transcribe = " - "
+                if r.result[0] not in ["", " ", "\n", None]:
+                    log_transcribe = r.result[0]
+                    if env.is_trace:
+                        env.debug(lambda: print(f"認識時間[{r.time}ms],PCM[{round(pcm_sec, 2)}s],{round(r.time/1000.0/pcm_sec, 2)}tps", end=": "))
+                    outputer.output(r.result[0])
+                if not r.result[1] is None:
+                    log_transcribe = f"{log_transcribe}\n{r.result[1]}"
+                log_time = f"{r.time}s {round(r.time/1000.0/pcm_sec, 2)}tps"
+            else:
+                log_transcribe = " -失敗- "
+                log_exception = f"{type(ex)}"
+                if isinstance(ex, src.exception.IlluminateException):
+                    log_exception = f"{log_exception}:{ex.message}\ninner = {type(ex.inner)}:{ex.inner}"
+                else:
+                    log_exception = f"{log_exception}:{ex}"
+                if isinstance(ex, recognition.TranscribeException):
+                    pass
+            logger.log([
+                f"認識処理:#{index}",
+                f"録音情報:{round(pcm_sec, 2)}s, {(int)(len(data)/2)}sample / {mic.sample_rate}Hz",
+                f"認識結果:{log_transcribe}",
+                f"認識時間:{log_time}",
+                f"例外情報:{log_exception}",
+                f"マイク情報: {mic.get_log_info()}",
+                f"認識モデル情報: {recognition_model.get_log_info()}",
+            ])
+        except Exception as e_: # eにするとPylanceの動きがおかしくなるので名前かえとく
+            print(f"!!!!ログ出力例外({type(e_)}:{e_})!!!!")
+            print(traceback.format_exc())
 
     def onrecord_async(index:int, data:bytes) -> None:
         """

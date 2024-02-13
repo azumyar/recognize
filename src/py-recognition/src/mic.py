@@ -274,6 +274,38 @@ class Mic:
     def end_insert_sec(self) -> float:
         return self.__recorder.end_insert_sec
 
+    def get_mic_info(self) -> str:
+        return "\n".join(map(lambda x: f"{x}", [
+            f"init-info",
+            f"device:{self.__mic_index}",
+            f"energy:{self.__energy}",
+            f"dynamic_energy:{self.__dynamic_energy}",
+            f"dynamic_energy_ratio:{self.__dynamic_energy_ratio}",
+            f"dynamic_energy_min:{self.__dynamic_energy_min}",
+            f"pause:{self.__pause}",
+            f"phrase:{self.__phrase}",
+            f"non_speaking:{self.__non_speaking}",
+            "",
+            "current-info",
+            f"device:{self.__device_name}",
+            f"energy:{self.__recorder.energy_threshold}",
+            f"dynamic_energy:{self.__recorder.dynamic_energy_threshold}",
+            f"dynamic_energy_ratio:{self.__recorder.dynamic_energy_ratio}",
+            f"pause:{self.__recorder.pause_threshold}",
+            f"phrase:{self.__recorder.phrase_threshold}",
+            f"non_speaking:{self.__recorder.non_speaking_duration}",            
+        ]))
+
+    def get_verbose(self, verbose:int) -> str | None:
+        if verbose < 2:
+            return None
+        if not self.__dynamic_energy:
+            return None
+        return f"current energy_threshold = {self.__recorder.energy_threshold}"
+
+    def get_log_info(self) -> str:
+        return f"current energy_threshold = {self.__recorder.energy_threshold}"
+
     def __get_audio_data(self, min_time:float=-1.) -> bytes:
         audio = bytes()
         is_goted = False
@@ -295,9 +327,7 @@ class Mic:
                     source = microphone,
                     timeout = timeout,
                     phrase_time_limit = phrase_time_limit)
-            self.__audio_queue.put_nowait(audio.get_raw_data())
-            audio_data = self.__get_audio_data()
-            onrecord(1, audio_data)
+            onrecord(1, audio.get_raw_data())
         except sr.WaitTimeoutError:
             pass
         except sr.UnknownValueError:
@@ -327,8 +357,7 @@ class Mic:
             index = 1
             while cancel.alive:
                 if not self.__audio_queue.empty():
-                    audio_data = self.__get_audio_data()
-                    onrecord(index, audio_data)
+                    onrecord(index, self.__audio_queue.get())
                     index += 1
                 time.sleep(0.1)
         finally:
