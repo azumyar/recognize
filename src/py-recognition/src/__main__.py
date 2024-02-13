@@ -70,8 +70,10 @@ class Logger:
 @click.option("--google_duplex_parallel_reduce_count", default=None, help="(google_duplexのみ)増加した並列数を減少するために必要な成功数", type=int)
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
 @click.option("--mic_energy", default=300, help="設定した値より小さいマイク音量を無音として扱います", type=float)
+@click.option("--mic_ambient_noise_to_energy", default=False, help="環境音から--mic_energyを自動的に設定します", is_flag=True, type=bool)
 @click.option("--mic_dynamic_energy", default=False, is_flag=True, help="Trueの場合周りの騒音に基づいてマイクのエネルギーレベルを動的に変更します", type=bool)
-@click.option("--mic_dynamic_energy_ratio", default=1.5, help="--mic_dynamic_energyで--mic_energyを変更する場合の最小係数", type=float)
+@click.option("--mic_dynamic_energy_ratio", default=None, help="--mic_dynamic_energyで--mic_energyを変更する場合の最小係数", type=float)
+@click.option("--mic_dynamic_energy_adjustment_damping", default=None, help="-", type=float)
 @click.option("--mic_dynamic_energy_min", default=100, help="--mic_dynamic_energyを指定した場合動的設定される--mic_energy最低値", type=float)
 @click.option("--mic_pause", default=0.8, help="無音として認識される秒数を指定します", type=float)
 @click.option("--mic_phrase", default=None, help="発話音声として認識される最小秒数", type=float)
@@ -110,8 +112,10 @@ def main(
     google_duplex_parallel_reduce_count:Optional[int],
     mic:Optional[int],
     mic_energy:float,
+    mic_ambient_noise_to_energy:bool,
     mic_dynamic_energy:bool,
-    mic_dynamic_energy_ratio:float,
+    mic_dynamic_energy_ratio:Optional[float],
+    mic_dynamic_energy_adjustment_damping:Optional[float],
     mic_dynamic_energy_min:float,
     mic_pause:float,
     mic_phrase:Optional[float],
@@ -178,10 +182,12 @@ def main(
         print("マイクの初期化")
         mc = mic_.Mic(
             sampling_rate,
+            mic_ambient_noise_to_energy,
             mic_energy,
             mic_pause,
             mic_dynamic_energy,
             mic_dynamic_energy_ratio,
+            mic_dynamic_energy_adjustment_damping,
             mic_dynamic_energy_min,
             mic_phrase,
             mic_non_speaking,

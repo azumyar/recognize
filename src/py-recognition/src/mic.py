@@ -154,10 +154,12 @@ class Mic:
     def __init__(
         self,
         sample_rate:int,
+        ambient_noise_to_energy:bool,
         energy:float,
         pause:float,
         dynamic_energy:bool,
-        dynamic_energy_ratio:float,
+        dynamic_energy_ratio:float|None,
+        dynamic_energy_adjustment_damping:float|None,
         dynamic_energy_min:float,
         phrase:float | None,
         non_speaking:float | None,
@@ -195,6 +197,7 @@ class Mic:
         self.__pause = pause
         self.__dynamic_energy = dynamic_energy
         self.__dynamic_energy_ratio = dynamic_energy_ratio
+        self.__dynamic_energy_adjustment_damping = dynamic_energy_adjustment_damping
         self.__dynamic_energy_min = dynamic_energy_min
         self.__phrase = phrase
         self.__non_speaking = non_speaking
@@ -207,12 +210,14 @@ class Mic:
             pause,
             dynamic_energy,
             dynamic_energy_ratio,
+            dynamic_energy_adjustment_damping,
             dynamic_energy_min,
             phrase,
             non_speaking)
 
-        with self.__source as mic:
-            self.__recorder.adjust_for_ambient_noise(mic)
+        if ambient_noise_to_energy:
+            with self.__source as mic:
+                self.__recorder.adjust_for_ambient_noise(mic)
 
     @staticmethod
     def __create_mic(sample_rate:int, mic_index:int | None) -> sr.Microphone:
@@ -225,7 +230,8 @@ class Mic:
         energy:float,
         pause:float,
         dynamic_energy:bool,
-        dynamic_energy_ratio:float,
+        dynamic_energy_ratio:float|None,
+        dynamic_energy_adjustment_damping:float|None,
         dynamic_energy_min:float,
         phrase:float | None,
         non_speaking:float | None,) -> Recognizer:
@@ -241,7 +247,10 @@ class Mic:
         if not phrase is None:
             r.phrase_threshold = phrase
         r.dynamic_energy_threshold = dynamic_energy
-        r.dynamic_energy_ratio = dynamic_energy_ratio
+        if not dynamic_energy_ratio is None:
+            r.dynamic_energy_ratio = dynamic_energy_ratio
+        if not dynamic_energy_adjustment_damping is None:
+            r.dynamic_energy_adjustment_damping = dynamic_energy_adjustment_damping
         r.dynamic_energy_min = dynamic_energy_min
         return r
 
@@ -281,6 +290,7 @@ class Mic:
             f"energy:{self.__energy}",
             f"dynamic_energy:{self.__dynamic_energy}",
             f"dynamic_energy_ratio:{self.__dynamic_energy_ratio}",
+            f"dynamic_energy_adjustment_damping:{self.__dynamic_energy_adjustment_damping}",
             f"dynamic_energy_min:{self.__dynamic_energy_min}",
             f"pause:{self.__pause}",
             f"phrase:{self.__phrase}",
@@ -291,6 +301,7 @@ class Mic:
             f"energy:{self.__recorder.energy_threshold}",
             f"dynamic_energy:{self.__recorder.dynamic_energy_threshold}",
             f"dynamic_energy_ratio:{self.__recorder.dynamic_energy_ratio}",
+            f"dynamic_energy_adjustment_damping:{self.__recorder.dynamic_energy_adjustment_damping}",
             f"pause:{self.__recorder.pause_threshold}",
             f"phrase:{self.__recorder.phrase_threshold}",
             f"non_speaking:{self.__recorder.non_speaking_duration}",            
@@ -369,7 +380,8 @@ class Mic:
         energy:float,
         pause:float,
         dynamic_energy:bool,
-        dynamic_energy_ratio:float,
+        dynamic_energy_ratio:float|None,
+        dynamic_energy_adjustment_damping:float|None,
         dynamic_energy_min:float,
         phrase:float | None,
         non_speaking:float | None,
@@ -383,6 +395,7 @@ class Mic:
             pause,
             dynamic_energy,
             dynamic_energy_ratio,
+            dynamic_energy_adjustment_damping,
             dynamic_energy_min,
             phrase,
             non_speaking)
@@ -410,6 +423,7 @@ class Mic:
                 self.__pause,
                 self.__dynamic_energy,
                 self.__dynamic_energy_ratio,
+                self.__dynamic_energy_adjustment_damping,
                 self.__dynamic_energy_min,
                 self.__phrase,
                 self.__non_speaking,
