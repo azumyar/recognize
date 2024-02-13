@@ -13,7 +13,7 @@ import audioop
 import numpy as np
 import datetime as dt
 from concurrent.futures import ThreadPoolExecutor
-from typing import cast, Optional, NamedTuple
+from typing import cast, Iterable, Optional, NamedTuple
 
 import src.mic as mic_
 import src.recognition as recognition
@@ -46,11 +46,11 @@ class Logger:
     def log(self, arg:object) -> None:
         time = dt.datetime.now()
         s:str
-        if hasattr(arg, "__iter__"):
-            s = "\n".join(list(map(lambda x: f"{x}", arg))) # type: ignore
+        if isinstance(arg, Iterable):
+            s = f"{os.linesep}".join(map(lambda x: f"{x}", arg))
         else:
             s = f"{arg}"
-        self.__file_io.write(f"{time}\n{s}\n\n")
+        self.__file_io.write(f"{time}{os.linesep}{s}{os.linesep}{os.linesep}")
         self.__file_io.flush()
 
 
@@ -394,6 +394,7 @@ def __main_print_energy(
         print(e)
         print(traceback.format_exc())
     finally:
+        print("exit.")
         sys.exit()
 
 
@@ -508,6 +509,7 @@ def __main_run(
             log_transcribe:str
             log_time = " - "
             log_exception = " - "
+            log_insert:str
             if ex is None:
                 log_transcribe = " - "
                 if r.result[0] not in ["", " ", "\n", None]:
@@ -527,9 +529,14 @@ def __main_run(
                     log_exception = f"{log_exception}:{ex}"
                 if isinstance(ex, recognition.TranscribeException):
                     pass
+            if 0 < mic.end_insert_sec:
+                log_insert = f"({round(mic.end_insert_sec, 2)}s挿入)"
+            else:
+                log_insert = ""
+
             logger.log([
                 f"認識処理:#{index}",
-                f"録音情報:{round(pcm_sec, 2)}s, {(int)(len(data)/2)}sample / {mic.sample_rate}Hz",
+                f"録音情報:{round(pcm_sec, 2)}s{log_insert}, {(int)(len(data)/2)}sample / {mic.sample_rate}Hz",
                 f"認識結果:{log_transcribe}",
                 f"認識時間:{log_time}",
                 f"例外情報:{log_exception}",

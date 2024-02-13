@@ -194,6 +194,7 @@ class Mic:
 
         self.__mic_index = mic_index
         self.__energy = energy
+        self.__ambient_noise_to_energy = ambient_noise_to_energy
         self.__pause = pause
         self.__dynamic_energy = dynamic_energy
         self.__dynamic_energy_ratio = dynamic_energy_ratio
@@ -285,9 +286,10 @@ class Mic:
 
     def get_mic_info(self) -> str:
         return "\n".join(map(lambda x: f"{x}", [
-            f"init-info",
+            f"initial-info",
             f"device:{self.__mic_index}",
             f"energy:{self.__energy}",
+            f"ambient_noise_to_energy:{self.__ambient_noise_to_energy}",
             f"dynamic_energy:{self.__dynamic_energy}",
             f"dynamic_energy_ratio:{self.__dynamic_energy_ratio}",
             f"dynamic_energy_adjustment_damping:{self.__dynamic_energy_adjustment_damping}",

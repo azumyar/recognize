@@ -248,16 +248,6 @@ class RecognitionModelGoogle(RecognitionModelGoogleApi):
             0)
         return TranscribeResult(r.transcript, r.raw_data)
 
-class Extend:
-    def __init__(self, exceptions:list[Exception], raw_data:str) -> None:
-        self.exceptions = exceptions
-        self.raw_data = raw_data
-
-    def __str__(self) -> str:
-        if 0 < len(self.exceptions):
-            return f"{self.raw_data}{os.sep}{len(self.exceptions)}回の失敗:{os.sep}{f'{os.sep}'.join(map(lambda x: f'{type(x)}:{x}', self.exceptions))}"
-        else:
-            return f"{self.raw_data}"
 
 class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
     """
@@ -310,6 +300,15 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
         return f"current parallel num = {self.__parallel}"
 
     def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
+        class Extend(NamedTuple):
+            exceptions:list[Exception]
+            raw_data:str
+
+            def __str__(self) -> str:
+                if 0 < len(self.exceptions):
+                    return f"{self.raw_data}{os.linesep}{len(self.exceptions)}回の失敗:{os.linesep}{f'{os.linesep}'.join(map(lambda x: f'{type(x)}:{x}', self.exceptions))}"
+                else:
+                    return f"{self.raw_data}"
         def func(index:int = 0) -> TranscribeResult:
             if RecognitionModelGoogleDuplex.__MIN_PARALLEL < index:
                 # 増加スレッドは遅延させてから実行する
