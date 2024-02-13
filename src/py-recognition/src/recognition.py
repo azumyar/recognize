@@ -26,7 +26,7 @@ class GoogleTranscribeExtend(NamedTuple):
     """
     RecognitionModel#transcribeの戻り値データ型
     """
-    raw_data:str
+    raw_data:Any
     retry_history:list[Exception]
 
     def __str__(self) -> str:
@@ -34,7 +34,7 @@ class GoogleTranscribeExtend(NamedTuple):
             clazz = os.linesep.join([f"{type(i)}:{i}"for i in self.retry_history])
             return f"{self.raw_data}{os.linesep}retry-stack{os.linesep}{clazz}"
         else:
-            return self.raw_data
+            return str(self.raw_data)
 
 class RecognitionModel:
     """
@@ -248,6 +248,16 @@ class RecognitionModelGoogle(RecognitionModelGoogleApi):
             0)
         return TranscribeResult(r.transcript, r.raw_data)
 
+class Extend:
+    def __init__(self, exceptions:list[Exception], raw_data:str) -> None:
+        self.exceptions = exceptions
+        self.raw_data = raw_data
+
+    def __str__(self) -> str:
+        if 0 < len(self.exceptions):
+            return f"{self.raw_data}{os.sep}{len(self.exceptions)}回の失敗:{os.sep}{f'{os.sep}'.join(map(lambda x: f'{type(x)}:{x}', self.exceptions))}"
+        else:
+            return f"{self.raw_data}"
 
 class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
     """
@@ -321,11 +331,12 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
                 ex:list[Exception] = []
                 for future in concurrent.futures.as_completed(futures):
                     try:
+                        r = future.result()
                         self.__parallel_successed += 1
                         if(self.__parallel_reduce_count < self.__parallel_successed):
                             self.__parallel_successed = 0
                             self.__parallel = max(self.__parallel - 1, RecognitionModelGoogleDuplex.__MIN_PARALLEL)
-                        return future.result()
+                        return TranscribeResult(r.transcribe, Extend(ex, f"{r.extend_data}"))
                     except Exception as e:
                         ex.append(e)
 
