@@ -41,7 +41,7 @@ class Logger:
         self.__file_io = self.__file(dir, file)
 
     def __file(self, dir:str, file:str):
-        return open(f"{dir}{os.sep}{file}", "w", encoding="UTF-8")
+        return open(f"{dir}{os.sep}{file}", "w", encoding="UTF-8", newline="")
 
     def log(self, arg:object) -> None:
         time = dt.datetime.now()
