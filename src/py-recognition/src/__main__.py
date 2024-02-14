@@ -104,6 +104,7 @@ class Logger:
 @click.option("--mic_phrase", default=None, help="発話音声として認識される最小秒数", type=float)
 @click.option("--mic_non_speaking", default=None, help="-", type=float)
 @click.option("--mic_sampling_rate", default=16000, help="-", type=int)
+@click.option("--mic_listen_interval", default=0.25, help="マイク監視ループで1回あたりのマイクデバイス監視間隔(秒)", type=float)
 @click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice([val.OUT_VALUE_PRINT,val.OUT_VALUE_YUKARINETTE, val.OUT_VALUE_YUKACONE]))
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
 @click.option("--out_yukacone",default=None, help="ゆかコネNEOの外部連携ポートを指定", type=int)
@@ -147,6 +148,7 @@ def main(
     mic_phrase:Optional[float],
     mic_non_speaking:Optional[float],
     mic_sampling_rate:int,
+    mic_listen_interval:float,
     out:str,
     out_yukarinette:int,
     out_yukacone:Optional[int],
@@ -221,6 +223,7 @@ def main(
             mic_dynamic_energy_min,
             mic_phrase,
             mic_non_speaking,
+            mic_listen_interval,
             mic)
         print(f"マイクは{mc.device_name}を使用します")
         logger.debug(f"input energy={mic_energy}")
