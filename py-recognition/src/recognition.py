@@ -26,7 +26,7 @@ class GoogleTranscribeExtend(NamedTuple):
     """
     RecognitionModel#transcribeの戻り値データ型
     """
-    raw_data:str
+    raw_data:Any
     retry_history:list[Exception]
 
     def __str__(self) -> str:
@@ -34,7 +34,7 @@ class GoogleTranscribeExtend(NamedTuple):
             clazz = os.linesep.join([f"{type(i)}:{i}"for i in self.retry_history])
             return f"{self.raw_data}{os.linesep}retry-stack{os.linesep}{clazz}"
         else:
-            return self.raw_data
+            return str(self.raw_data)
 
 class RecognitionModel:
     """
@@ -46,6 +46,12 @@ class RecognitionModel:
         ...
 
     def transcribe(self, _:np.ndarray) -> TranscribeResult:
+        ...
+
+    def get_verbose(self, _:int) -> str | None:
+        ...
+
+    def get_log_info(self) -> str:
         ...
 
 class RecognitionModelWhisper(RecognitionModel):
@@ -68,6 +74,9 @@ class RecognitionModelWhisper(RecognitionModel):
     def required_sample_rate(self) -> int | None:
         return 16000
 
+    def get_verbose(self, _:int) -> str | None:
+        return None
+
     def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
         r = self.audio_model.transcribe(
             torch.from_numpy(audio_data.astype(np.float32) / float(np.iinfo(np.int16).max)),
@@ -78,6 +87,9 @@ class RecognitionModelWhisper(RecognitionModel):
         if isinstance(r, list):
             return TranscribeResult("".join(r), None)
         raise ex.ProgramError(f"Whisper.transcribeから意図しない戻り値型:{type(r)}")
+
+    def get_log_info(self) -> str:
+        return ""
 
 class RecognitionModelWhisperFaster(RecognitionModel):
     """
@@ -118,6 +130,12 @@ class RecognitionModelWhisperFaster(RecognitionModel):
     def required_sample_rate(self) -> int | None:
         return 16000
 
+    def get_verbose(self, _:int) -> str | None:
+        return None
+
+    def get_log_info(self) -> str:
+        return ""
+
     def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
         segments, _  = self.audio_model.transcribe(
             audio_data.astype(np.float32) / float(np.iinfo(np.int16).max),
@@ -151,6 +169,12 @@ class RecognitionModelGoogleApi(RecognitionModel):
     @property
     def required_sample_rate(self) -> int | None:
         return None
+
+    def get_verbose(self, _:int) -> str | None:
+        return None
+
+    def get_log_info(self) -> str:
+        return ""
 
     def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
         flac = google.encode_falc(
@@ -195,6 +219,11 @@ class RecognitionModelGoogleApi(RecognitionModel):
                 #    raise TranscribeException(f"google音声認識でリモート接続がタイムアウトしました")
                 #else:
                 #    his.append(e)
+            except ParallelTranscribeException as e:
+                if (e.is_error500) and (1 < self.__max_loop):
+                    his.append(e)
+                else:
+                    raise TranscribeException("google音声認識でHTTPエラー: {}".format(e), e)
             loop += 1
         clazz = ",".join([f"{type(i)}"for i in his])
         raise TranscribeException(f"{self.__max_loop}回試行しましたが失敗しました({clazz}])")
@@ -260,7 +289,26 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
         if not parallel_reduce_count is None:
             self.__parallel_reduce_count = parallel_reduce_count
 
+    def get_verbose(self, verbose:int) -> str | None:
+        if verbose < 2:
+            return None
+        if not self.__is_parallel_run:
+            return None
+        return f"current parallel num = {self.__parallel}"
+
+    def get_log_info(self) -> str | None:
+        return f"current parallel num = {self.__parallel}"
+
     def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
+        class Extend(NamedTuple):
+            exceptions:list[Exception]
+            raw_data:str
+
+            def __str__(self) -> str:
+                if 0 < len(self.exceptions):
+                    return f"{self.raw_data}{os.linesep}{len(self.exceptions)}回の失敗:{os.linesep}{f'{os.linesep}'.join(map(lambda x: f'{type(x)}:{x}', self.exceptions))}"
+                else:
+                    return f"{self.raw_data}"
         def func(index:int = 0) -> TranscribeResult:
             if RecognitionModelGoogleDuplex.__MIN_PARALLEL < index:
                 # 増加スレッドは遅延させてから実行する
@@ -278,26 +326,24 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
         if self.__is_parallel_run:
             thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=self.__parallel)
             try:
-                e500 = 0
                 futures = [thread_pool.submit(func, i) for i in range(self.__parallel)]
-                ex:Exception | None = None
+                ex:list[Exception] = []
                 for future in concurrent.futures.as_completed(futures):
                     try:
+                        r = future.result()
                         self.__parallel_successed += 1
                         if(self.__parallel_reduce_count < self.__parallel_successed):
                             self.__parallel_successed = 0
                             self.__parallel = max(self.__parallel - 1, RecognitionModelGoogleDuplex.__MIN_PARALLEL)
-                        return future.result()
+                        return TranscribeResult(r.transcribe, Extend(ex, f"{r.extend_data}"))
                     except Exception as e:
-                        if isinstance(e, google.HttpStatusError) and e.status_code == 500:
-                            e500 += 1
-                        if ex is None:
-                            ex = e
-                if e500 == self.__parallel:
+                        ex.append(e)
+
+                raise_ex = ParallelTranscribeException("", ex)
+                if raise_ex.is_error500:
                     self.__parallel_successed = 0
                     self.__parallel = min(self.__parallel + 1, self.__parallel_max)
-                assert not ex is None
-                raise ex
+                raise raise_ex
             finally:
                 thread_pool.shutdown(wait=False)
         else:
@@ -309,3 +355,19 @@ class TranscribeException(ex.IlluminateException):
     認識に失敗した際なげる例外
     """
     pass
+
+class ParallelTranscribeException(ex.IlluminateException):
+    def __init__(self, message: str, exceptions:list[Exception]):
+        super().__init__(message, None)
+        self.__exceptions = exceptions
+
+        def _map(e:Exception) -> bool:
+            return isinstance(e, google.HttpStatusError) and e.status_code == 500
+        self.__is_error500 = not (False in map(_map, exceptions))
+
+    def __str__(self) -> str:
+        return f"並列実行がすべて失敗しました parallel={len(self.__exceptions)}, 500error={self.is_error500}, exception={','.join(list(map(lambda x: f'{type(x)}', self.__exceptions)))}"
+
+    @property
+    def is_error500(self) -> bool:
+        return self.__is_error500
