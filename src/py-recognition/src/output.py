@@ -1,5 +1,6 @@
 from websockets.sync.client import connect, ClientConnection
 import json
+from typing import Callable
 
 import src.exception as ex
 from src.interop import print
@@ -25,9 +26,10 @@ class WebSocketOutputer(RecognitionOutputer):
     """
     ウェブソケットに出力する基底クラス
     """
-    def __init__(self, uri:str, remote_name:str):
+    def __init__(self, uri:str, print:Callable[[str], None], remote_name:str):
         self.__uri = uri
         self.__remote_name = remote_name
+        self.__print = print
         self.__soc:ClientConnection | None = None
         try:
             self.__con()
@@ -59,7 +61,7 @@ class WebSocketOutputer(RecognitionOutputer):
         #    async with websockets.connect(self.uri) as websocket:
         #        await websocket.send(text)
         #        await websocket.close()
-        print(text)
+        self.__print(text)
         try:
             self.__con()
         except Exception as e:
@@ -84,8 +86,8 @@ class YukarinetteOutputer(WebSocketOutputer):
     """
     ゆかりねっと外部連携に出力する
     """
-    def __init__(self, uri:str):
-        super().__init__(uri, "ゆかりねっと")
+    def __init__(self, uri:str, print:Callable[[str], None]):
+        super().__init__(uri, print, "ゆかりねっと")
 
     def output(self, text:str):
         super().output(f"0:{text}")
@@ -94,8 +96,8 @@ class YukaconeOutputer(WebSocketOutputer):
     """
     ゆかコネNEO外部連携に出力する
     """
-    def __init__(self, uri:str):
-        super().__init__(f"{uri}/textonly", "ゆかコネNEO")
+    def __init__(self, uri:str, print:Callable[[str], None]):
+        super().__init__(f"{uri}/textonly", print, "ゆかコネNEO")
 
     def output(self, text:str):
         super().output(text)
@@ -124,8 +126,8 @@ class YukaconeOutputer(WebSocketOutputer):
 
 
 class IlluminateSpeechOutputer(WebSocketOutputer):
-    def __init__(self, uri:str):
-        super().__init__(uri, "-")
+    def __init__(self, uri:str, print:Callable[[str], None]):
+        super().__init__(uri, print, "-")
 
     def output(self, text:str):
         super().output(json.dumps({

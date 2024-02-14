@@ -13,7 +13,7 @@ import audioop
 import numpy as np
 import datetime as dt
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, cast, Iterable, Optional, NamedTuple
+from typing import Any, Callable, Iterable, Optional, NamedTuple
 
 import src.mic
 import src.recognition as recognition
@@ -45,6 +45,8 @@ class Logger:
         return open(f"{dir}{os.sep}{file}", "w", encoding="UTF-8", newline="")
 
     @property
+    def is_min(self) -> bool: return 0 <= self.__verbose
+    @property
     def is_info(self) -> bool: return 1 <= self.__verbose
     @property
     def is_debug(self) -> bool: return 2 <= self.__verbose
@@ -63,6 +65,7 @@ class Logger:
             print(str(obj), sep=sep, end=end)
 
 
+    def print(self, obj:Any, sep:str|None = " ", end:str|None = "\n") -> None: self.__print(obj, self.is_min, sep=sep, end=end)
     def info(self, obj:Any, sep:str|None = " ", end:str|None = "\n") -> None: self.__print(obj, self.is_info, sep=sep, end=end)
     def debug(self, obj:Any, sep:str|None = " ", end:str|None = "\n") -> None: self.__print(obj, self.is_debug, sep=sep, end=end)
     def trace(self, obj:Any, sep:str|None = " ", end:str|None = "\n") -> None: self.__print(obj, self.is_trace, sep=sep, end=end)
@@ -220,44 +223,45 @@ def main(
             mic_non_speaking,
             mic)
         print(f"マイクは{mc.device_name}を使用します")
-        env.tarce(lambda: print(f"input energy={mic_energy}"))
-        env.tarce(lambda: print(f"current energy=-"))
+        logger.debug(f"input energy={mic_energy}")
+        logger.debug(f"current energy=-")
 
         if test == val.TEST_VALUE_MIC:
             __main_test_mic(mc, rec, cancel, feature)
-        elif is_feature(feature, "mp"):
-            print("実験的機能：マルチプロセスでマイクの監視を行います")
-            print("--recordは実装されていません")
-
-            q = multiprocessing.Queue()
-            p = multiprocessing.Process(target=src.mp.main_feature_mp, args=(
-                q,
-                cancel_mp,
-                sampling_rate,
-                method,
-                whisper_model,
-                whisper_language,
-                whisper_device,
-                google_convert_sampling_rate,
-                google_language,
-                google_timeout,
-                google_error_retry,
-                google_duplex_parallel,
-                out,
-                out_yukarinette,
-                out_yukacone,
-                disable_lpf,
-                filter_lpf_cutoff,
-                filter_lpf_cutoff_upper,
-                disable_hpf,
-                filter_hpf_cutoff,
-                filter_hpf_cutoff_upper,
-                0,
-                verbose,
-                feature))
-            p.daemon = True
-            p.start()
-            mc.listen_loop_mp(q, cancel_mp)
+        #elif is_feature(feature, "mp"):
+        #    print("実験的機能：マルチプロセスでマイクの監視を行います")
+        #    print("--recordは実装されていません")
+        #
+        #    q = multiprocessing.Queue()
+        #    p = multiprocessing.Process(target=src.mp.main_feature_mp, args=(
+        #        q,
+        #        cancel_mp,
+        #        sampling_rate,
+        #        method,
+        #        whisper_model,
+        #        whisper_language,
+        #        whisper_device,
+        #        google_convert_sampling_rate,
+        #        google_language,
+        #        google_timeout,
+        #        google_error_retry,
+        #        google_duplex_parallel,
+        #        out,
+        #        out_yukarinette,
+        #        out_yukacone,
+        #        disable_lpf,
+        #        filter_lpf_cutoff,
+        #        filter_lpf_cutoff_upper,
+        #        disable_hpf,
+        #        filter_hpf_cutoff,
+        #        filter_hpf_cutoff_upper,
+        #        0,
+        #        logger,
+        #        verbose,
+        #        feature))
+        #    p.daemon = True
+        #    p.start()
+        #    mc.listen_loop_mp(q, cancel_mp)
         else:
             print("認識モデルの初期化")
             recognition_model:recognition.RecognitionModel = {
@@ -289,15 +293,15 @@ def main(
                     parallel_max=google_duplex_parallel_max,
                     parallel_reduce_count=google_duplex_parallel_reduce_count),
             }[method]()
-            env.tarce(lambda: print(f"#認識モデルは{type(recognition_model)}を使用"))
+            logger.debug(f"#認識モデルは{type(recognition_model)}を使用")
 
             outputer:output.RecognitionOutputer = {
                 val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
-                val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}"),
-                val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}"),
+                val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}", lambda x: logger.print(x)),
+                val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}", lambda x: logger.print(x)),
     #            val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}"),
             }[out]()
-            env.tarce(lambda: print(f"#出力は{type(outputer)}を使用"))
+            logger.debug(f"#出力は{type(outputer)}を使用")
 
             filters:list[NoiseFilter] = []
             if not disable_lpf:
@@ -312,9 +316,9 @@ def main(
                         sampling_rate,
                         filter_hpf_cutoff,
                         filter_hpf_cutoff_upper))        
-            env.tarce(lambda: print(f"#使用音声フィルタ({len(filters)}):"))
+            logger.debug(f"#使用音声フィルタ({len(filters)}):")
             for f in filters:
-                env.tarce(lambda: print(f"#{type(f)}"))
+               logger.debug(f"#{type(f)}")
 
 
             logger.log([
@@ -470,6 +474,9 @@ def __main_run(
                 for f in filters:
                     f.filter(fft)
                 return np.real(np.fft.ifft(fft))
+        class PerformanceResult(NamedTuple):
+            result:Any
+            time:float
 
         insert:str
         if 0 < mic.end_insert_sec:
@@ -480,10 +487,18 @@ def __main_run(
             insert = f"{insert}, energy={round(param.energy, 2)}"
         data = param.audio
         pcm_sec = len(data) / 2 / mic.sample_rate
-        env.tarce(lambda: print(f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)}, {round(pcm_sec, 2)}s{insert})"))
-        r = env_.PerformanceResult(None, -1)
+        logger.debug(f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)}, {round(pcm_sec, 2)}s{insert})")
+        r = PerformanceResult(None, -1)
         ex:Exception | None = None
         try:
+            def performance(func:Callable[[], Any]) ->  PerformanceResult:
+                """
+                funcを実行した時間を計測
+                """
+                import time
+                start = time.perf_counter() 
+                r = func()
+                return PerformanceResult(r, time.perf_counter()-start)
             save_wav(record, index, data, mic.sample_rate)
             if recognition_model.required_sample_rate is None or mic.sample_rate == recognition_model.required_sample_rate:
                 d = data
@@ -496,40 +511,40 @@ def __main_run(
                     recognition_model.required_sample_rate,
                     None)
 
-            r = env.performance(lambda: recognition_model.transcribe(filter(np.frombuffer(d, np.int16).flatten())))
-            if r.result[0] not in ["", " ", "\n", None]:
-                logger.info(f"認識時間[{r.time}ms],PCM[{round(pcm_sec, 2)}s],{round(r.time/1000.0/pcm_sec, 2)}tps", end=": ")
+            r = performance(lambda: recognition_model.transcribe(filter(np.frombuffer(d, np.int16).flatten())))
+            if r.result not in ["", " ", "\n", None]:
+                logger.info(f"認識時間[{round(r.time, 2)}s],PCM[{round(pcm_sec, 2)}s],{round(r.time/pcm_sec, 2)}tps", end=": ")
                 outputer.output(r.result[0])
             if not r.result[1] is None:
-                env.tarce(lambda: print(f"{r.result[1]}"))
+                logger.debug(f"{r.result[1]}")
         except recognition.TranscribeException as e:
             ex = e
             if e.inner is None:
-                print(e.message)
+                logger.print(e.message)
             else:
                 if isinstance(e.inner, urlerr.HTTPError) or isinstance(e.inner, urlerr.URLError):
-                    env.debug(lambda: print(e.message))
+                    logger.info(e.message)
                 elif isinstance(e.inner, google.UnknownValueError):
                     raw = e.inner.raw_data
                     if raw is None:
-                        env.tarce(lambda: print(f"#{e.message}"))
+                        logger.debug(f"#{e.message}")
                     else:
-                        env.tarce(lambda: print(f"#{e.message}\r\n{raw}"))
+                        logger.debug(f"#{e.message}\r\n{raw}")
                 else:
-                    env.tarce(lambda: print(f"#{e.message}"))
-                    env.tarce(lambda: print(f"#{type(e.inner)}:{e.inner}"))
+                    logger.debug(f"#{e.message}")
+                    logger.debug(f"#{type(e.inner)}:{e.inner}")
         except output.WsOutputException as e:
             ex = e
-            print(e.message)
+            logger.print(e.message)
             if not e.inner is None:
-                env.tarce(lambda: print(f"# => {type(e.inner)}:{e.inner}"))
+                logger.debug(f"# => {type(e.inner)}:{e.inner}")
         except Exception as e:
             ex = e
             print(f"!!!!意図しない例外({type(e)}:{e})!!!!")
             print(traceback.format_exc())
         for it in [("", mic.get_verbose(env.verbose)), ("", recognition_model.get_verbose(env.verbose))]:
             pass
-        env.tarce(lambda: print(f"#認識処理終了(#{index}, time={dt.datetime.now()})"))
+        logger.debug(f"#認識処理終了(#{index}, time={dt.datetime.now()})")
 
         # ログ出力
         try:
@@ -543,7 +558,7 @@ def __main_run(
                     log_transcribe = r.result[0]
                 if not r.result[1] is None:
                     log_transcribe = f"{log_transcribe}\n{r.result[1]}"
-                log_time = f"{r.time}s {round(r.time/1000.0/pcm_sec, 2)}tps"
+                log_time = f"{round(r.time, 2)}s {round(r.time/1000.0/pcm_sec, 2)}tps"
             if not ex is None:
                 log_transcribe = " -失敗- "
                 log_exception = f"{type(ex)}"

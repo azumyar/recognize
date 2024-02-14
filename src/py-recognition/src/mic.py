@@ -363,7 +363,10 @@ class Mic:
                     source = microphone,
                     timeout = timeout,
                     phrase_time_limit = phrase_time_limit)
-            onrecord(1, ListenResult(audio.get_raw_data(), None))
+            energy:float|None = None
+            if isinstance(audio, AudioData):
+                energy = audio.energy 
+            onrecord(1, ListenResult(audio.get_raw_data(), energy))
         except sr.WaitTimeoutError:
             pass
         except sr.UnknownValueError:
@@ -477,6 +480,7 @@ class Mic:
         print(f"{int(timemax)}秒間マイクを監視し音を拾った場合その旨を表示します")
         print(f"使用マイク:{self.device_name}")
         print(f"energy_threshold:{self.__recorder.energy_threshold}")
+        print(f"phrase_threshold:{self.__recorder.phrase_threshold}")
         print(f"pause_threshold:{self.__recorder.pause_threshold}")
         print(f"non_speaking_duration:{self.__recorder.non_speaking_duration}")
         print(f"dynamic_energy_threshold:{self.__recorder.dynamic_energy_threshold}")
@@ -508,7 +512,7 @@ class Mic:
                         es = f", energy: {round(e, 2)}"
                     sec = len(b) / 2 / self.__sample_rate
                     print("認識終了")
-                    print(f"{round(sec, 2) - self.__recorder.end_insert_sec}秒音を拾いました{es}")
+                    print(f"{round(sec, 2) - self.__recorder.end_insert_sec}秒音を拾いました{es}, energy_threshold: {round(self.__recorder.energy_threshold, 2)}")
                     if not onrecord is None:
                         onrecord(index, ListenResult(b, e))
                 index += 1

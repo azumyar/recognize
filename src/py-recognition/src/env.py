@@ -64,14 +64,14 @@ class Env:
         return PerformanceResult(r, int((time.perf_counter()-start) * 1000))
     
 
-    def debug(self, func:Callable[[], Any]) -> Any:
+    def debug_(self, func:Callable[[], Any]) -> Any:
         """
         DEBUG以上で実行されいる場合funcを実行
         """
         if self.is_debug:
             return func()
 
-    def tarce(self, func:Callable[[], Any]) -> Any:
+    def tarce_(self, func:Callable[[], Any]) -> Any:
         """
         TRACE以上で実行されいる場合funcを実行
         """
