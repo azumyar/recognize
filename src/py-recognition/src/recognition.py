@@ -283,11 +283,11 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
         self.__parallel_max = RecognitionModelGoogleDuplex.__MAX_PARALLEL
         '''平行実行の最大数'''
         if not parallel_max is None:
-            self.__parallel_max = 0
+            self.__parallel_max = max(parallel_max, RecognitionModelGoogleDuplex.__MIN_PARALLEL)
         self.__parallel_reduce_count = RecognitionModelGoogleDuplex.__MAX_PARALLEL_SUCESS
         '''平行実行を減少させるための必要な成功数'''
         if not parallel_reduce_count is None:
-            self.__parallel_reduce_count = parallel_reduce_count
+            self.__parallel_reduce_count = max(parallel_reduce_count, 1)
 
     def get_verbose(self, verbose:int) -> str | None:
         if verbose < 2:
