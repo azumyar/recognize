@@ -104,6 +104,7 @@ class Logger:
 @click.option("--mic_phrase", default=None, help="発話音声として認識される最小秒数", type=float)
 @click.option("--mic_non_speaking", default=None, help="-", type=float)
 @click.option("--mic_sampling_rate", default=16000, help="-", type=int)
+@click.option("--mic_listen_interval", default=0.25, help="マイク監視ループで1回あたりのマイクデバイス監視間隔(秒)", type=float)
 @click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice([val.OUT_VALUE_PRINT,val.OUT_VALUE_YUKARINETTE, val.OUT_VALUE_YUKACONE]))
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
 @click.option("--out_yukacone",default=None, help="ゆかコネNEOの外部連携ポートを指定", type=int)
@@ -147,6 +148,7 @@ def main(
     mic_phrase:Optional[float],
     mic_non_speaking:Optional[float],
     mic_sampling_rate:int,
+    mic_listen_interval:float,
     out:str,
     out_yukarinette:int,
     out_yukacone:Optional[int],
@@ -189,8 +191,8 @@ def main(
         __main_print_mics(feature)
         return
     
-    if is_feature(feature, "energy"):
-        __main_print_energy(
+    if is_feature(feature, "ambient"):
+        __main_print_ambient(
             mic,
             mic_sampling_rate,
             mic_dynamic_energy_ratio,
@@ -221,6 +223,7 @@ def main(
             mic_dynamic_energy_min,
             mic_phrase,
             mic_non_speaking,
+            mic_listen_interval,
             mic)
         print(f"マイクは{mc.device_name}を使用します")
         logger.debug(f"input energy={mic_energy}")
@@ -374,7 +377,7 @@ def __main_print_mics(_:str) -> None:
     finally:
         audio.terminate()
 
-def __main_print_energy(
+def __main_print_ambient(
         device:int|None,
         sample_rate:int,
         dynamic_energy_ratio:float|None,
@@ -382,14 +385,36 @@ def __main_print_energy(
         timeout:float,
         _:str) -> None:
     import speech_recognition as sr
+    import math
     def value(v:float|None, default:float) -> float: return v if not v is None else default
 
     rate = src.mic.Mic.update_sample_rate(device, sample_rate)
     mic = sr.Microphone(sample_rate = rate, device_index = device)
 
-    print("feature function:energy")
+    print("feature function:ambient")
     print("exit ctrl+c")
+    max_list:int = max(math.ceil(60 / timeout), 10) # 1分サンプル/最低10レコード保障
     try:
+        def add(lst:list[Any], v:Any, max:int) -> None:
+            lst.append(v)
+            if max <= len(lst):
+                lst.pop(-1)
+
+        def add_top(lst:list[float], v:float, max:int) -> None:
+            lst.append(v)
+            lst.sort(reverse=True)
+            if max <= len(lst):
+                lst.pop(-1)
+        
+        def avg(lst:list[float]) -> float:
+            total = 0
+            for v in lst:
+                total += v
+            return total / len(lst)
+
+        list_energys:list[tuple[float, float]] = []
+        list_energys_top:list[float] = []
+        list_energy_thresholds_top:list[float] = []
         while True:
             elapsed_time = 0
             energy_threshold = 0.0
@@ -397,8 +422,10 @@ def __main_print_energy(
             dynamic_energy_ratio_ = value(dynamic_energy_ratio, 1.5)
             dynamic_energy_adjustment_damping_ = value(dynamic_energy_adjustment_damping, 0.15)
 
-            print(f"start record {round(timeout, 2)} sec")
             with mic as source:
+                print(f"start record {round(timeout, 2)} sec")
+                print(f"mic record : {source.SAMPLE_RATE}Hz/{source.SAMPLE_WIDTH * 8}bit")
+                print(f"1 cycle record :{source.CHUNK}bytes")
                 count = 0
                 seconds_per_buffer = float(source.CHUNK) / source.SAMPLE_RATE
                 while elapsed_time <= timeout:
@@ -414,10 +441,19 @@ def __main_print_energy(
                     target_energy = energy * dynamic_energy_ratio_
                     energy_threshold = energy_threshold * damping + target_energy * (1 - damping)
                 
+                energy_avg = energy_total  / count
+                add(list_energys, (energy_avg, energy_threshold), max_list)
+                add_top(list_energys_top, energy_avg, max_list)
+                add_top(list_energy_thresholds_top, energy_threshold, max_list)
                 print("done.")
                 print("--------------------------------------")
-                print(f"input energy average       : {round(energy_total / count, 2)}")
+                print(f"input energy average       : {round(energy_avg, 2)}")
                 print(f"calcurate energy threshold : {round(energy_threshold, 2)}")
+                print("--------------------------------------")
+                print(f"energy average recent {max_list}              : {round(avg(list(map(lambda x: x[0], list_energys))), 2)}")
+                print(f"energy threshold average recent {max_list}    : {round(avg(list(map(lambda x: x[1], list_energys))), 2)}")
+                print(f"total energy average top {max_list}           : {round(avg(list_energys_top), 2)}")
+                print(f"total energy threshold average top {max_list} : {round(avg(list_energy_thresholds_top), 2)}")
                 print("--------------------------------------")
                 print("")
     except Exception as e:

@@ -186,6 +186,7 @@ class Mic:
         dynamic_energy_min:float,
         phrase:float | None,
         non_speaking:float | None,
+        listen_interval:float,
         mic_index:int | None) -> None:
 
         def check_mic(audio, mic_index:int, sample_rate:int):
@@ -225,6 +226,7 @@ class Mic:
         self.__dynamic_energy_min = dynamic_energy_min
         self.__phrase = phrase
         self.__non_speaking = non_speaking
+        self.__listen_timeout = listen_interval
 
         self.__sample_rate = sample_rate
         self.__audio_queue = queue.Queue()
@@ -381,7 +383,7 @@ class Mic:
                 with self.__source as s:
                     while cancel.alive:
                         try:
-                            audio = self.__recorder.listen(s, 0.25, phrase_time_limit)
+                            audio = self.__recorder.listen(s, self.__listen_timeout, phrase_time_limit)
                         except speech_recognition.exceptions.WaitTimeoutError:
                             pass
                         else:
@@ -418,6 +420,7 @@ class Mic:
         dynamic_energy_min:float,
         phrase:float | None,
         non_speaking:float | None,
+        listen_timeout:float,
         mic_index:int | None,
         cancel,
         out:multiprocessing.Queue):
@@ -436,7 +439,7 @@ class Mic:
             rec.adjust_for_ambient_noise(s)
             while cancel.value != 0:
                 try:
-                    audio = rec.listen(s, 0.25, None)
+                    audio = rec.listen(s, listen_timeout, None)
                 except speech_recognition.exceptions.WaitTimeoutError:
                     pass
                 else:
@@ -460,6 +463,7 @@ class Mic:
                 self.__dynamic_energy_min,
                 self.__phrase,
                 self.__non_speaking,
+                self.__listen_timeout,
                 self.__mic_index,
                 cancel,
                 queue))
@@ -475,7 +479,6 @@ class Mic:
 
     def test_mic(self, cancel:CancellationObject, onrecord:Callable[[int, ListenResult], None] | None = None):
         timemax = 5
-        timeout = 0.25
         print("マイクテストを行います")
         print(f"{int(timemax)}秒間マイクを監視し音を拾った場合その旨を表示します")
         print(f"使用マイク:{self.device_name}")
@@ -492,12 +495,12 @@ class Mic:
             while cancel.alive:
                 print(f"計測開始 #{str(index).zfill(2)}")
                 audio:sr.AudioData | None = None
-                for _ in range(int(timemax / timeout)):
+                for _ in range(int(timemax / self.__listen_timeout)):
                     try:
                         with self.__source as microphone:
                             audio = self.__recorder.listen(
                                 source = microphone,
-                                timeout = timeout,
+                                timeout = self.__listen_timeout,
                                 phrase_time_limit = None)
                     except speech_recognition.exceptions.WaitTimeoutError:
                         pass
