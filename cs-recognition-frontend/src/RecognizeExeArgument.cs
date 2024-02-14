@@ -199,6 +199,13 @@ namespace Haru.Kei {
 		public float? ArgMicEnergy { get; set; }
 
 		[Category(categoryMic)]
+		[DisplayName("無音レベルの閾値自動設定")]
+		[Description("起動時に環境音を収集し無音レベルの閾値を自動的に設定します。無音レベルの閾値は上書きされます。")]
+		[DefaultValue(null)]
+		[ArgAttribute("--mic_ambient_noise_to_energy", IsFlag = true)]
+		public bool? ArgMicAmbientNoiseToEnergy { get; set; }
+
+		[Category(categoryMic)]
 		[DisplayName("動的マイク感度の変更")]
 		[Description("trueの場合周りの騒音に応じて動的にマイクの感度を変更します")]
 		[DefaultValue(null)]
@@ -206,11 +213,18 @@ namespace Haru.Kei {
 		public bool? ArgMicDynamicEnergy { get; set; }
 
 		[Category(categoryMic)]
-		[DisplayName("動的マイク感度変更係数")]
+		[DisplayName("動的マイク感度変更係数1_仮称")]
 		[Description("マイク感度を変更する場合マイク感度にかかる係数を指定します")]
 		[DefaultValue(null)]
 		[ArgAttribute("--mic_dynamic_energy_ratio")]
 		public float? ArgMicDynamicEnergyRate { get; set; }
+
+		[Category(categoryMic)]
+		[DisplayName("動的マイク感度変更係数2_仮称")]
+		[Description("マイク感度を変更する場合マイク感度にかかる係数を指定します")]
+		[DefaultValue(null)]
+		[ArgAttribute("--mic_dynamic_energy_adjustment_damping")]
+		public float? ArgMicDynamicEnergyAdjustmentDamping { get; set; }
 
 		[Category(categoryMic)]
 		[DisplayName("動的マイク感度最低値")]
@@ -267,11 +281,25 @@ namespace Haru.Kei {
 		public bool? ArgDisableHpf { get; set; }
 
 		[DisplayName("ログレベル")]
-		[Description("ログ出力レベルを設定します")]
+		[Description("コンソールに出すログ出力レベルを設定します")]
 		[DefaultValue("")]
 		[TypeConverter(typeof(ArgVerboseConverter))]
 		[ArgAttribute("--verbose")]
 		public string ArgVerbose { get; set; }
+
+		/* 設定できないほうがいい気がするので保留
+		[DisplayName("ログファイル名")]
+		[Description("ログファイル名を指定します")]
+		[DefaultValue("")]
+		[ArgAttribute("--log_file")]
+		public string ArgLogFile { get; set; }
+		*/
+
+		[DisplayName("ログファイル出力先")]
+		[Description("ログファイル出力先フォルダパスを指定します")]
+		[DefaultValue("")]
+		[ArgAttribute("--log_directory")]
+		public string ArgLogDirectory { get; set; }
 
 		[DisplayName("録音")]
 		[DefaultValue(null)]
@@ -297,6 +325,7 @@ namespace Haru.Kei {
 					p.SetValue(this, dva.Value);
 				}
 			}
+			this.ArgLogDirectory = AppDomain.CurrentDomain.BaseDirectory;
 			this.ArgRecordDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Record");
 		}
 	}
@@ -408,7 +437,7 @@ namespace Haru.Kei {
 						return this.arg;
 					}
 				} else {
-					return string.Format("{0} {1}", this.arg, v);
+					return string.Format("{0} \"{1}\"", this.arg, v);
 				}
 			}
 		end:
