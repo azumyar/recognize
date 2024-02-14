@@ -4,11 +4,24 @@ import multiprocessing
 import speech_recognition as sr
 import speech_recognition.exceptions
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable
+from typing import Any, Callable, Deque, NamedTuple
 
 import src.exception as ex
 from src.cancellation import CancellationObject
 from src.interop import print
+
+class ListenResult(NamedTuple):
+    audio:bytes
+    energy:float | None
+
+
+class AudioData(sr.AudioData):
+    def __init__(self, frame_data:bytes, sample_rate:int, sample_width:int, energy:float):
+        super().__init__(frame_data, sample_rate, sample_width)
+        self.__energy = energy
+
+    @property
+    def energy(self) -> float: return self.__energy
 
 class Recognizer(sr.Recognizer):
     __PAPUSE_MIN_THREHOLD = 0.4
@@ -60,12 +73,12 @@ class Recognizer(sr.Recognizer):
 
                     buffer = source.stream.read(source.CHUNK)
                     if len(buffer) == 0: break  # reached end of the stream
-                    frames.append(buffer)
+                    energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # energy of the audio signal
+                    frames.append((buffer, energy))
                     if len(frames) > non_speaking_buffer_count:  # ensure we only keep the needed amount of non-speaking buffers
                         frames.popleft()
 
                     # detect whether speaking has started on audio input
-                    energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # energy of the audio signal
                     if energy > self.energy_threshold: break
 
                     # dynamically adjust the energy threshold using asymmetric weighted average
@@ -92,11 +105,11 @@ class Recognizer(sr.Recognizer):
 
                 buffer = source.stream.read(source.CHUNK)
                 if len(buffer) == 0: break  # reached end of the stream
-                frames.append(buffer)
+                energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # unit energy of the audio signal within the buffer
+                frames.append((buffer, energy))
                 phrase_count += 1
 
                 # check if speaking has stopped for longer than the pause threshold on the audio input
-                energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # unit energy of the audio signal within the buffer
                 if energy > self.energy_threshold:
                     pause_count = 0
                 else:
@@ -108,10 +121,20 @@ class Recognizer(sr.Recognizer):
             phrase_count -= pause_count  # exclude the buffers for the pause before the phrase
             if phrase_count >= phrase_buffer_count or len(buffer) == 0: break  # phrase is long enough or we've reached the end of the stream, so stop listening
 
+        def avg(buf:Deque[tuple[bytes, float]]) -> float:
+            total = 0.0
+            for it in buf:
+                total += it[1]
+            return total / len(buf)
+
+        energy_avg:float
         if Recognizer.__PAPUSE_MIN_THREHOLD <= self.pause_threshold:
             # obtain frame data
             for _ in range(pause_count - non_speaking_buffer_count): frames.pop()  # remove extra non-speaking frames at the end
+            energy_avg = avg(frames)
         else:
+            energy_avg = avg(frames)
+
             last:int
             b:bytes | bytearray
             mx = math.ceil(source.SAMPLE_RATE * self.end_insert_sec)
@@ -131,10 +154,10 @@ class Recognizer(sr.Recognizer):
                     b.append(i >> 16 & 0xff)
             else:
                 raise Exception()
-            frames.append(b)
-        frame_data = b"".join(frames)
+            frames.append((b, 0))
+        frame_data = b"".join(map(lambda x: x[0], frames))
 
-        return sr.AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH)
+        return AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH, energy_avg)
     
     @property
     def end_insert_sec(self) -> float:
@@ -330,7 +353,7 @@ class Mic:
                 is_goted = True
         return sr.AudioData(audio, self.__sample_rate, 2).get_raw_data()
 
-    def listen(self, onrecord:Callable[[int, bytes], None], timeout=None, phrase_time_limit=None) -> None:
+    def listen(self, onrecord:Callable[[int, ListenResult], None], timeout=None, phrase_time_limit=None) -> None:
         """
         一度だけマイクを拾う
         """
@@ -340,13 +363,13 @@ class Mic:
                     source = microphone,
                     timeout = timeout,
                     phrase_time_limit = phrase_time_limit)
-            onrecord(1, audio.get_raw_data())
+            onrecord(1, ListenResult(audio.get_raw_data(), None))
         except sr.WaitTimeoutError:
             pass
         except sr.UnknownValueError:
             pass
 
-    def listen_loop(self, onrecord:Callable[[int, bytes], None], cancel:CancellationObject, phrase_time_limit=None) -> None:
+    def listen_loop(self, onrecord:Callable[[int, ListenResult], None], cancel:CancellationObject, phrase_time_limit=None) -> None:
         """
         マイクループ。処理を返しません。
         """
@@ -360,17 +383,22 @@ class Mic:
                             pass
                         else:
                             if cancel.alive:
-                                self.__audio_queue.put_nowait(audio.get_raw_data())
+                                q.put_nowait(audio)
             except Exception as e:
                 print(e)
 
+        q = queue.Queue()
         thread_pool = ThreadPoolExecutor(max_workers=2)
         thread_pool.submit(listen_mic)
         try:
             index = 1
             while cancel.alive:
-                if not self.__audio_queue.empty():
-                    onrecord(index, self.__audio_queue.get())
+                if not q.empty():
+                    audio = q.get()
+                    energy:float|None = None
+                    if isinstance(audio, AudioData):
+                        energy = audio.energy 
+                    onrecord(index, ListenResult(audio.get_raw_data(), energy))
                     index += 1
                 time.sleep(0.1)
         finally:
@@ -442,7 +470,7 @@ class Mic:
             cancel.value = 0 # type: ignore
             p.join()
 
-    def test_mic(self, cancel:CancellationObject, onrecord:Callable[[int, bytes], None] | None = None):
+    def test_mic(self, cancel:CancellationObject, onrecord:Callable[[int, ListenResult], None] | None = None):
         timemax = 5
         timeout = 0.25
         print("マイクテストを行います")
@@ -473,11 +501,16 @@ class Mic:
                         break
                 if not audio is None:
                     b = audio.get_raw_data()
+                    e = None
+                    es = ""
+                    if isinstance(audio, AudioData):
+                        e = audio.energy
+                        es = f", energy: {round(e, 2)}"
                     sec = len(b) / 2 / self.__sample_rate
                     print("認識終了")
-                    print(f"{round(sec, 2) - self.__recorder.end_insert_sec}秒音を拾いました")
+                    print(f"{round(sec, 2) - self.__recorder.end_insert_sec}秒音を拾いました{es}")
                     if not onrecord is None:
-                        onrecord(index, b)
+                        onrecord(index, ListenResult(b, e))
                 index += 1
                 print("")
                 time.sleep(1)
