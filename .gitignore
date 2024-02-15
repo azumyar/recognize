@@ -7,5 +7,6 @@ packages/
 recognize-gui.exe
 frontend.conf
 recognize.log
+custom-recognize.bat
 Record/*
 

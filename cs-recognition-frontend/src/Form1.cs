@@ -17,15 +17,14 @@ namespace Haru.Kei {
 			InitializeComponent();
 			this.batToolStripMenuItem.Click += (_, __) => {
 				try {
-					var properties = this.arg.GetType().GetProperties();
-
 					var bat = new StringBuilder()
 						.AppendLine("@echo off")
 						.AppendLine("pushd \"%~dp0\"")
 						.AppendLine()
-						.AppendFormat("\"{0}\"", this.arg.RecognizeExePath).Append(" ").AppendLine(this.GenExeArguments(properties))
+						.AppendFormat("\"{0}\"", this.arg.RecognizeExePath).Append(" ").AppendLine(this.GenExeArguments(this.arg))
 						.AppendLine("pause");
 					System.IO.File.WriteAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.BAT_FILE), bat.ToString());
+					MessageBox.Show(this, string.Format("{0}を作成しました！", this.BAT_FILE), "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
 				}
 				catch(System.IO.IOException) { }
 			};
@@ -34,7 +33,7 @@ namespace Haru.Kei {
 				try {
 					using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
 						FileName = this.arg.RecognizeExePath,
-						Arguments = string.Format("--test mic {0}", this.GenExeArguments(properties)),
+						Arguments = string.Format("--test mic {0}", this.GenExeArguments(this.arg)),
 						UseShellExecute = true,
 					})) { }
 				}
@@ -70,13 +69,12 @@ namespace Haru.Kei {
 			};
 
 			this.button.Click += (_, __) => {
-				var properties = this.arg.GetType().GetProperties();
-				this.SaveConfig(properties);
+				this.SaveConfig(this.arg);
 
 				try {
 					using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
 						FileName = this.arg.RecognizeExePath,
-						Arguments = this.GenExeArguments(properties),
+						Arguments = this.GenExeArguments(this.arg),
 						UseShellExecute = true,
 					})) { }
 				}
@@ -133,14 +131,14 @@ namespace Haru.Kei {
 		}
 
 		protected override void OnFormClosed(FormClosedEventArgs e) {
-			this.SaveConfig(this.arg.GetType().GetProperties());
+			this.SaveConfig(this.arg);
 
 			base.OnFormClosed(e);
 		}
 
-		private string GenExeArguments(System.Reflection.PropertyInfo[] properties) {
+		private string GenExeArguments(RecognizeExeArgument argument) {
 			var araguments = new StringBuilder();
-			foreach(var p in properties) {
+			foreach(var p in argument.GetType().GetProperties()) {
 				var att = p.GetCustomAttribute<ArgAttribute>();
 				if(att != null) {
 					var opt = att.Generate(p.GetValue(this.arg, null), this.arg);
@@ -149,13 +147,17 @@ namespace Haru.Kei {
 					}
 				}
 			}
+			if(!string.IsNullOrEmpty(argument.ExtraArgument)) {
+				araguments.Append(" ")
+					.Append(argument.ExtraArgument);
+			}
 			return araguments.ToString();
 		}
 
-		private void SaveConfig(System.Reflection.PropertyInfo[] properties) {
+		private void SaveConfig(RecognizeExeArgument argument) {
 			try {
 				var save = new StringBuilder();
-				foreach(var p in properties) {
+				foreach(var p in argument.GetType().GetProperties()) {
 					var dfattr = p.GetCustomAttribute<DefaultValueAttribute>();
 					if(dfattr != null) {
 						var pv = p.GetValue(this.arg, null);
