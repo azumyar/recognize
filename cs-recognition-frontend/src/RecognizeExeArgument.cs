@@ -437,7 +437,7 @@ namespace Haru.Kei {
 						return this.arg;
 					}
 				} else {
-					return string.Format("{0} \"{1}\"", this.arg, v);
+					return string.Format("{0} \"{1}{2}\"", this.arg, v, v.ToString().Last() == '\\' ? "\\" : "");
 				}
 			}
 		end:
