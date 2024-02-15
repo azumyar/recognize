@@ -318,6 +318,11 @@ namespace Haru.Kei {
 		[ArgAttribute("--record_directory", TargetProperty = "ArgRecord", TargetValue = "true", IgnoreCase = true)]
 		public string ArgRecordDirectory { get; set; }
 
+		[DisplayName("自由記入欄")]
+		[Description("入力した文字列はコマンド引数末尾に追加されます")]
+		[DefaultValue("")]
+		public string ExtraArgument { get; set; }
+
 		public RecognizeExeArgument() { 
 			foreach(var p in this.GetType().GetProperties()) {
 				var dva = p.GetCustomAttribute(typeof(DefaultValueAttribute)) as DefaultValueAttribute;
@@ -437,7 +442,7 @@ namespace Haru.Kei {
 						return this.arg;
 					}
 				} else {
-					return string.Format("{0} \"{1}\"", this.arg, v);
+					return string.Format("{0} \"{1}{2}\"", this.arg, v, v.ToString().Last() == '\\' ? "\\" : "");
 				}
 			}
 		end:
