@@ -3,7 +3,6 @@ import json
 from typing import Callable
 
 import src.exception as ex
-from src.interop import print
 
 class RecognitionOutputer:
     """
@@ -20,7 +19,8 @@ class PrintOutputer:
     標準出力に出力する
     """
     def output(self, text: str):
-        print(text)
+        from . import ilm_logger
+        ilm_logger.print(text)
 
 class WebSocketOutputer(RecognitionOutputer):
     """

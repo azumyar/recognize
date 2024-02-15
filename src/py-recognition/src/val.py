@@ -2,6 +2,26 @@
 定数モジュール
 """
 
+VERBOSE_MIN = 0
+VERBOSE_INFO = 1
+VERBOSE_DEBUG = 2
+VERBOSE_TRACE = 3
+
+ARG_NAME_VERBOSE = "--verbose"
+ARG_NAME_LOG_FILE = "--log_file"
+ARG_NAME_LOG_DIRECTORY = "--log_directory"
+
+ARG_DEFAULT_VERBOSE = str(VERBOSE_INFO)
+ARG_DEFAULT_LOG_FILE = "recognize.log"
+ARG_DEFAULT_LOG_DIRECTORY = None
+
+ARG_CHOICE_VERBOSE = list(map(lambda x: str(x), [
+    VERBOSE_MIN,
+    VERBOSE_INFO,
+    VERBOSE_DEBUG,
+#    VERBOSE_TRACE
+    ]))
+
 TEST_VALUE_RECOGNITION = "recognition"
 TEST_VALUE_MIC = "mic"
 

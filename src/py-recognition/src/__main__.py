@@ -15,17 +15,15 @@ import datetime as dt
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Iterable, Optional, NamedTuple
 
+from . import Logger, Enviroment
 import src.mic
 import src.recognition as recognition
 import src.output as output
 import src.val as val
 import src.google_recognizers as google
-import src.env as env_
-import src.mp
 import src.exception
 from src.cancellation import CancellationObject
 from src.filter import *
-from src.interop import print
 
 class Record(NamedTuple):
     """
@@ -34,51 +32,6 @@ class Record(NamedTuple):
     is_record:bool
     file:str
     directory:str
-
-
-class Logger:
-    def __init__(self, verbose:int, dir:str, file:str) -> None:
-        self.__file_io = self.__file(dir, file)
-        self.__verbose = verbose
-
-    def __file(self, dir:str, file:str):
-        return open(f"{dir}{os.sep}{file}", "w", encoding="UTF-8", newline="")
-
-    @property
-    def is_min(self) -> bool: return 0 <= self.__verbose
-    @property
-    def is_info(self) -> bool: return 1 <= self.__verbose
-    @property
-    def is_debug(self) -> bool: return 2 <= self.__verbose
-    @property
-    def is_trace(self) -> bool: return 3 <= self.__verbose
-
-
-    def __print(
-            self,
-            obj:Any,
-            is_print:bool,
-            sep:str|None = " ",
-            end:str|None = "\n",
-            ) -> None:
-        if obj and is_print:
-            print(str(obj), sep=sep, end=end)
-
-
-    def print(self, obj:Any, sep:str|None = " ", end:str|None = "\n") -> None: self.__print(obj, self.is_min, sep=sep, end=end)
-    def info(self, obj:Any, sep:str|None = " ", end:str|None = "\n") -> None: self.__print(obj, self.is_info, sep=sep, end=end)
-    def debug(self, obj:Any, sep:str|None = " ", end:str|None = "\n") -> None: self.__print(obj, self.is_debug, sep=sep, end=end)
-    def trace(self, obj:Any, sep:str|None = " ", end:str|None = "\n") -> None: self.__print(obj, self.is_trace, sep=sep, end=end)
-
-    def log(self, arg:object) -> None:
-        time = dt.datetime.now()
-        s:str
-        if isinstance(arg, Iterable):
-            s = f"{os.linesep}".join(map(lambda x: f"{x}", arg))
-        else:
-            s = f"{arg}"
-        self.__file_io.write(f"{time}{os.linesep}{s}{os.linesep}{os.linesep}")
-        self.__file_io.flush()
 
 @click.command()
 @click.option("--test", default="", help="テストを行います",type=click.Choice(["", val.TEST_VALUE_RECOGNITION, val.TEST_VALUE_MIC]))
@@ -117,9 +70,9 @@ class Logger:
 @click.option("--disable_hpf", default=False, help="ハイパスフィルタを使用しません", is_flag=True, type=bool)
 @click.option("--print_mics",default=False, help="マイクデバイスの一覧をプリント", is_flag=True, type=bool)
 @click.option("--list_devices",default=False, help="(廃止予定)--print_micsと同じ", is_flag=True, type=bool)
-@click.option("--verbose", default="1", help="出力ログレベルを指定", type=click.Choice(["0", "1", "2"]))
-@click.option("--log_file", default="recognize.log", help="ログファイルの出力ファイル名を指定します", type=str)
-@click.option("--log_directory", default=None, help="ログ格納先のディレクトリを指定します", type=str)
+@click.option(val.ARG_NAME_VERBOSE, default=val.ARG_DEFAULT_VERBOSE, help="出力ログレベルを指定", type=click.Choice(val.ARG_CHOICE_VERBOSE))
+@click.option(val.ARG_NAME_LOG_FILE, default=val.ARG_DEFAULT_LOG_FILE, help="ログファイルの出力ファイル名を指定します", type=str)
+@click.option(val.ARG_NAME_LOG_DIRECTORY, default=val.ARG_DEFAULT_LOG_DIRECTORY, help="ログ格納先のディレクトリを指定します", type=str)
 @click.option("--record",default=False, help="録音した音声をファイルとして出力します", is_flag=True, type=bool)
 @click.option("--record_file", default="record", help="録音データの出力ファイル名を指定します", type=str)
 @click.option("--record_directory", default=None, help="録音データの出力先ディレクトリを指定します", type=str)
@@ -169,18 +122,13 @@ def main(
     record_directory:Optional[str],
     feature:str
     ) -> None:
+    from . import ilm_logger, ilm_enviroment
 
+    if not ilm_enviroment.is_exe:
+        os.makedirs(ilm_enviroment.root, exist_ok=True)
+        os.chdir(ilm_enviroment.root)
 
-    env = env_.Env(int(verbose))
-    if not env.is_exe:
-        os.makedirs(env.root, exist_ok=True)
-        os.chdir(env.root)
-
-    logger = Logger(
-        int(verbose),
-        log_directory if not log_directory is None else env.root,
-        log_file)
-    logger.log([
+    ilm_logger.log([
         "起動",
         f"platform = {platform.platform()}",
         f"python = {sys.version}",
@@ -188,7 +136,7 @@ def main(
     ])
 
     if print_mics or list_devices:
-        __main_print_mics(feature)
+        __main_print_mics(ilm_logger, feature)
         return
     
     if is_feature(feature, "ambient"):
@@ -198,6 +146,7 @@ def main(
             mic_dynamic_energy_ratio,
             mic_dynamic_energy_adjustment_damping,
             3.0,
+            ilm_logger,
             feature)
         pass
 
@@ -205,13 +154,13 @@ def main(
     cancel_mp = multiprocessing.Value("i", 1)
     try:
         if record_directory is None:
-            record_directory = env.root
+            record_directory = ilm_enviroment.root
         else:
             os.makedirs(record_directory, exist_ok=True)
         sampling_rate = src.mic.Mic.update_sample_rate(mic, mic_sampling_rate) #16000
         rec = Record(record, record_file, record_directory)
 
-        print("マイクの初期化")
+        ilm_logger.print("マイクの初期化")
         mc = src.mic.Mic(
             sampling_rate,
             mic_ambient_noise_to_energy,
@@ -225,15 +174,15 @@ def main(
             mic_non_speaking,
             mic_listen_interval,
             mic)
-        print(f"マイクは{mc.device_name}を使用します")
-        logger.debug(f"input energy={mic_energy}")
-        logger.debug(f"current energy=-")
+        ilm_logger.print(f"マイクは{mc.device_name}を使用します")
+        ilm_logger.debug(f"input energy={mic_energy}")
+        ilm_logger.debug(f"current energy=-")
 
         if test == val.TEST_VALUE_MIC:
             __main_test_mic(mc, rec, cancel, feature)
         #elif is_feature(feature, "mp"):
-        #    print("実験的機能：マルチプロセスでマイクの監視を行います")
-        #    print("--recordは実装されていません")
+        #    ilm_logger.print("実験的機能：マルチプロセスでマイクの監視を行います")
+        #    ilm_logger.print("--recordは実装されていません")
         #
         #    q = multiprocessing.Queue()
         #    p = multiprocessing.Process(target=src.mp.main_feature_mp, args=(
@@ -266,18 +215,18 @@ def main(
         #    p.start()
         #    mc.listen_loop_mp(q, cancel_mp)
         else:
-            print("認識モデルの初期化")
+            ilm_logger.print("認識モデルの初期化")
             recognition_model:recognition.RecognitionModel = {
                 val.METHOD_VALUE_WHISPER: lambda: recognition.RecognitionModelWhisper(
                     model=whisper_model,
                     language=whisper_language,
                     device=whisper_device,
-                    download_root=f"{env.root}{os.sep}.cache"),
+                    download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
                 val.METHOD_VALUE_WHISPER_FASTER: lambda:  recognition.RecognitionModelWhisperFaster(
                     model=whisper_model,
                     language=whisper_language,
                     device=whisper_device,
-                    download_root=f"{env.root}{os.sep}.cache"),
+                    download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
                 val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
                     sample_rate=sampling_rate,
                     sample_width=2,
@@ -296,15 +245,15 @@ def main(
                     parallel_max=google_duplex_parallel_max,
                     parallel_reduce_count=google_duplex_parallel_reduce_count),
             }[method]()
-            logger.debug(f"#認識モデルは{type(recognition_model)}を使用")
+            ilm_logger.debug(f"#認識モデルは{type(recognition_model)}を使用")
 
             outputer:output.RecognitionOutputer = {
                 val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
-                val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}", lambda x: logger.print(x)),
-                val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}", lambda x: logger.print(x)),
+                val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}", lambda x: ilm_logger.info(x)),
+                val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}", lambda x: ilm_logger.info(x)),
     #            val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}"),
             }[out]()
-            logger.debug(f"#出力は{type(outputer)}を使用")
+            ilm_logger.debug(f"#出力は{type(outputer)}を使用")
 
             filters:list[NoiseFilter] = []
             if not disable_lpf:
@@ -319,12 +268,12 @@ def main(
                         sampling_rate,
                         filter_hpf_cutoff,
                         filter_hpf_cutoff_upper))        
-            logger.debug(f"#使用音声フィルタ({len(filters)}):")
+            ilm_logger.debug(f"#使用音声フィルタ({len(filters)}):")
             for f in filters:
-               logger.debug(f"#{type(f)}")
+               ilm_logger.debug(f"#{type(f)}")
 
 
-            logger.log([
+            ilm_logger.log([
                 f"マイク: {mc.device_name}",
                 f"{mc.get_mic_info()}",
                 f"認識モデル: {type(recognition_model)}",
@@ -332,31 +281,31 @@ def main(
                 f"フィルタ = {','.join(list(map(lambda x: f'{type(x)}', filters)))}"
             ])
 
-            print("認識中…")
+            ilm_logger.print("認識中…")
             __main_run(
                 mc,
                 recognition_model,
                 outputer,
                 filters,
                 rec,
-                env,
+                ilm_enviroment,
                 cancel,
                 test == val.TEST_VALUE_RECOGNITION,
-                logger,
+                ilm_logger,
                 feature)
     except src.mic.MicInitializeExeception as e:
-        print(e.message)
-        print(f"{type(e.inner)}{e.inner}")
+        ilm_logger.print(e.message)
+        ilm_logger.print(f"{type(e.inner)}{e.inner}")
     except KeyboardInterrupt:
         cancel.cancel()
         cancel_mp.value = 0 # type: ignore
-        print("ctrl+c")
+        ilm_logger.print("ctrl+c")
     finally:
         pass
     sys.exit()
 
 
-def __main_print_mics(_:str) -> None:
+def __main_print_mics(logger:Logger, _:str) -> None:
     """
     マイク情報出力
     """
@@ -373,7 +322,7 @@ def __main_print_mics(_:str) -> None:
             if isinstance(host_api, int):
                 host_api_name = audio.get_host_api_info_by_index(host_api).get("name")
             if isinstance(input, int) and 0 < input:
-                print(f"{index} : [{host_api_name}]{name} sample_rate={rate}")            
+                logger.print(f"{index} : [{host_api_name}]{name} sample_rate={rate}")            
     finally:
         audio.terminate()
 
@@ -383,6 +332,7 @@ def __main_print_ambient(
         dynamic_energy_ratio:float|None,
         dynamic_energy_adjustment_damping:float|None,
         timeout:float,
+        logger:Logger,
         _:str) -> None:
     import speech_recognition as sr
     import math
@@ -391,8 +341,8 @@ def __main_print_ambient(
     rate = src.mic.Mic.update_sample_rate(device, sample_rate)
     mic = sr.Microphone(sample_rate = rate, device_index = device)
 
-    print("feature function:ambient")
-    print("exit ctrl+c")
+    logger.print("feature function:ambient")
+    logger.print("exit ctrl+c")
     max_list:int = max(math.ceil(60 / timeout), 10) # 1分サンプル/最低10レコード保障
     try:
         def add(lst:list[Any], v:Any, max:int) -> None:
@@ -423,9 +373,9 @@ def __main_print_ambient(
             dynamic_energy_adjustment_damping_ = value(dynamic_energy_adjustment_damping, 0.15)
 
             with mic as source:
-                print(f"start record {round(timeout, 2)} sec")
-                print(f"mic record : {source.SAMPLE_RATE}Hz/{source.SAMPLE_WIDTH * 8}bit")
-                print(f"1 cycle record :{source.CHUNK}bytes")
+                logger.print(f"start record {round(timeout, 2)} sec")
+                logger.print(f"mic record : {source.SAMPLE_RATE}Hz/{source.SAMPLE_WIDTH * 8}bit")
+                logger.print(f"1 cycle record :{source.CHUNK}bytes")
                 count = 0
                 seconds_per_buffer = float(source.CHUNK) / source.SAMPLE_RATE
                 while elapsed_time <= timeout:
@@ -445,23 +395,23 @@ def __main_print_ambient(
                 add(list_energys, (energy_avg, energy_threshold), max_list)
                 add_top(list_energys_top, energy_avg, max_list)
                 add_top(list_energy_thresholds_top, energy_threshold, max_list)
-                print("done.")
-                print("--------------------------------------")
-                print(f"input energy average       : {round(energy_avg, 2)}")
-                print(f"calcurate energy threshold : {round(energy_threshold, 2)}")
-                print("--------------------------------------")
-                print(f"energy average recent {max_list}              : {round(avg(list(map(lambda x: x[0], list_energys))), 2)}")
-                print(f"energy threshold average recent {max_list}    : {round(avg(list(map(lambda x: x[1], list_energys))), 2)}")
-                print(f"total energy average top {max_list}           : {round(avg(list_energys_top), 2)}")
-                print(f"total energy threshold average top {max_list} : {round(avg(list_energy_thresholds_top), 2)}")
-                print("--------------------------------------")
-                print("")
+                logger.print("done.")
+                logger.print("--------------------------------------")
+                logger.print(f"input energy average       : {round(energy_avg, 2)}")
+                logger.print(f"calcurate energy threshold : {round(energy_threshold, 2)}")
+                logger.print("--------------------------------------")
+                logger.print(f"energy average recent {max_list}              : {round(avg(list(map(lambda x: x[0], list_energys))), 2)}")
+                logger.print(f"energy threshold average recent {max_list}    : {round(avg(list(map(lambda x: x[1], list_energys))), 2)}")
+                logger.print(f"total energy average top {max_list}           : {round(avg(list_energys_top), 2)}")
+                logger.print(f"total energy threshold average top {max_list} : {round(avg(list_energy_thresholds_top), 2)}")
+                logger.print("--------------------------------------")
+                logger.print("")
     except Exception as e:
-        print(f"except Exception as {type(e)}")
-        print(e)
-        print(traceback.format_exc())
+        logger.print(f"except Exception as {type(e)}")
+        logger.print(e)
+        logger.print(traceback.format_exc())
     finally:
-        print("exit.")
+        logger.print("exit.")
         sys.exit()
 
 
@@ -485,7 +435,7 @@ def __main_run(
     outputer:output.RecognitionOutputer,
     filters:list[NoiseFilter],
     record:Record,
-    env:env_.Env,
+    env:Enviroment,
     cancel:CancellationObject,
     is_test:bool,
     logger:Logger,
@@ -549,17 +499,17 @@ def __main_run(
 
             r = performance(lambda: recognition_model.transcribe(filter(np.frombuffer(d, np.int16).flatten())))
             if r.result not in ["", " ", "\n", None]:
-                logger.info(f"認識時間[{round(r.time, 2)}s],PCM[{round(pcm_sec, 2)}s],{round(r.time/pcm_sec, 2)}tps", end=": ")
+                logger.notice(f"認識時間[{round(r.time, 2)}s],PCM[{round(pcm_sec, 2)}s],{round(r.time/pcm_sec, 2)}tps", end=": ")
                 outputer.output(r.result[0])
             if not r.result[1] is None:
                 logger.debug(f"{r.result[1]}")
         except recognition.TranscribeException as e:
             ex = e
             if e.inner is None:
-                logger.print(e.message)
+                logger.info(e.message)
             else:
                 if isinstance(e.inner, urlerr.HTTPError) or isinstance(e.inner, urlerr.URLError):
-                    logger.info(e.message)
+                    logger.notice(e.message)
                 elif isinstance(e.inner, google.UnknownValueError):
                     raw = e.inner.raw_data
                     if raw is None:
@@ -571,13 +521,13 @@ def __main_run(
                     logger.debug(f"#{type(e.inner)}:{e.inner}")
         except output.WsOutputException as e:
             ex = e
-            logger.print(e.message)
+            logger.info(e.message)
             if not e.inner is None:
                 logger.debug(f"# => {type(e.inner)}:{e.inner}")
         except Exception as e:
             ex = e
-            print(f"!!!!意図しない例外({type(e)}:{e})!!!!")
-            print(traceback.format_exc())
+            logger.print(f"!!!!意図しない例外({type(e)}:{e})!!!!")
+            logger.print(traceback.format_exc())
         for it in [("", mic.get_verbose(env.verbose)), ("", recognition_model.get_verbose(env.verbose))]:
             pass
         logger.debug(f"#認識処理終了(#{index}, time={dt.datetime.now()})")
@@ -621,8 +571,8 @@ def __main_run(
                 f"認識モデル情報: {recognition_model.get_log_info()}",
             ])
         except Exception as e_: # eにするとPylanceの動きがおかしくなるので名前かえとく
-            print(f"!!!!ログ出力例外({type(e_)}:{e_})!!!!")
-            print(traceback.format_exc())
+            logger.print(f"!!!!ログ出力例外({type(e_)}:{e_})!!!!")
+            logger.print(traceback.format_exc())
 
     def onrecord_async(index:int, data:src.mic.ListenResult) -> None:
         """

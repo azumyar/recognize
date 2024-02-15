@@ -8,7 +8,6 @@ from typing import Any, Callable, Deque, NamedTuple
 
 import src.exception as ex
 from src.cancellation import CancellationObject
-from src.interop import print
 
 class ListenResult(NamedTuple):
     audio:bytes
@@ -379,18 +378,15 @@ class Mic:
         マイクループ。処理を返しません。
         """
         def listen_mic():
-            try:
-                with self.__source as s:
-                    while cancel.alive:
-                        try:
-                            audio = self.__recorder.listen(s, self.__listen_timeout, phrase_time_limit)
-                        except speech_recognition.exceptions.WaitTimeoutError:
-                            pass
-                        else:
-                            if cancel.alive:
-                                q.put_nowait(audio)
-            except Exception as e:
-                print(e)
+            with self.__source as s:
+                while cancel.alive:
+                    try:
+                        audio = self.__recorder.listen(s, self.__listen_timeout, phrase_time_limit)
+                    except speech_recognition.exceptions.WaitTimeoutError:
+                        pass
+                    else:
+                        if cancel.alive:
+                            q.put_nowait(audio)
 
         q = queue.Queue()
         thread_pool = ThreadPoolExecutor(max_workers=2)
@@ -409,91 +405,26 @@ class Mic:
         finally:
             thread_pool.shutdown(wait=False)
 
-    @staticmethod
-    def listen_mic_process(
-        sample_rate:int,
-        energy:float,
-        pause:float,
-        dynamic_energy:bool,
-        dynamic_energy_ratio:float|None,
-        dynamic_energy_adjustment_damping:float|None,
-        dynamic_energy_min:float,
-        phrase:float | None,
-        non_speaking:float | None,
-        listen_timeout:float,
-        mic_index:int | None,
-        cancel,
-        out:multiprocessing.Queue):
-
-        mic = Mic.__create_mic(sample_rate, mic_index)
-        rec = Mic.__create_recognizer(
-            energy,
-            pause,
-            dynamic_energy,
-            dynamic_energy_ratio,
-            dynamic_energy_adjustment_damping,
-            dynamic_energy_min,
-            phrase,
-            non_speaking)
-        with mic as s:
-            rec.adjust_for_ambient_noise(s)
-            while cancel.value != 0:
-                try:
-                    audio = rec.listen(s, listen_timeout, None)
-                except speech_recognition.exceptions.WaitTimeoutError:
-                    pass
-                else:
-                    if cancel.value != 0:
-                        out.put_nowait(audio.get_raw_data())
-
-    def listen_loop_mp(self, queue:multiprocessing.Queue, cancel) -> None:
-        """
-        マイクループ。処理を返しません。(マルチプロセス実装)
-        """
-
-        p = multiprocessing.Process(
-            target=Mic.listen_mic_process, 
-            args=(
-                self.__sample_rate,
-                self.__energy,
-                self.__pause,
-                self.__dynamic_energy,
-                self.__dynamic_energy_ratio,
-                self.__dynamic_energy_adjustment_damping,
-                self.__dynamic_energy_min,
-                self.__phrase,
-                self.__non_speaking,
-                self.__listen_timeout,
-                self.__mic_index,
-                cancel,
-                queue))
-        p.daemon = True
-        p.start()
-
-        try:
-            while cancel.value != 0:
-                time.sleep(0.1)
-        finally:
-            cancel.value = 0 # type: ignore
-            p.join()
 
     def test_mic(self, cancel:CancellationObject, onrecord:Callable[[int, ListenResult], None] | None = None):
+        from . import ilm_logger
+
         timemax = 5
-        print("マイクテストを行います")
-        print(f"{int(timemax)}秒間マイクを監視し音を拾った場合その旨を表示します")
-        print(f"使用マイク:{self.device_name}")
-        print(f"energy_threshold:{self.__recorder.energy_threshold}")
-        print(f"phrase_threshold:{self.__recorder.phrase_threshold}")
-        print(f"pause_threshold:{self.__recorder.pause_threshold}")
-        print(f"non_speaking_duration:{self.__recorder.non_speaking_duration}")
-        print(f"dynamic_energy_threshold:{self.__recorder.dynamic_energy_threshold}")
-        print("終了する場合はctr+cを押してください")
-        print("")
+        ilm_logger.print("マイクテストを行います")
+        ilm_logger.print(f"{int(timemax)}秒間マイクを監視し音を拾った場合その旨を表示します")
+        ilm_logger.print(f"使用マイク:{self.device_name}")
+        ilm_logger.print(f"energy_threshold:{self.__recorder.energy_threshold}")
+        ilm_logger.print(f"phrase_threshold:{self.__recorder.phrase_threshold}")
+        ilm_logger.print(f"pause_threshold:{self.__recorder.pause_threshold}")
+        ilm_logger.print(f"non_speaking_duration:{self.__recorder.non_speaking_duration}")
+        ilm_logger.print(f"dynamic_energy_threshold:{self.__recorder.dynamic_energy_threshold}")
+        ilm_logger.print("終了する場合はctr+cを押してください")
+        ilm_logger.print("")
 
         try:
             index = 1
             while cancel.alive:
-                print(f"計測開始 #{str(index).zfill(2)}")
+                ilm_logger.print(f"計測開始 #{str(index).zfill(2)}")
                 audio:sr.AudioData | None = None
                 for _ in range(int(timemax / self.__listen_timeout)):
                     try:
@@ -514,12 +445,12 @@ class Mic:
                         e = audio.energy
                         es = f", energy: {round(e, 2)}"
                     sec = len(b) / 2 / self.__sample_rate
-                    print("認識終了")
-                    print(f"{round(sec, 2) - self.__recorder.end_insert_sec}秒音を拾いました{es}, energy_threshold: {round(self.__recorder.energy_threshold, 2)}")
+                    ilm_logger.print("認識終了")
+                    ilm_logger.print(f"{round(sec, 2) - self.__recorder.end_insert_sec}秒音を拾いました{es}, energy_threshold: {round(self.__recorder.energy_threshold, 2)}")
                     if not onrecord is None:
                         onrecord(index, ListenResult(b, e))
                 index += 1
-                print("")
+                ilm_logger.print("")
                 time.sleep(1)
         finally:
             pass
