@@ -3,6 +3,7 @@
 
 .vs/
 packages/
+py-recognition/.venv
 *.csproj.user
 recognize-gui.exe
 frontend.conf
