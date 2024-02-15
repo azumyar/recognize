@@ -6,5 +6,6 @@ packages/
 *.csproj.user
 recognize-gui.exe
 frontend.conf
+recognize.log
 Record/*
 
