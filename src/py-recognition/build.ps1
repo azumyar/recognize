@@ -22,6 +22,7 @@ if(-not($?)) {
 }
 echo ok
 
+$env:PIPENV_VENV_IN_PROJECT = 1
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
 echo python環境にpipenvをインストールします
