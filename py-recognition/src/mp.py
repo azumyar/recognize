@@ -40,6 +40,7 @@ def main_feature_mp(
     filter_hpf_cutoff,
     filter_hpf_cutoff_upper,
     record,
+    logger,
     verbose,
     _:str) -> None:
 
@@ -72,15 +73,15 @@ def main_feature_mp(
             challenge=google_error_retry,
             is_parallel_run=google_duplex_parallel),
     }[method]()
-    env.tarce(lambda: print(f"#認識モデルは{type(recognition_model)}を使用"))
+    logger.debug(f"#認識モデルは{type(recognition_model)}を使用")
 
     outputer:output.RecognitionOutputer = {
         val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
-        val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}"),
-        val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}"),
+        val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}", lambda x: logger.print(x)),
+        val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}", lambda x: logger.print(x)),
 #            val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}"),
     }[out]()
-    env.tarce(lambda: print(f"#出力は{type(outputer)}を使用"))
+    logger.debug(lambda: print(f"#出力は{type(outputer)}を使用"))
 
     filters:list[NoiseFilter] = []
     if not disable_lpf:
@@ -95,9 +96,9 @@ def main_feature_mp(
                 sampling_rate,
                 filter_hpf_cutoff,
                 filter_hpf_cutoff_upper))        
-    env.tarce(lambda: print(f"#使用音声フィルタ({len(filters)}):"))
+    logger.debug(f"#使用音声フィルタ({len(filters)}):")
     for f in filters:
-        env.tarce(lambda: print(f"#{type(f)}"))
+        logger.debug(f"#{type(f)}")
 
     def onrecord(index:int, data:bytes) -> None:
         """
@@ -116,7 +117,7 @@ def main_feature_mp(
                 return np.real(np.fft.ifft(fft))
 
         pcm_sec = len(data) / 2 / sampling_rate
-        env.tarce(lambda: print(f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)},{round(pcm_sec, 2)}s)"))
+        logger.debug(lambda: print(f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)},{round(pcm_sec, 2)}s)"))
         try:
             #save_wav(record, index, data, sampling_rate)
             if recognition_model.required_sample_rate is None or sampling_rate == recognition_model.required_sample_rate:
@@ -132,36 +133,33 @@ def main_feature_mp(
 
             r = env.performance(lambda: recognition_model.transcribe(filter(np.frombuffer(d, np.int16).flatten())))
             if r.result[0] not in ["", " ", "\n", None]:
-                if env.is_trace:
-                    env.debug(lambda: print(f"認識時間[{r.time}ms],PCM[{round(pcm_sec, 2)}s],{round(r.time/1000.0/pcm_sec, 2)}tps", end=": "))
-                else:
-                    env.debug(lambda: print(f"認識時間[{r.time}ms]", end=": "))
+                logger.info(f"認識時間[{r.time}ms],PCM[{round(pcm_sec, 2)}s],{round(r.time/1000.0/pcm_sec, 2)}tps", end=": ")
                 outputer.output(r.result[0])
             if not r[1] is None:
-                env.tarce(lambda: print(f"{r.result[1]}"))
+                logger.debug(f"{r.result[1]}")
         except recognition.TranscribeException as e:
             if e.inner is None:
-                print(e.message)
+                logger.print(e.message)
             else:
                 if isinstance(e.inner, urlerr.HTTPError) or isinstance(e.inner, urlerr.URLError):
-                    env.debug(lambda: print(e.message))
+                    logger.info(lambda: print(e.message))
                 elif isinstance(e.inner, google.UnknownValueError):
                     raw = e.inner.raw_data
                     if raw is None:
-                        env.tarce(lambda: print(f"#{e.message}"))
+                        logger.debug(f"#{e.message}")
                     else:
-                        env.tarce(lambda: print(f"#{e.message}\r\n{raw}"))
+                        logger.debug(f"#{e.message}\r\n{raw}")
                 else:
-                    env.tarce(lambda: print(f"#{e.message}"))
-                    env.tarce(lambda: print(f"#{type(e.inner)}:{e.inner}"))
+                    logger.debug(f"#{e.message}")
+                    logger.debug(f"#{type(e.inner)}:{e.inner}")
         except output.WsOutputException as e:
-            print(e.message)
+            logger.print(e.message)
             if not e.inner is None:
-                env.tarce(lambda: print(f"# => {type(e.inner)}:{e.inner}"))
+                logger.debug(f"# => {type(e.inner)}:{e.inner}")
         except Exception as e:
-            print(f"!!!!意図しない例外({type(e)}:{e})!!!!")
-            print(traceback.format_exc())
-        env.tarce(lambda: print(f"#認識処理終了(#{index}, time={dt.datetime.now()})"))
+            logger.print(f"!!!!意図しない例外({type(e)}:{e})!!!!")
+            logger.print(traceback.format_exc())
+        logger.debug(lambda: print(f"#認識処理終了(#{index}, time={dt.datetime.now()})"))
 
     import time
     print("認識中…")

@@ -4,11 +4,24 @@ import multiprocessing
 import speech_recognition as sr
 import speech_recognition.exceptions
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable
+from typing import Any, Callable, Deque, NamedTuple
 
 import src.exception as ex
 from src.cancellation import CancellationObject
 from src.interop import print
+
+class ListenResult(NamedTuple):
+    audio:bytes
+    energy:float | None
+
+
+class AudioData(sr.AudioData):
+    def __init__(self, frame_data:bytes, sample_rate:int, sample_width:int, energy:float):
+        super().__init__(frame_data, sample_rate, sample_width)
+        self.__energy = energy
+
+    @property
+    def energy(self) -> float: return self.__energy
 
 class Recognizer(sr.Recognizer):
     __PAPUSE_MIN_THREHOLD = 0.4
@@ -60,12 +73,12 @@ class Recognizer(sr.Recognizer):
 
                     buffer = source.stream.read(source.CHUNK)
                     if len(buffer) == 0: break  # reached end of the stream
-                    frames.append(buffer)
+                    energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # energy of the audio signal
+                    frames.append((buffer, energy))
                     if len(frames) > non_speaking_buffer_count:  # ensure we only keep the needed amount of non-speaking buffers
                         frames.popleft()
 
                     # detect whether speaking has started on audio input
-                    energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # energy of the audio signal
                     if energy > self.energy_threshold: break
 
                     # dynamically adjust the energy threshold using asymmetric weighted average
@@ -92,11 +105,11 @@ class Recognizer(sr.Recognizer):
 
                 buffer = source.stream.read(source.CHUNK)
                 if len(buffer) == 0: break  # reached end of the stream
-                frames.append(buffer)
+                energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # unit energy of the audio signal within the buffer
+                frames.append((buffer, energy))
                 phrase_count += 1
 
                 # check if speaking has stopped for longer than the pause threshold on the audio input
-                energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # unit energy of the audio signal within the buffer
                 if energy > self.energy_threshold:
                     pause_count = 0
                 else:
@@ -108,10 +121,20 @@ class Recognizer(sr.Recognizer):
             phrase_count -= pause_count  # exclude the buffers for the pause before the phrase
             if phrase_count >= phrase_buffer_count or len(buffer) == 0: break  # phrase is long enough or we've reached the end of the stream, so stop listening
 
+        def avg(buf:Deque[tuple[bytes, float]]) -> float:
+            total = 0.0
+            for it in buf:
+                total += it[1]
+            return total / len(buf)
+
+        energy_avg:float
         if Recognizer.__PAPUSE_MIN_THREHOLD <= self.pause_threshold:
             # obtain frame data
             for _ in range(pause_count - non_speaking_buffer_count): frames.pop()  # remove extra non-speaking frames at the end
+            energy_avg = avg(frames)
         else:
+            energy_avg = avg(frames)
+
             last:int
             b:bytes | bytearray
             mx = math.ceil(source.SAMPLE_RATE * self.end_insert_sec)
@@ -131,10 +154,10 @@ class Recognizer(sr.Recognizer):
                     b.append(i >> 16 & 0xff)
             else:
                 raise Exception()
-            frames.append(b)
-        frame_data = b"".join(frames)
+            frames.append((b, 0))
+        frame_data = b"".join(map(lambda x: x[0], frames))
 
-        return sr.AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH)
+        return AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH, energy_avg)
     
     @property
     def end_insert_sec(self) -> float:
@@ -154,13 +177,16 @@ class Mic:
     def __init__(
         self,
         sample_rate:int,
+        ambient_noise_to_energy:bool,
         energy:float,
         pause:float,
         dynamic_energy:bool,
-        dynamic_energy_ratio:float,
+        dynamic_energy_ratio:float|None,
+        dynamic_energy_adjustment_damping:float|None,
         dynamic_energy_min:float,
         phrase:float | None,
         non_speaking:float | None,
+        listen_interval:float,
         mic_index:int | None) -> None:
 
         def check_mic(audio, mic_index:int, sample_rate:int):
@@ -192,12 +218,15 @@ class Mic:
 
         self.__mic_index = mic_index
         self.__energy = energy
+        self.__ambient_noise_to_energy = ambient_noise_to_energy
         self.__pause = pause
         self.__dynamic_energy = dynamic_energy
         self.__dynamic_energy_ratio = dynamic_energy_ratio
+        self.__dynamic_energy_adjustment_damping = dynamic_energy_adjustment_damping
         self.__dynamic_energy_min = dynamic_energy_min
         self.__phrase = phrase
         self.__non_speaking = non_speaking
+        self.__listen_timeout = listen_interval
 
         self.__sample_rate = sample_rate
         self.__audio_queue = queue.Queue()
@@ -207,12 +236,14 @@ class Mic:
             pause,
             dynamic_energy,
             dynamic_energy_ratio,
+            dynamic_energy_adjustment_damping,
             dynamic_energy_min,
             phrase,
             non_speaking)
 
-        with self.__source as mic:
-            self.__recorder.adjust_for_ambient_noise(mic)
+        if ambient_noise_to_energy:
+            with self.__source as mic:
+                self.__recorder.adjust_for_ambient_noise(mic)
 
     @staticmethod
     def __create_mic(sample_rate:int, mic_index:int | None) -> sr.Microphone:
@@ -225,7 +256,8 @@ class Mic:
         energy:float,
         pause:float,
         dynamic_energy:bool,
-        dynamic_energy_ratio:float,
+        dynamic_energy_ratio:float|None,
+        dynamic_energy_adjustment_damping:float|None,
         dynamic_energy_min:float,
         phrase:float | None,
         non_speaking:float | None,) -> Recognizer:
@@ -241,7 +273,10 @@ class Mic:
         if not phrase is None:
             r.phrase_threshold = phrase
         r.dynamic_energy_threshold = dynamic_energy
-        r.dynamic_energy_ratio = dynamic_energy_ratio
+        if not dynamic_energy_ratio is None:
+            r.dynamic_energy_ratio = dynamic_energy_ratio
+        if not dynamic_energy_adjustment_damping is None:
+            r.dynamic_energy_adjustment_damping = dynamic_energy_adjustment_damping
         r.dynamic_energy_min = dynamic_energy_min
         return r
 
@@ -274,6 +309,41 @@ class Mic:
     def end_insert_sec(self) -> float:
         return self.__recorder.end_insert_sec
 
+    def get_mic_info(self) -> str:
+        return "\n".join(map(lambda x: f"{x}", [
+            f"initial-info",
+            f"device:{self.__mic_index}",
+            f"energy:{self.__energy}",
+            f"ambient_noise_to_energy:{self.__ambient_noise_to_energy}",
+            f"dynamic_energy:{self.__dynamic_energy}",
+            f"dynamic_energy_ratio:{self.__dynamic_energy_ratio}",
+            f"dynamic_energy_adjustment_damping:{self.__dynamic_energy_adjustment_damping}",
+            f"dynamic_energy_min:{self.__dynamic_energy_min}",
+            f"pause:{self.__pause}",
+            f"phrase:{self.__phrase}",
+            f"non_speaking:{self.__non_speaking}",
+            "",
+            "current-info",
+            f"device:{self.__device_name}",
+            f"energy:{self.__recorder.energy_threshold}",
+            f"dynamic_energy:{self.__recorder.dynamic_energy_threshold}",
+            f"dynamic_energy_ratio:{self.__recorder.dynamic_energy_ratio}",
+            f"dynamic_energy_adjustment_damping:{self.__recorder.dynamic_energy_adjustment_damping}",
+            f"pause:{self.__recorder.pause_threshold}",
+            f"phrase:{self.__recorder.phrase_threshold}",
+            f"non_speaking:{self.__recorder.non_speaking_duration}",            
+        ]))
+
+    def get_verbose(self, verbose:int) -> str | None:
+        if verbose < 2:
+            return None
+        if not self.__dynamic_energy:
+            return None
+        return f"current energy_threshold = {self.__recorder.energy_threshold}"
+
+    def get_log_info(self) -> str:
+        return f"current energy_threshold = {self.__recorder.energy_threshold}"
+
     def __get_audio_data(self, min_time:float=-1.) -> bytes:
         audio = bytes()
         is_goted = False
@@ -285,7 +355,7 @@ class Mic:
                 is_goted = True
         return sr.AudioData(audio, self.__sample_rate, 2).get_raw_data()
 
-    def listen(self, onrecord:Callable[[int, bytes], None], timeout=None, phrase_time_limit=None) -> None:
+    def listen(self, onrecord:Callable[[int, ListenResult], None], timeout=None, phrase_time_limit=None) -> None:
         """
         一度だけマイクを拾う
         """
@@ -295,15 +365,16 @@ class Mic:
                     source = microphone,
                     timeout = timeout,
                     phrase_time_limit = phrase_time_limit)
-            self.__audio_queue.put_nowait(audio.get_raw_data())
-            audio_data = self.__get_audio_data()
-            onrecord(1, audio_data)
+            energy:float|None = None
+            if isinstance(audio, AudioData):
+                energy = audio.energy 
+            onrecord(1, ListenResult(audio.get_raw_data(), energy))
         except sr.WaitTimeoutError:
             pass
         except sr.UnknownValueError:
             pass
 
-    def listen_loop(self, onrecord:Callable[[int, bytes], None], cancel:CancellationObject, phrase_time_limit=None) -> None:
+    def listen_loop(self, onrecord:Callable[[int, ListenResult], None], cancel:CancellationObject, phrase_time_limit=None) -> None:
         """
         マイクループ。処理を返しません。
         """
@@ -312,23 +383,27 @@ class Mic:
                 with self.__source as s:
                     while cancel.alive:
                         try:
-                            audio = self.__recorder.listen(s, 0.25, phrase_time_limit)
+                            audio = self.__recorder.listen(s, self.__listen_timeout, phrase_time_limit)
                         except speech_recognition.exceptions.WaitTimeoutError:
                             pass
                         else:
                             if cancel.alive:
-                                self.__audio_queue.put_nowait(audio.get_raw_data())
+                                q.put_nowait(audio)
             except Exception as e:
                 print(e)
 
+        q = queue.Queue()
         thread_pool = ThreadPoolExecutor(max_workers=2)
         thread_pool.submit(listen_mic)
         try:
             index = 1
             while cancel.alive:
-                if not self.__audio_queue.empty():
-                    audio_data = self.__get_audio_data()
-                    onrecord(index, audio_data)
+                if not q.empty():
+                    audio = q.get()
+                    energy:float|None = None
+                    if isinstance(audio, AudioData):
+                        energy = audio.energy 
+                    onrecord(index, ListenResult(audio.get_raw_data(), energy))
                     index += 1
                 time.sleep(0.1)
         finally:
@@ -340,10 +415,12 @@ class Mic:
         energy:float,
         pause:float,
         dynamic_energy:bool,
-        dynamic_energy_ratio:float,
+        dynamic_energy_ratio:float|None,
+        dynamic_energy_adjustment_damping:float|None,
         dynamic_energy_min:float,
         phrase:float | None,
         non_speaking:float | None,
+        listen_timeout:float,
         mic_index:int | None,
         cancel,
         out:multiprocessing.Queue):
@@ -354,6 +431,7 @@ class Mic:
             pause,
             dynamic_energy,
             dynamic_energy_ratio,
+            dynamic_energy_adjustment_damping,
             dynamic_energy_min,
             phrase,
             non_speaking)
@@ -361,7 +439,7 @@ class Mic:
             rec.adjust_for_ambient_noise(s)
             while cancel.value != 0:
                 try:
-                    audio = rec.listen(s, 0.25, None)
+                    audio = rec.listen(s, listen_timeout, None)
                 except speech_recognition.exceptions.WaitTimeoutError:
                     pass
                 else:
@@ -381,9 +459,11 @@ class Mic:
                 self.__pause,
                 self.__dynamic_energy,
                 self.__dynamic_energy_ratio,
+                self.__dynamic_energy_adjustment_damping,
                 self.__dynamic_energy_min,
                 self.__phrase,
                 self.__non_speaking,
+                self.__listen_timeout,
                 self.__mic_index,
                 cancel,
                 queue))
@@ -397,13 +477,13 @@ class Mic:
             cancel.value = 0 # type: ignore
             p.join()
 
-    def test_mic(self, cancel:CancellationObject, onrecord:Callable[[int, bytes], None] | None = None):
+    def test_mic(self, cancel:CancellationObject, onrecord:Callable[[int, ListenResult], None] | None = None):
         timemax = 5
-        timeout = 0.25
         print("マイクテストを行います")
         print(f"{int(timemax)}秒間マイクを監視し音を拾った場合その旨を表示します")
         print(f"使用マイク:{self.device_name}")
         print(f"energy_threshold:{self.__recorder.energy_threshold}")
+        print(f"phrase_threshold:{self.__recorder.phrase_threshold}")
         print(f"pause_threshold:{self.__recorder.pause_threshold}")
         print(f"non_speaking_duration:{self.__recorder.non_speaking_duration}")
         print(f"dynamic_energy_threshold:{self.__recorder.dynamic_energy_threshold}")
@@ -415,12 +495,12 @@ class Mic:
             while cancel.alive:
                 print(f"計測開始 #{str(index).zfill(2)}")
                 audio:sr.AudioData | None = None
-                for _ in range(int(timemax / timeout)):
+                for _ in range(int(timemax / self.__listen_timeout)):
                     try:
                         with self.__source as microphone:
                             audio = self.__recorder.listen(
                                 source = microphone,
-                                timeout = timeout,
+                                timeout = self.__listen_timeout,
                                 phrase_time_limit = None)
                     except speech_recognition.exceptions.WaitTimeoutError:
                         pass
@@ -428,11 +508,16 @@ class Mic:
                         break
                 if not audio is None:
                     b = audio.get_raw_data()
+                    e = None
+                    es = ""
+                    if isinstance(audio, AudioData):
+                        e = audio.energy
+                        es = f", energy: {round(e, 2)}"
                     sec = len(b) / 2 / self.__sample_rate
                     print("認識終了")
-                    print(f"{round(sec, 2) - self.__recorder.end_insert_sec}秒音を拾いました")
+                    print(f"{round(sec, 2) - self.__recorder.end_insert_sec}秒音を拾いました{es}, energy_threshold: {round(self.__recorder.energy_threshold, 2)}")
                     if not onrecord is None:
-                        onrecord(index, b)
+                        onrecord(index, ListenResult(b, e))
                 index += 1
                 print("")
                 time.sleep(1)
