@@ -165,6 +165,21 @@ class Recognizer(sr.Recognizer):
         else:
             return 0.25
 
+class MicParamObject(NamedTuple):
+        device_index:int|None
+        device_name:str
+        sample_rate:int
+        ambient_noise_to_energy:bool
+        energy_threshold:float
+        phrase_threshold:float|None
+        pause_threshold:float
+        non_speaking_duration:float|None
+        dynamic_energy:bool
+        dynamic_energy_ratio:float|None
+        dynamic_energy_adjustment_damping:float|None
+        dynamic_energy_min:float
+
+
 class Mic:
     """
     マイク操作クラス
@@ -209,11 +224,26 @@ class Mic:
         try:
             if not mic_index is None:
                 check_mic(audio, mic_index, sample_rate)
-                self.__device_name = audio.get_device_info_by_index(mic_index).get("name")
+                self.__device_name = str(audio.get_device_info_by_index(mic_index).get("name"))
             else:
                 self.__device_name = "デフォルトマイク"
         finally:
             audio.terminate()
+
+        self.__initilaze_param = MicParamObject(
+            device_index = mic_index,
+            device_name = self.__device_name,
+            sample_rate = sample_rate,
+            ambient_noise_to_energy = ambient_noise_to_energy,
+            energy_threshold = energy,
+            phrase_threshold = phrase,
+            pause_threshold = pause,
+            non_speaking_duration = non_speaking,
+            dynamic_energy = dynamic_energy,
+            dynamic_energy_ratio = dynamic_energy_ratio,
+            dynamic_energy_adjustment_damping = dynamic_energy_adjustment_damping,
+            dynamic_energy_min = dynamic_energy_min
+        )
 
         self.__mic_index = mic_index
         self.__energy = energy
@@ -243,6 +273,9 @@ class Mic:
         if ambient_noise_to_energy:
             with self.__source as mic:
                 self.__recorder.adjust_for_ambient_noise(mic)
+
+    def __enter__(self): return self.__source.__enter__()
+    def __exit__(self, exc_type, exc_value, traceback): return self.__source.__exit__(exc_type, exc_value, traceback)
 
     @staticmethod
     def __create_mic(sample_rate:int, mic_index:int | None) -> sr.Microphone:
@@ -300,6 +333,28 @@ class Mic:
     def device_name(self):
         return self.__device_name
     
+    @property
+    def initilaze_param (self):
+        return self.__initilaze_param
+
+    @property
+    def current_param (self):
+        return MicParamObject(
+            device_index = self.__initilaze_param.device_index,
+            device_name =  self.__initilaze_param.device_name,
+            sample_rate = self.__initilaze_param.sample_rate,
+            ambient_noise_to_energy = self.__initilaze_param.ambient_noise_to_energy,
+            energy_threshold = self.__recorder.energy_threshold,
+            phrase_threshold = self.__recorder.phrase_threshold,
+            pause_threshold = self.__recorder.pause_threshold,
+            non_speaking_duration = self.__recorder.non_speaking_duration,
+            dynamic_energy = self.__recorder.dynamic_energy_threshold,
+            dynamic_energy_ratio = self.__recorder.dynamic_energy_ratio,
+            dynamic_energy_adjustment_damping = self.__recorder.dynamic_energy_adjustment_damping,
+            dynamic_energy_min = self.__recorder.dynamic_energy_min
+        )
+
+
     @property
     def sample_rate(self):
         return self.__sample_rate

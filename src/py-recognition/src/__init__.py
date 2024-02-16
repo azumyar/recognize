@@ -155,15 +155,24 @@ class Logger:
             is_print:bool,
             sep:str|None = " ",
             end:str|None = "\n",
+            out_file:bool|None = None
             ) -> None:
         if obj and is_print:
             print(str(obj), sep=sep, end=end)
+        if not out_file is None and out_file:
+            self.log(obj)
 
-    def print(self, obj:Any, sep:str|None = " ", end:str|None = "\n") -> None: self.__print(obj, True, sep=sep, end=end)
-    def info(self, obj:Any, sep:str|None = " ", end:str|None = "\n") -> None: self.__print(obj, self.is_min, sep=sep, end=end)
-    def notice(self, obj:Any, sep:str|None = " ", end:str|None = "\n") -> None: self.__print(obj, self.is_info, sep=sep, end=end)
-    def debug(self, obj:Any, sep:str|None = " ", end:str|None = "\n") -> None: self.__print(obj, self.is_debug, sep=sep, end=end)
-    def trace(self, obj:Any, sep:str|None = " ", end:str|None = "\n") -> None: self.__print(obj, self.is_trace, sep=sep, end=end)
+    def print(self, obj:Any, sep:str|None=" ", end:str|None="\n", out_file:bool|None=None) -> None: self.__print(obj, True, sep=sep, end=end, out_file=out_file)
+    def info(self, obj:Any, sep:str|None=" ", end:str|None="\n", out_file:bool|None=None) -> None: self.__print(obj, self.is_min, sep=sep, end=end, out_file=out_file)
+    def notice(self, obj:Any, sep:str|None=" ", end:str|None="\n", out_file:bool|None=None) -> None: self.__print(obj, self.is_info, sep=sep, end=end, out_file=out_file)
+    def debug(self, obj:Any, sep:str|None=" ", end:str|None="\n", out_file:bool|None=None) -> None: self.__print(obj, self.is_debug, sep=sep, end=end, out_file=out_file)
+    def trace(self, obj:Any, sep:str|None=" ", end:str|None="\n", out_file:bool|None=None) -> None: self.__print(obj, self.is_trace, sep=sep, end=end, out_file=out_file)
+
+    def error(self, obj:Any, sep:str|None = " ", end:str|None = "\n") -> None:
+        '''
+        標準出力とファイル両方にだす verbose >= min
+        '''
+        self.info(self.__join(obj), sep, end, out_file=True)
 
     def log(self, arg:object) -> None:
         import os
@@ -172,14 +181,15 @@ class Logger:
             return
 
         time = datetime.datetime.now()
-        s:str
-        if isinstance(arg, Iterable):
-            s = f"{os.linesep}".join(map(lambda x: f"{x}", arg))
-        else:
-            s = f"{arg}"
-        self.__file_io.write(f"{time}{os.linesep}{s}{os.linesep}{os.linesep}")
+        self.__file_io.write(f"{time}{os.linesep}{self.__join(arg)}{os.linesep}{os.linesep}")
         self.__file_io.flush()
-
+    
+    def __join(self, obj:object) -> object:
+        import os
+        if isinstance(obj, Iterable) and not isinstance(obj, str):
+            return os.linesep.join(map(lambda x: str(x), obj))
+        else:
+            return obj
 
 ilm_enviroment:Enviroment = Enviroment.init_system()
 ilm_logger:Logger = Logger.init_system(ilm_enviroment.verbose, ilm_enviroment.root)

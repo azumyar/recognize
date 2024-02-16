@@ -138,17 +138,6 @@ def main(
     if print_mics or list_devices:
         __main_print_mics(ilm_logger, feature)
         return
-    
-    if is_feature(feature, "ambient"):
-        __main_print_ambient(
-            mic,
-            mic_sampling_rate,
-            mic_dynamic_energy_ratio,
-            mic_dynamic_energy_adjustment_damping,
-            3.0,
-            ilm_logger,
-            feature)
-        pass
 
     cancel = CancellationObject()
     cancel_mp = multiprocessing.Value("i", 1)
@@ -180,40 +169,12 @@ def main(
 
         if test == val.TEST_VALUE_MIC:
             __main_test_mic(mc, rec, cancel, feature)
-        #elif is_feature(feature, "mp"):
-        #    ilm_logger.print("実験的機能：マルチプロセスでマイクの監視を行います")
-        #    ilm_logger.print("--recordは実装されていません")
-        #
-        #    q = multiprocessing.Queue()
-        #    p = multiprocessing.Process(target=src.mp.main_feature_mp, args=(
-        #        q,
-        #        cancel_mp,
-        #        sampling_rate,
-        #        method,
-        #        whisper_model,
-        #        whisper_language,
-        #        whisper_device,
-        #        google_convert_sampling_rate,
-        #        google_language,
-        #        google_timeout,
-        #        google_error_retry,
-        #        google_duplex_parallel,
-        #        out,
-        #        out_yukarinette,
-        #        out_yukacone,
-        #        disable_lpf,
-        #        filter_lpf_cutoff,
-        #        filter_lpf_cutoff_upper,
-        #        disable_hpf,
-        #        filter_hpf_cutoff,
-        #        filter_hpf_cutoff_upper,
-        #        0,
-        #        logger,
-        #        verbose,
-        #        feature))
-        #    p.daemon = True
-        #    p.start()
-        #    mc.listen_loop_mp(q, cancel_mp)
+        elif test == val.TEST_VALUE_AMBIENT or is_feature(feature, "ambient"):
+            __main_print_ambient(
+                mc,
+                3.0,
+                ilm_logger,
+                feature)
         else:
             ilm_logger.print("認識モデルの初期化")
             recognition_model:recognition.RecognitionModel = {
@@ -326,56 +287,81 @@ def __main_print_mics(logger:Logger, _:str) -> None:
     finally:
         audio.terminate()
 
+
 def __main_print_ambient(
-        device:int|None,
-        sample_rate:int,
-        dynamic_energy_ratio:float|None,
-        dynamic_energy_adjustment_damping:float|None,
-        timeout:float,
-        logger:Logger,
-        _:str) -> None:
+    mic:src.mic.Mic,
+    timeout:float,
+    logger:Logger,
+    _:str) -> None:
     import speech_recognition as sr
     import math
+    import re
+    repatter = re.compile("^.+\\.#$")
+    def fmt(txt:str, padding:int) -> str:
+        text_len = len(txt)
+        pad = padding - text_len #+ ((text_len % 2 - 1) * -1)
+        return txt + "".ljust(max(0, pad), "　")
     def value(v:float|None, default:float) -> float: return v if not v is None else default
+    def calc_threshold(energy:float, threshold:float) -> float:
+        damping = dynamic_energy_adjustment_damping_ ** seconds_per_buffer 
+        target_energy = energy * dynamic_energy_ratio_
+        return threshold * damping + target_energy * (1 - damping)
+    def add(lst:list[Any], v:Any, max:int) -> None:
+        lst.append(v)
+        if max <= len(lst):
+            lst.pop(1)
 
-    rate = src.mic.Mic.update_sample_rate(device, sample_rate)
-    mic = sr.Microphone(sample_rate = rate, device_index = device)
+    def add_top(lst:list[float], v:float, max:int) -> None:
+        lst.append(v)
+        lst.sort(reverse=True)
+        if max <= len(lst):
+            lst.pop(-1)
+    
+    def avg(lst:list[float]) -> float:
+        total = 0
+        for v in lst:
+            total += v
+        return total / len(lst)
+    def round_s(f:float) -> str:
+        '''
+        round(f, 2) の結果がN.0の場合 str(int(f)) とし末尾小数点を付与しない形に成形する
+        '''
+        def r():
+            s = str(round(f, 2))
+            if repatter.match(s) is None:
+                return s
+            else:
+                return str(int(f))
+        t = r()
+        return r().rjust(len(t) % 2)
+    init_mic_param = mic.initilaze_param
+    max_list:int = max(math.ceil(60 / timeout), 10) # 1分サンプル/最低10レコード保障 
 
-    logger.print("feature function:ambient")
-    logger.print("exit ctrl+c")
-    max_list:int = max(math.ceil(60 / timeout), 10) # 1分サンプル/最低10レコード保障
+    logger.log("環境音エネルギー測定機能を起動")
+
+    logger.print("環境音エネルギーの測定を行います")
+    logger.print("発言はせず、実際に利用する際にとる行動をおこなってください。")
+    logger.print(f"　{round_s(timeout)}[秒]あたりの音エネルギーとその計測中'継続して計算更新されている'音エネルギー閾値")
+    logger.print(f"　直近{round_s(timeout * max_list / 60)}[分]の平均音エネルギーとそれをもとに'初期設定音エネルギー閾値から計算された'音エネルギー閾値")
+    logger.print(f"　計測時間中(最大/最低)の音エネルギーとそれをもとに'初期設定音エネルギー閾値から計算された'音エネルギー閾値")
+    logger.print("を表示します。")
+    logger.print(" ")
+    logger.print("終了は ctrl+c を押してください。")
     try:
-        def add(lst:list[Any], v:Any, max:int) -> None:
-            lst.append(v)
-            if max <= len(lst):
-                lst.pop(-1)
-
-        def add_top(lst:list[float], v:float, max:int) -> None:
-            lst.append(v)
-            lst.sort(reverse=True)
-            if max <= len(lst):
-                lst.pop(-1)
-        
-        def avg(lst:list[float]) -> float:
-            total = 0
-            for v in lst:
-                total += v
-            return total / len(lst)
-
-        list_energys:list[tuple[float, float]] = []
-        list_energys_top:list[float] = []
-        list_energy_thresholds_top:list[float] = []
+        list_energys:list[float] = []
+        energy_max:float = -1
+        energy_min:float = -1
         while True:
             elapsed_time = 0
-            energy_threshold = 0.0
+            energy_threshold = init_mic_param.energy_threshold
             energy_total = 0.0
-            dynamic_energy_ratio_ = value(dynamic_energy_ratio, 1.5)
-            dynamic_energy_adjustment_damping_ = value(dynamic_energy_adjustment_damping, 0.15)
+            dynamic_energy_ratio_ = value(init_mic_param.dynamic_energy_ratio, 1.5)
+            dynamic_energy_adjustment_damping_ = value(init_mic_param.dynamic_energy_adjustment_damping, 0.15)
 
             with mic as source:
-                logger.print(f"start record {round(timeout, 2)} sec")
-                logger.print(f"mic record : {source.SAMPLE_RATE}Hz/{source.SAMPLE_WIDTH * 8}bit")
-                logger.print(f"1 cycle record :{source.CHUNK}bytes")
+                logger.print(f"{round_s(timeout)}[秒]マイクから環境音エネルギーを採取します")
+                logger.print(f"マイク情報　　　 : {init_mic_param.device_name}, {source.SAMPLE_RATE}[Hz]/{source.SAMPLE_WIDTH * 8}[bit]")
+                logger.print(f"サイクルデータ量 : {source.CHUNK}[bytes]")
                 count = 0
                 seconds_per_buffer = float(source.CHUNK) / source.SAMPLE_RATE
                 while elapsed_time <= timeout:
@@ -387,31 +373,58 @@ def __main_print_ambient(
                         break 
                     energy = audioop.rms(buffer, source.SAMPLE_WIDTH)
                     energy_total += energy
-                    damping = dynamic_energy_adjustment_damping_ ** seconds_per_buffer 
-                    target_energy = energy * dynamic_energy_ratio_
-                    energy_threshold = energy_threshold * damping + target_energy * (1 - damping)
+                    energy_threshold = calc_threshold(energy, energy_threshold)
                 
                 energy_avg = energy_total  / count
-                add(list_energys, (energy_avg, energy_threshold), max_list)
-                add_top(list_energys_top, energy_avg, max_list)
-                add_top(list_energy_thresholds_top, energy_threshold, max_list)
-                logger.print("done.")
-                logger.print("--------------------------------------")
-                logger.print(f"input energy average       : {round(energy_avg, 2)}")
-                logger.print(f"calcurate energy threshold : {round(energy_threshold, 2)}")
-                logger.print("--------------------------------------")
-                logger.print(f"energy average recent {max_list}              : {round(avg(list(map(lambda x: x[0], list_energys))), 2)}")
-                logger.print(f"energy threshold average recent {max_list}    : {round(avg(list(map(lambda x: x[1], list_energys))), 2)}")
-                logger.print(f"total energy average top {max_list}           : {round(avg(list_energys_top), 2)}")
-                logger.print(f"total energy threshold average top {max_list} : {round(avg(list_energy_thresholds_top), 2)}")
-                logger.print("--------------------------------------")
-                logger.print("")
+                add(list_energys, energy_avg, max_list)
+                energy_max = max(energy_max, energy_avg)
+                energy_min = min(energy_min, energy_avg) if 0 <= energy_min else energy_avg
+                recernt_energy_avg = avg(list_energys)
+
+                format_length = 15
+                sep_length = 80
+                s_energy_avg = f"{energy_avg:.2f}"
+                s_eenergy_threshold = f"{energy_threshold:.2f}"
+                s_energy_max = f"{energy_max:.2f}"
+                s_energy_min = f"{energy_min:.2f}"
+                s_recernt_energy_avg = f"{recernt_energy_avg:.2f}"
+                en_length = max([
+                    len(s_energy_avg),
+                    len(s_eenergy_threshold),
+                    len(s_energy_max),
+                    len(s_energy_min),
+                    len(s_recernt_energy_avg),
+                ])
+                s_th_max = f"{calc_threshold(energy_max, init_mic_param.energy_threshold):.2f}"
+                s_th_min = f"{calc_threshold(energy_min, init_mic_param.energy_threshold):.2f}"
+                s_recernt_th = f"{calc_threshold(recernt_energy_avg, init_mic_param.energy_threshold):.2f}"
+                th_length = max([
+                    len(s_th_max),
+                    len(s_th_min),
+                    len(s_recernt_th)
+                ])
+                logger.print("完了")
+                # ログに出したいからerror()を使う
+                # 目的外用途で気持ち悪いので素直に分けたほうがいい？
+                logger.error([
+                    "".ljust(sep_length, "-"),
+                    fmt(f"計測音エネルギー", format_length) + f": {s_energy_avg.rjust(en_length)}",
+                    fmt(f"計算閾値", format_length) + f": {s_eenergy_threshold.rjust(en_length)}",
+                    "".ljust(sep_length, "-"),
+                    fmt(f"計測中最大音エネルギー", format_length) +  f": {s_energy_max.rjust(en_length)}, {s_th_max.rjust(th_length)}",
+                    fmt(f"計測中最低エネルギー", format_length) +  f": {s_energy_min.rjust(en_length)}, {s_th_min.rjust(th_length)}",
+                    fmt(f"直近平均音エネルギー", format_length) + f": {s_recernt_energy_avg.rjust(en_length)}, {s_recernt_th.rjust(th_length)}",
+                    "".ljust(sep_length, "-"),
+                ])
+                logger.print(" ")
     except Exception as e:
-        logger.print(f"except Exception as {type(e)}")
-        logger.print(e)
-        logger.print(traceback.format_exc())
+        logger.error([
+            f"!!!!意図しない例外({type(e)}:{e})!!!!",
+            f"{type(e)}:{e}",
+            traceback.format_exc()
+        ])
     finally:
-        logger.print("exit.")
+        logger.print("終了")
         sys.exit()
 
 
@@ -463,6 +476,9 @@ def __main_run(
         class PerformanceResult(NamedTuple):
             result:Any
             time:float
+
+        log_info_mic = mic.get_log_info()
+        log_info_recognition = recognition_model.get_log_info()
 
         insert:str
         if 0 < mic.end_insert_sec:
@@ -526,8 +542,11 @@ def __main_run(
                 logger.debug(f"# => {type(e.inner)}:{e.inner}")
         except Exception as e:
             ex = e
-            logger.print(f"!!!!意図しない例外({type(e)}:{e})!!!!")
-            logger.print(traceback.format_exc())
+            logger.error([
+                f"!!!!意図しない例外!!!!",
+                f"{type(e)}:{e}",
+                traceback.format_exc()
+            ])
         for it in [("", mic.get_verbose(env.verbose)), ("", recognition_model.get_verbose(env.verbose))]:
             pass
         logger.debug(f"#認識処理終了(#{index}, time={dt.datetime.now()})")
@@ -562,17 +581,20 @@ def __main_run(
                 log_insert = f"{log_insert}, energy={round(param.energy, 2)}"
 
             logger.log([
-                f"認識処理:#{index}",
-                f"録音情報:{round(pcm_sec, 2)}s{log_insert}, {(int)(len(data)/2)}sample / {mic.sample_rate}Hz",
-                f"認識結果:{log_transcribe}",
-                f"認識時間:{log_time}",
-                f"例外情報:{log_exception}",
-                f"マイク情報: {mic.get_log_info()}",
-                f"認識モデル情報: {recognition_model.get_log_info()}",
+                f"認識処理　　　: #{index}",
+                f"録音情報　　　: {round(pcm_sec, 2)}s{log_insert}, {(int)(len(data)/2)}sample / {mic.sample_rate}Hz",
+                f"認識結果　　　: {log_transcribe}",
+                f"認識時間　　　: {log_time}",
+                f"例外情報　　　: {log_exception}",
+                f"マイク情報　　: {log_info_mic}",
+                f"認識モデル情報: {log_info_recognition}",
             ])
         except Exception as e_: # eにするとPylanceの動きがおかしくなるので名前かえとく
-            logger.print(f"!!!!ログ出力例外({type(e_)}:{e_})!!!!")
-            logger.print(traceback.format_exc())
+            logger.error([
+                f"!!!!ログ出力例外!!!!",
+                f"({type(e_)}:{e_})",
+                traceback.format_exc()
+             ])
 
     def onrecord_async(index:int, data:src.mic.ListenResult) -> None:
         """
@@ -606,5 +628,4 @@ def save_wav(record:Record, index:int, data:bytes, sampling_rate) -> None:
             fout.write(speech_recognition.AudioData(data, sampling_rate, 2).get_wav_data())
 
 if __name__ == "__main__":
-    multiprocessing.set_start_method("spawn")
     main() # type: ignore
