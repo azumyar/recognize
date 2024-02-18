@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using System.ComponentModel;
 using System.Reflection;
 using System.Net.NetworkInformation;
+using System.Security.Cryptography;
+using System.Windows.Forms.VisualStyles;
 
 namespace Haru.Kei {
 	/// <summary>
@@ -15,6 +17,8 @@ namespace Haru.Kei {
 	/// </summary>
 	[TypeConverter(typeof(DefinitionOrderTypeConverter))]
 	internal class RecognizeExeArgument {
+		public static readonly int FormatVersion = 2023021800;
+
 		/// <summary>プロパティグリッドのソート順番を宣言順に行う</summary>
 		class DefinitionOrderTypeConverter : TypeConverter {
 			public override PropertyDescriptorCollection GetProperties(ITypeDescriptorContext context, object value, Attribute[] attributes) {
@@ -115,6 +119,11 @@ namespace Haru.Kei {
 		protected const string categoryOut = "03.出力";
 		protected const string categoryFilter = "04.フィルタ";
 
+		[Browsable(false)]
+		[Save(IsRestore = false)]
+		public int Version {
+			get { return FormatVersion; }
+		}
 
 		[Category(categoryOutput)]
 		[DisplayName("recognize.exeパス")]
@@ -157,8 +166,8 @@ namespace Haru.Kei {
 		public string ArgGoogleLanguage { get; set; }
 
 		[Category(categoryModel)]
-		[DisplayName("タイムアウト時間(google)")]
-		[Description("グーグルサーバからのタイムアウト時間(秒)")]
+		[DisplayName("タイムアウト時間[秒](google)")]
+		[Description("グーグルサーバからのタイムアウト時間")]
 		[DefaultValue(null)]
 		[ArgAttribute("--google_timeout", TargetProperty = "ArgMethod", TargetValue = "google;google_duplex")]
 		public float? ArgGoogleTimeout { get; set; }
@@ -193,56 +202,132 @@ namespace Haru.Kei {
 
 		[Category(categoryMic)]
 		[DisplayName("無音レベルの閾値")]
-		[Description("無音ではないと判断するマイクの閾値。デフォルトでは300が設定されています。お使いのマイクによって感度は異なります。")]
+		[Description("互換性")]
 		[DefaultValue(null)]
-		[ArgAttribute("--mic_energy")]
-		public float? ArgMicEnergy { get; set; }
+		//[ArgAttribute("--mic_energy")]
+		[Browsable(false)]
+		[Save(IsSave = false)]
+		public float? ArgMicEnergy {
+			get { return DB2Rms(this.ArgMicDbThreshold); }
+			set { this.ArgMicDbThreshold = Rms2dB(value); }
+		}
 
 		[Category(categoryMic)]
 		[DisplayName("無音レベルの閾値自動設定")]
-		[Description("起動時に環境音を収集し無音レベルの閾値を自動的に設定します。無音レベルの閾値は上書きされます。")]
+		[Description("互換性")]
 		[DefaultValue(null)]
-		[ArgAttribute("--mic_ambient_noise_to_energy", IsFlag = true)]
-		public bool? ArgMicAmbientNoiseToEnergy { get; set; }
+		//[ArgAttribute("--mic_ambient_noise_to_energy", IsFlag = true)]
+		[Browsable(false)]
+		[Save(IsSave = false)]
+		public bool? ArgMicAmbientNoiseToEnergy {
+			get { return this.ArgMicAmbientNoiseToDB; }
+			set { this.ArgMicAmbientNoiseToDB = value; }
+		}
 
 		[Category(categoryMic)]
 		[DisplayName("動的マイク感度の変更")]
-		[Description("trueの場合周りの騒音に応じて動的にマイクの感度を変更します")]
+		[Description("互換性")]
 		[DefaultValue(null)]
-		[ArgAttribute("--mic_dynamic_energy", IsFlag = true)]
-		public bool? ArgMicDynamicEnergy { get; set; }
+		//[ArgAttribute("--mic_dynamic_energy", IsFlag = true)]
+		[Browsable(false)]
+		[Save(IsSave = false)]
+		public bool? ArgMicDynamicEnergy {
+			get { return this.ArgMicDynamicDB; }
+			set { this.ArgMicDynamicDB = value; }
+		}
 
 		[Category(categoryMic)]
 		[DisplayName("動的マイク感度変更係数1_仮称")]
-		[Description("マイク感度を変更する場合マイク感度にかかる係数を指定します")]
+		[Description("互換性")]
 		[DefaultValue(null)]
-		[ArgAttribute("--mic_dynamic_energy_ratio")]
-		public float? ArgMicDynamicEnergyRate { get; set; }
+		//[ArgAttribute("--mic_dynamic_energy_ratio")]
+		[Browsable(false)]
+		[Save(IsSave = false)]
+		public float? ArgMicDynamicEnergyRate {
+			get { return this.ArgMicDynamicDBRate; }
+			set { this.ArgMicDynamicDBRate = value; }
+		}
 
 		[Category(categoryMic)]
 		[DisplayName("動的マイク感度変更係数2_仮称")]
-		[Description("マイク感度を変更する場合マイク感度にかかる係数を指定します")]
+		[Description("互換性")]
 		[DefaultValue(null)]
-		[ArgAttribute("--mic_dynamic_energy_adjustment_damping")]
-		public float? ArgMicDynamicEnergyAdjustmentDamping { get; set; }
+		//[ArgAttribute("--mic_dynamic_energy_adjustment_damping")]
+		[Browsable(false)]
+		[Save(IsSave = false)]
+		public float? ArgMicDynamicEnergyAdjustmentDamping {
+			get { return this.ArgMicDynamicDBAdjustmentDamping; }
+			set { this.ArgMicDynamicDBAdjustmentDamping = value; }
+		}
 
 		[Category(categoryMic)]
 		[DisplayName("動的マイク感度最低値")]
-		[Description("動的にマイク感度を変更する場合でもこの値未満には感度は落ち込みません")]
+		[Description("互換性")]
 		[DefaultValue(null)]
-		[ArgAttribute("--mic_dynamic_energy_min")]
-		public float? ArgMicDynamicEnergyMin { get; set; }
+		//[ArgAttribute("--mic_dynamic_energy_min")]
+		[Browsable(false)]
+		[Save(IsSave = false)]
+		public float? ArgMicDynamicEnergyMin {
+			get { return DB2Rms(this.ArgMicDynamicDBMin);  }
+			set { this.ArgMicDynamicDBMin = Rms2dB(value); }
+		}
 
 		[Category(categoryMic)]
-		[DisplayName("発声時間閾値")]
-		[Description("この時間発声していると有効な認識とします(秒)")]
+		[DisplayName("無音閾値[dB]")]
+		[Description("無音ではないと判断する音圧の閾値。デフォルトでは49.54が設定されています。お使いのマイクによって感度は異なります。")]
+		[DefaultValue(null)]
+		[ArgAttribute("--mic_db_threshold")]
+		public float? ArgMicDbThreshold { get; set; }
+
+		[Category(categoryMic)]
+		[DisplayName("起動時に無音閾値の自動調整")]
+		[Description("起動時に環境音を収集し無音閾値を調整します。無音閾値は上書きされます。")]
+		[DefaultValue(null)]
+		[ArgAttribute("--mic_ambient_noise_to_db", IsFlag = true)]
+		public bool? ArgMicAmbientNoiseToDB { get; set; }
+
+		[Category(categoryMic)]
+		[DisplayName("常時無音閾値の自動調整")]
+		[Description("trueの場合常時環境音に応じて無音閾値を調整します")]
+		[DefaultValue(null)]
+		[ArgAttribute("--mic_dynamic_db", IsFlag = true)]
+		[Browsable(false)]
+		[Save(IsSave = false)]
+		public bool? ArgMicDynamicDB { get; set; }
+
+		[Category(categoryMic)]
+		[DisplayName("常時無音閾値の変更係数1_仮称")]
+		[Description("無音閾値を調整する際に使用する係数1")]
+		[DefaultValue(null)]
+		[ArgAttribute("--mic_dynamic_db_ratio")]
+		public float? ArgMicDynamicDBRate { get; set; }
+
+		[Category(categoryMic)]
+		[DisplayName("常時無音閾値の変更係数2_仮称")]
+		[Description("無音閾値を調整する際に使用する係数2")]
+		[DefaultValue(null)]
+		[ArgAttribute("--mic_dynamic_db_adjustment_damping")]
+		public float? ArgMicDynamicDBAdjustmentDamping { get; set; }
+
+		[Category(categoryMic)]
+		[DisplayName("自動調整による無音閾値の最小値[dB]")]
+		[Description("無音閾値を調整する際この値より閾値は落ちません。標準では40.0が設定されています。")]
+		[DefaultValue(null)]
+		[ArgAttribute("--mic_dynamic_db_min")]
+		[Browsable(false)]
+		[Save(IsSave = false)]
+		public float? ArgMicDynamicDBMin { get; set; }
+
+		[Category(categoryMic)]
+		[DisplayName("発声時間閾値[秒]")]
+		[Description("この時間発声していると有効な認識とします")]
 		[DefaultValue(null)]
 		[ArgAttribute("--mic_phrase")]
 		public float? ArgMicPharse { get; set; }
 
 		[Category(categoryMic)]
-		[DisplayName("無音時間閾値")]
-		[Description("この時間無音であるばあいしゃべり終わったと判断します(秒)")]
+		[DisplayName("無音時間閾値[秒]")]
+		[Description("発声したのちこの時間無音である場合認識を終了します")]
 		[DefaultValue(null)]
 		[ArgAttribute("--mic_pause")]
 		public float? ArgMicPause { get; set; }
@@ -323,7 +408,7 @@ namespace Haru.Kei {
 		[DefaultValue("")]
 		public string ExtraArgument { get; set; }
 
-		public RecognizeExeArgument() { 
+		public RecognizeExeArgument() {
 			foreach(var p in this.GetType().GetProperties()) {
 				var dva = p.GetCustomAttribute(typeof(DefaultValueAttribute)) as DefaultValueAttribute;
 				if(dva != null) {
@@ -332,6 +417,21 @@ namespace Haru.Kei {
 			}
 			this.ArgLogDirectory = AppDomain.CurrentDomain.BaseDirectory;
 			this.ArgRecordDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Record");
+		}
+
+		private static float? Rms2dB(float? rms, float p0 = 1f) {
+			if(!rms.HasValue) {
+				return null;
+			}
+			return (float)(20d * Math.Log10(rms.Value / p0));
+		}
+
+
+		private static float? DB2Rms(float? db, float p0 = 1f) {
+			if(!db.HasValue) {
+				return null;
+			}
+			return (float)(Math.Pow(10, db.Value / 20f) * p0);
 		}
 	}
 
@@ -407,6 +507,13 @@ namespace Haru.Kei {
 			return new RecognizeExeArgument(); // 取得できない場合基底クラスのインスタンスを返す
 		}
 
+	}
+
+	/// <summary>プロパティを保存するかコントロールする</summary>
+	[AttributeUsage(AttributeTargets.Property)]
+	class SaveAttribute : Attribute {
+		public bool IsSave = true;
+		public bool IsRestore = true;
 	}
 
 	/// <summary>プロパティをオプション文字列に変換する</summary>
