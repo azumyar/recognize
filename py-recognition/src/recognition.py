@@ -309,12 +309,12 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
                     return f"{self.raw_data}{os.linesep}{len(self.exceptions)}回の失敗:{os.linesep}{f'{os.linesep}'.join(map(lambda x: f'{type(x)}:{x}', self.exceptions))}"
                 else:
                     return f"{self.raw_data}"
-        def func(index:int = 0) -> TranscribeResult:
+        def func(index:int = 0, delay_ratio=0.1) -> TranscribeResult:
             if RecognitionModelGoogleDuplex.__MIN_PARALLEL < index:
                 # 増加スレッドは遅延させてから実行する
                 wait = math.ceil(index / RecognitionModelGoogleDuplex.__MIN_PARALLEL) - 1
                 if(0 < wait):
-                    time.sleep(wait * 0.1)
+                    time.sleep(wait * delay_ratio)
             r = google.recognize_google_duplex(
                 flac,
                 self._operation_timeout,
@@ -339,7 +339,7 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
                     except Exception as e:
                         ex.append(e)
 
-                raise_ex = ParallelTranscribeException("", ex)
+                raise_ex = ParallelTranscribeException("すべての並列実行が失敗", ex)
                 if raise_ex.is_error500:
                     self.__parallel_successed = 0
                     self.__parallel = min(self.__parallel + 1, self.__parallel_max)
@@ -361,9 +361,10 @@ class ParallelTranscribeException(ex.IlluminateException):
         super().__init__(message, None)
         self.__exceptions = exceptions
 
-        def _map(e:Exception) -> bool:
-            return isinstance(e, google.HttpStatusError) and e.status_code == 500
-        self.__is_error500 = not (False in map(_map, exceptions))
+        self.__is_error500 = not (False in map(
+            lambda x:isinstance(x, google.HttpStatusError)
+              and x.status_code == 500,
+            exceptions))
 
     def __str__(self) -> str:
         return f"並列実行がすべて失敗しました parallel={len(self.__exceptions)}, 500error={self.is_error500}, exception={','.join(list(map(lambda x: f'{type(x)}', self.__exceptions)))}"
