@@ -24,7 +24,13 @@ ARG_CHOICE_VERBOSE = list(map(lambda x: str(x), [
 
 TEST_VALUE_RECOGNITION = "recognition"
 TEST_VALUE_MIC = "mic"
-TEST_VALUE_AMBIENT= "ambient"
+TEST_VALUE_AMBIENT= "mic_ambient"
+ARG_CHOICE_TEST = [
+    "",
+    TEST_VALUE_RECOGNITION,
+    TEST_VALUE_MIC,
+    TEST_VALUE_AMBIENT
+]
 
 METHOD_VALUE_WHISPER = "whisper"
 METHOD_VALUE_WHISPER_FASTER = "faster_whisper"

@@ -106,11 +106,11 @@ class Logger:
             if is_log_dir:
                 is_log_dir = False
                 log_dir = arg
-                break
+                continue
             if is_log_file:
                 is_log_file = False
                 log_file = arg
-                break
+                continue
 
             if arg == val.ARG_NAME_LOG_DIRECTORY:
                 is_log_dir = True
@@ -175,6 +175,9 @@ class Logger:
         self.info(self.__join(obj), sep, end, out_file=True)
 
     def log(self, arg:object) -> None:
+        '''
+        ログファイルに出力
+        '''
         import os
         import datetime
         if self.__file_io is None:
@@ -185,11 +188,28 @@ class Logger:
         self.__file_io.flush()
     
     def __join(self, obj:object) -> object:
+        '''
+        objがイテレータの場合結合して文字とする
+        '''
         import os
         if isinstance(obj, Iterable) and not isinstance(obj, str):
             return os.linesep.join(map(lambda x: str(x), obj))
         else:
             return obj
+
+def rms2db(rms:float, p0:float=1.) -> float:
+    '''
+    RMS値をdB値にする
+    '''
+    import math
+    return 20 * math.log10(max(rms, 1)/ p0)
+
+def db2rms(db:float, p0:float=1.) -> float:
+    '''
+    dB値をRMS値にする
+    '''
+    return (10 ** (db / 20)) * p0
+
 
 ilm_enviroment:Enviroment = Enviroment.init_system()
 ilm_logger:Logger = Logger.init_system(ilm_enviroment.verbose, ilm_enviroment.root)

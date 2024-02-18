@@ -9,6 +9,9 @@ class IlluminateException(Exception):
         self.__message = message
         self.__inner = inner
 
+    def __str__(self) -> str:
+        return f"{type(self)}:{self.message}"
+
     @property
     def message(self) -> str:
         """

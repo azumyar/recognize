@@ -9,9 +9,12 @@ from typing import Any, Callable, Deque, NamedTuple
 import src.exception as ex
 from src.cancellation import CancellationObject
 
-class ListenResult(NamedTuple):
-    audio:bytes
+class ListenResultParam(NamedTuple):
+    '''listenのコールバックパラメータ'''
+    pcm:bytes
+    '''PCMバイナリデータ'''
     energy:float | None
+    '''pcmのRMS値(src.mic.AudioDataのみに格納)'''
 
 
 class AudioData(sr.AudioData):
@@ -120,11 +123,28 @@ class Recognizer(sr.Recognizer):
             phrase_count -= pause_count  # exclude the buffers for the pause before the phrase
             if phrase_count >= phrase_buffer_count or len(buffer) == 0: break  # phrase is long enough or we've reached the end of the stream, so stop listening
 
-        def avg(buf:Deque[tuple[bytes, float]]) -> float:
-            total = 0.0
-            for it in buf:
-                total += it[1]
-            return total / len(buf)
+        def avg(buf:Deque[tuple[bytes, float]]) -> float: return sum(map(lambda x: x[1], buf)) / len(buf)
+        def gen_25ms() -> bytes | bytearray:
+            def fade(i): return int((mx - i) / mx * last)
+            last:int
+            mx = math.ceil(source.SAMPLE_RATE * self.end_insert_sec)
+
+            assert source.SAMPLE_WIDTH in [2, 3]
+            if source.SAMPLE_WIDTH == 2:
+                l, u = buffer[len(buffer) - 2], buffer[len(buffer) - 1]
+                last = l | (u << 8)
+                return numpy.array(list(map(fade, range(mx))), numpy.int16).tobytes("C")
+            elif source.SAMPLE_WIDTH == 3:
+                # 使わないけど一応作っておく
+                l, m, u = buffer[len(buffer) - 3], buffer[len(buffer) - 2], buffer[len(buffer) - 1]
+                last = l | (m << 8) | (u << 16)
+                b = bytearray()
+                for i in map(fade, range(mx)):
+                    b.append(i & 0xff)
+                    b.append(i >> 8 & 0xff)
+                    b.append(i >> 16 & 0xff)
+                return b
+            raise ex.ProgramError()
 
         energy_avg:float
         if Recognizer.__PAPUSE_MIN_THREHOLD <= self.pause_threshold:
@@ -133,27 +153,7 @@ class Recognizer(sr.Recognizer):
             energy_avg = avg(frames)
         else:
             energy_avg = avg(frames)
-
-            last:int
-            b:bytes | bytearray
-            mx = math.ceil(source.SAMPLE_RATE * self.end_insert_sec)
-            def fade(i):
-                return int((mx - i) / mx * last)
-            if source.SAMPLE_WIDTH == 2:
-                l, u = buffer[len(buffer) - 2], buffer[len(buffer) - 1]
-                last = l | (u << 8)
-                b = numpy.array(list(map(fade, range(mx))), numpy.int16).tobytes("C")
-            elif source.SAMPLE_WIDTH == 3:
-                l, m, u = buffer[len(buffer) - 3], buffer[len(buffer) - 2], buffer[len(buffer) - 1]
-                last = l | (m << 8) | (u << 16)
-                b = bytearray()
-                for i in map(fade, range(mx)):
-                    b.append(i & 0xff)
-                    b.append(i >> 8 & 0xff)
-                    b.append(i >> 16 & 0xff)
-            else:
-                raise Exception()
-            frames.append((b, 0))
+            frames.append((gen_25ms(), 0))
         frame_data = b"".join(map(lambda x: x[0], frames))
 
         return AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH, energy_avg)
@@ -166,18 +166,18 @@ class Recognizer(sr.Recognizer):
             return 0.25
 
 class MicParamObject(NamedTuple):
-        device_index:int|None
-        device_name:str
-        sample_rate:int
-        ambient_noise_to_energy:bool
-        energy_threshold:float
-        phrase_threshold:float|None
-        pause_threshold:float
-        non_speaking_duration:float|None
-        dynamic_energy:bool
-        dynamic_energy_ratio:float|None
-        dynamic_energy_adjustment_damping:float|None
-        dynamic_energy_min:float
+    device_index:int|None
+    device_name:str
+    sample_rate:int
+    ambient_noise_to_energy:bool
+    energy_threshold:float
+    phrase_threshold:float|None
+    pause_threshold:float
+    non_speaking_duration:float|None
+    dynamic_energy:bool
+    dynamic_energy_ratio:float|None
+    dynamic_energy_adjustment_damping:float|None
+    dynamic_energy_min:float
 
 
 class Mic:
@@ -409,7 +409,7 @@ class Mic:
                 is_goted = True
         return sr.AudioData(audio, self.__sample_rate, 2).get_raw_data()
 
-    def listen(self, onrecord:Callable[[int, ListenResult], None], timeout=None, phrase_time_limit=None) -> None:
+    def listen(self, onrecord:Callable[[int, ListenResultParam], None], timeout=None, phrase_time_limit=None) -> None:
         """
         一度だけマイクを拾う
         """
@@ -422,15 +422,15 @@ class Mic:
             energy:float|None = None
             if isinstance(audio, AudioData):
                 energy = audio.energy 
-            onrecord(1, ListenResult(audio.get_raw_data(), energy))
+            onrecord(1, ListenResultParam(audio.get_raw_data(), energy))
         except sr.WaitTimeoutError:
             pass
         except sr.UnknownValueError:
             pass
 
-    def listen_loop(self, onrecord:Callable[[int, ListenResult], None], cancel:CancellationObject, phrase_time_limit=None) -> None:
+    def listen_loop(self, onrecord:Callable[[int, ListenResultParam], None], cancel:CancellationObject, phrase_time_limit=None) -> None:
         """
-        マイクループ。処理を返しません。
+        マイクループ。キャンセルするまで処理を返しません。
         """
         def listen_mic():
             with self.__source as s:
@@ -454,32 +454,21 @@ class Mic:
                     energy:float|None = None
                     if isinstance(audio, AudioData):
                         energy = audio.energy 
-                    onrecord(index, ListenResult(audio.get_raw_data(), energy))
+                    onrecord(index, ListenResultParam(audio.get_raw_data(), energy))
                     index += 1
                 time.sleep(0.1)
         finally:
             thread_pool.shutdown(wait=False)
 
 
-    def test_mic(self, cancel:CancellationObject, onrecord:Callable[[int, ListenResult], None] | None = None):
-        from . import ilm_logger
-
-        timemax = 5
-        ilm_logger.print("マイクテストを行います")
-        ilm_logger.print(f"{int(timemax)}秒間マイクを監視し音を拾った場合その旨を表示します")
-        ilm_logger.print(f"使用マイク:{self.device_name}")
-        ilm_logger.print(f"energy_threshold:{self.__recorder.energy_threshold}")
-        ilm_logger.print(f"phrase_threshold:{self.__recorder.phrase_threshold}")
-        ilm_logger.print(f"pause_threshold:{self.__recorder.pause_threshold}")
-        ilm_logger.print(f"non_speaking_duration:{self.__recorder.non_speaking_duration}")
-        ilm_logger.print(f"dynamic_energy_threshold:{self.__recorder.dynamic_energy_threshold}")
-        ilm_logger.print("終了する場合はctr+cを押してください")
-        ilm_logger.print("")
-
+    def test_mic(self, timemax, onstart:Callable[[int], None], onend:Callable[[int, ListenResultParam|None], None], cancel:CancellationObject) -> None:
+        """
+        マイクテスト。キャンセルするまで処理を返しません。
+        """
         try:
             index = 1
             while cancel.alive:
-                ilm_logger.print(f"計測開始 #{str(index).zfill(2)}")
+                onstart(index)
                 audio:sr.AudioData | None = None
                 for _ in range(int(timemax / self.__listen_timeout)):
                     try:
@@ -492,20 +481,15 @@ class Mic:
                         pass
                     else:
                         break
-                if not audio is None:
+                if audio is None:
+                    onend(index, None)
+                else:
                     b = audio.get_raw_data()
                     e = None
-                    es = ""
                     if isinstance(audio, AudioData):
                         e = audio.energy
-                        es = f", energy: {round(e, 2)}"
-                    sec = len(b) / 2 / self.__sample_rate
-                    ilm_logger.print("認識終了")
-                    ilm_logger.print(f"{round(sec, 2) - self.__recorder.end_insert_sec}秒音を拾いました{es}, energy_threshold: {round(self.__recorder.energy_threshold, 2)}")
-                    if not onrecord is None:
-                        onrecord(index, ListenResult(b, e))
+                    onend(index, ListenResultParam(b, e))
                 index += 1
-                ilm_logger.print("")
                 time.sleep(1)
         finally:
             pass
