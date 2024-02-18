@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Text;
 using System.Linq;
 using System.Collections.Generic;
@@ -11,7 +12,10 @@ namespace Haru.Kei {
 	public partial class Form1 : Form {
 		private readonly string CONFIG_FILE = "frontend.conf";
 		private readonly string BAT_FILE = "custom-recognize.bat";
+		private readonly string TEMP_BAT = Path.Combine(Path.GetTempPath(), string.Format("recognize-gui-{0}.bat", Guid.NewGuid()));
+
 		private RecognizeExeArgument arg;
+
 	
 		public Form1() {
 			InitializeComponent();
@@ -38,6 +42,13 @@ namespace Haru.Kei {
 					})) { }
 				}
 				catch(Exception) { }
+			};
+			testambientToolStripMenuItem.Click += (_, __) => {
+				using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
+					FileName = this.arg.RecognizeExePath,
+					Arguments = string.Format("--test mic_ambient {0}", this.GenExeArguments(this.arg)),
+					UseShellExecute = true,
+				})) { }
 			};
 			this.exitToolStripMenuItem.Click += (_, __) => this.Close();
 
@@ -71,12 +82,31 @@ namespace Haru.Kei {
 			this.button.Click += (_, __) => {
 				this.SaveConfig(this.arg);
 
+
+				var bat = new StringBuilder()
+					.AppendLine("@echo off")
+					.AppendLine()
+					.AppendFormat("\"{0}\"", this.arg.RecognizeExePath).Append(" ").AppendLine(this.GenExeArguments(this.arg))
+					.AppendLine("if %ERRORLEVEL% neq 0 (")
+					.AppendLine("  pause")
+					.AppendLine(")");
+				File.WriteAllText(this.TEMP_BAT, bat.ToString());
+
+
 				try {
+					/*
 					using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
 						FileName = this.arg.RecognizeExePath,
 						Arguments = this.GenExeArguments(this.arg),
 						UseShellExecute = true,
 					})) { }
+					*/
+					using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
+						FileName = this.TEMP_BAT,
+						WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory,
+						UseShellExecute = true,
+					})) { }
+
 				}
 				catch(Exception) { }
 			};
@@ -84,6 +114,7 @@ namespace Haru.Kei {
 
 		protected override void OnLoad(EventArgs e) {
 			base.OnLoad(e);
+
 			var convDic = new Dictionary<Type, Func<string, object>>();
 			convDic.Add(typeof(string), (x) => x);
 			convDic.Add(typeof(bool?), (x) => {
@@ -101,7 +132,7 @@ namespace Haru.Kei {
 
 			var list = new List<Tuple<string, string>>();
 			try {
-				var save = System.IO.File.ReadAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.CONFIG_FILE));
+				var save = File.ReadAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.CONFIG_FILE));
 				foreach(var line in save.Replace("\r\n", "\n").Split('\n')) {
 					var c = line.IndexOf(':');
 					if(0 < c) {
@@ -109,15 +140,20 @@ namespace Haru.Kei {
 					}
 				}
 			}
-			catch(System.IO.IOException) {}
+			catch(IOException) {}
 
-			var prop = typeof(RecognizeExeArgument).GetProperties();
+			var prop = typeof(RecognizeExeArgument).GetProperties().Where(x => x.CanWrite);
 			var pr = typeof(RecognizeExeArgument).GetProperty("RecognizeExePath");
 			var exe = list.Where(x => x.Item1 == pr.Name).FirstOrDefault();
 			this.arg = RecognizeExeArgumentEx.Init((exe != null) ? exe.Item2 : (string)pr.GetCustomAttribute<DefaultValueAttribute>().Value);
 			foreach(var tp in list) {
 				var p = prop.Where(x => x.Name == tp.Item1).FirstOrDefault();
 				if(p != null) {
+					var svattr = p.GetCustomAttribute<SaveAttribute>();
+					if((svattr != null) && !svattr.IsRestore) {
+						continue;
+					}
+
 					Func<string, object> f;
 					if(convDic.TryGetValue(p.PropertyType, out f)) {
 						var v = f(tp.Item2);
@@ -132,6 +168,12 @@ namespace Haru.Kei {
 
 		protected override void OnFormClosed(FormClosedEventArgs e) {
 			this.SaveConfig(this.arg);
+			try {
+				if(File.Exists(this.TEMP_BAT)) {
+					File.Delete(this.TEMP_BAT);
+				}
+			}
+			catch(IOException) {}
 
 			base.OnFormClosed(e);
 		}
@@ -157,13 +199,18 @@ namespace Haru.Kei {
 		private void SaveConfig(RecognizeExeArgument argument) {
 			try {
 				var save = new StringBuilder();
+				var dict = new  Dictionary<string, string>();
 				foreach(var p in argument.GetType().GetProperties()) {
 					var dfattr = p.GetCustomAttribute<DefaultValueAttribute>();
 					if(dfattr != null) {
 						var pv = p.GetValue(this.arg, null);
 						var dv = dfattr.Value;
 						if((pv != null) && !pv.Equals(dv)) {
-							save.Append(p.Name).Append(":").AppendLine(pv.ToString());
+							var svattr = p.GetCustomAttribute<SaveAttribute>();
+							if((svattr != null) && !svattr.IsSave) {
+								continue;
+							}
+							dict.Add(p.Name, pv.ToString());
 							continue;
 						}
 						//if((dv != null) && !dv.Equals(pv)) {
@@ -172,9 +219,24 @@ namespace Haru.Kei {
 						//}
 					}
 				}
-				System.IO.File.WriteAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.CONFIG_FILE), save.ToString());
+
+				foreach(var p in argument.GetType().GetProperties()) {
+					var svattr = p.GetCustomAttribute<SaveAttribute>();
+					var pv = p.GetValue(this.arg, null);
+					if((pv != null) && (svattr != null) && svattr.IsSave) {
+						if(!dict.ContainsKey(p.Name)) {
+							dict.Add(p.Name, pv.ToString());
+							continue;
+						}
+					}
+				}
+
+				foreach(var key in  dict.Keys) {
+					save.Append(key).Append(":").AppendLine(dict[key]);
+				}
+				File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.CONFIG_FILE), save.ToString());
 			}
-			catch(System.IO.IOException) { }
+			catch(IOException) { }
 		}
 	}
 }

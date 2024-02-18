@@ -32,7 +32,7 @@ build.batをダブルクリックで自動的に必要コンポーネントをwi
 whisper系で有効  
 使用する推論モデル(tiny|base|small|medium|large|large-v2|large-v3)を指定します。指定がない場合mediumが設定されます。推論モデルは初回の使用時にダウンロードされます。
 
-###  --whisper_device string
+### --whisper_device string
 whisper系で有効  
 推論を行う演算装置(cpu|cuda)を指定します。指定がない場合cudaが設定されますがcudaが使用できない環境の場合cpuにバックフォールされます。
 
@@ -84,10 +84,10 @@ google_duplexのみで有効
 指定がない場合1.5が設定されます。
 
 ### --mic_dynamic_energy_adjustment_damping float
-指定がない場合1.5が設定されます。
+指定がない場合0.15が設定されます。
 
 ### --mic_dynamic_energy_min float
-しゃべっていないと補正により--mic_energyが減衰していくためこの値よりは下がらない値を指定します。指定がない場合100が設定されなます。
+しゃべっていないと補正により--mic_energyが減衰していくためこの値よりは下がらない値を指定します。指定がない場合100が設定されます。
 
 ### --mic_pause float
 無音として認識される秒数を指定します。指定がない場合0.8秒が設定されます。
