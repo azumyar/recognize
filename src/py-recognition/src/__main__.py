@@ -649,7 +649,7 @@ def __main_run(
                     log_transcribe = r.result[0]
                 if not r.result[1] is None:
                     log_transcribe = f"{log_transcribe}\n{r.result[1]}"
-                log_time = f"{round(r.time, 2)}s {round(r.time/1000.0/pcm_sec, 2)}tps"
+                log_time = f"{round(r.time, 2)}s {round(r.time/pcm_sec, 2)}tps"
             if not log_exception is None:
                 log_exception_s = f"{type(log_exception)}"
                 if isinstance(log_exception, src.exception.IlluminateException):
