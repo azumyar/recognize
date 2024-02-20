@@ -40,14 +40,6 @@ def print(
         file=file,
         flush=flush)
 
-class Record(NamedTuple):
-    """
-    録音設定
-    """
-    is_record:bool
-    file:str
-    directory:str
-
 class Enviroment:
     """
     実行環境クラス
@@ -218,25 +210,6 @@ def db2rms(db:float, p0:float=1.) -> float:
     '''
     return (10 ** (db / 20)) * p0
 
-def save_wav(record:Record, index:int, data:bytes, sampling_rate:int, sample_width:int, logger:Logger) -> None:
-    """
-    音声データをwavに保存
-    """
-    import speech_recognition
-    import os
-    import traceback
-    if record.is_record:
-        try:
-            with open(f"{record.directory}{os.sep}{record.file}-{str(index).zfill(4)}.wav", "wb") as fout:      
-                fout.write(speech_recognition.AudioData(data, sampling_rate, 2).get_wav_data())
-        except OSError as e:
-            logger.error([
-                "##########################",
-                "wavファイルの保存に失敗しました",
-                str(e),
-                traceback.format_exc(),
-                "##########################"
-            ])
 
 ilm_enviroment:Enviroment = Enviroment.init_system()
 ilm_logger:Logger = Logger.init_system(ilm_enviroment.verbose, ilm_enviroment.root)
