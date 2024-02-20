@@ -162,17 +162,17 @@ def run(
             log_en_info = " - "
             if not param.energy is None:
                 log_insert = f"{log_insert}, dB={rms2db(param.energy.value):.2f}dB"
-                log_en_info = f"energy={round(param.energy.value, 2)}, max={round(param.energy.max, 2)}, min={round(param.energy.min, 2)}, energy(閾値外)={round(param.energy.value_phrase, 2)}, min(閾値外)={round(param.energy.min_phrase, 2)}"
+                log_en_info = f"energy={round(param.energy.value, 2)}, max={round(param.energy.max, 2)}, min={round(param.energy.min, 2)}"
 
             logger.log([
-                f"認識処理　　　 : #{index}",
-                f"録音情報　　　 : {round(pcm_sec, 2)}s{log_insert}, {(int)(len(data)/2)}sample / {mic.sample_rate}Hz",
-                f"エネルギー生値 : {log_en_info}",
-                f"認識結果　　　 : {log_transcribe}",
-                f"認識時間　　　 : {log_time}",
-                f"例外情報　　　 : {log_exception_s}",
-                f"マイク情報　　 : {log_info_mic}",
-                f"認識モデル情報 : {log_info_recognition}",
+                f"認識処理　　　　 : #{index}",
+                f"録音情報　　　　 : {round(pcm_sec, 2)}s{log_insert}, {(int)(len(data)/2)}sample / {mic.sample_rate}Hz",
+                f"音エネルギー生値 : {log_en_info}",
+                f"認識結果　　　　 : {log_transcribe}",
+                f"認識時間　　　　 : {log_time}",
+                f"例外情報　　　　 : {log_exception_s}",
+                f"マイク情報　　　 : {log_info_mic}",
+                f"認識モデル情報　 : {log_info_recognition}",
             ])
         except Exception as e_: # eにするとPylanceの動きがおかしくなるので名前かえとく
             logger.error([
