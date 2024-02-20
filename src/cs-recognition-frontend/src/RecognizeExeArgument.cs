@@ -128,7 +128,7 @@ namespace Haru.Kei {
 		[Category(categoryOutput)]
 		[DisplayName("recognize.exeパス")]
 		[Description("recognize.exeのパスをフルパスまたは相対パスで指定")]
-		[DefaultValue(".\\py-recognition\\dist\\recognize\\recognize.exe")]
+		[DefaultValue(".\\src\\py-recognition\\dist\\recognize\\recognize.exe")]
 		public string RecognizeExePath { get; set; }
 
 

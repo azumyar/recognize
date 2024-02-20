@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net48</TargetFramework>
-	<RootNamespace>Haru.Kei</RootNamespace>
+    <RootNamespace>Haru.Kei</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
