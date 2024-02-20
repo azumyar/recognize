@@ -21,6 +21,33 @@ from src.main_common import Record
 from src.cancellation import CancellationObject
 from src.filter import *
 
+def print_mics(ctx, param, value):
+    """
+    マイク情報出力
+    """
+    from src import ilm_logger
+
+    if not value or ctx.resilient_parsing:
+        return
+
+    audio = speech_recognition.Microphone.get_pyaudio().PyAudio()
+    try:
+        for i in range(audio.get_device_count()):
+            device_info = audio.get_device_info_by_index(i)
+            index = device_info.get("index")
+            host_api = device_info.get("hostApi")
+            name = device_info.get("name")
+            input = device_info.get("maxInputChannels")
+            host_api_name = "-"
+            rate = device_info.get("defaultSampleRate")
+            if isinstance(host_api, int):
+                host_api_name = audio.get_host_api_info_by_index(host_api).get("name")
+            if isinstance(input, int) and 0 < input:
+                ilm_logger.print(f"{index} : [{host_api_name}]{name} sample_rate={rate}")            
+    finally:
+        audio.terminate()
+        ctx.exit()
+
 @click.command()
 @click.option("--test", default="", help="テストを行います",type=click.Choice(val.ARG_CHOICE_TEST))
 @click.option("--method", default=val.METHOD_VALUE_WHISPER_FASTER, help="使用する認識方法", type=click.Choice([val.METHOD_VALUE_WHISPER, val.METHOD_VALUE_WHISPER_FASTER, val.METHOD_VALUE_GOOGLE, val.METHOD_VALUE_GOOGLE_DUPLEX]))
@@ -66,8 +93,9 @@ from src.filter import *
 @click.option("--filter_hpf_cutoff_upper", default=200, help="ハイパスフィルタのカットオフ周波数(アッパー)を設定", type=int)
 @click.option("--disable_lpf", default=False, help="ローパスフィルタを使用しません", is_flag=True, type=bool)
 @click.option("--disable_hpf", default=False, help="ハイパスフィルタを使用しません", is_flag=True, type=bool)
-@click.option("--print_mics",default=False, help="マイクデバイスの一覧をプリント", is_flag=True, type=bool)
-@click.option("--list_devices",default=False, help="(廃止予定)--print_micsと同じ", is_flag=True, type=bool)
+
+@click.option("--print_mics", help="マイクデバイスの一覧をプリント", is_flag=True, callback=print_mics, expose_value=False, is_eager=True)
+
 @click.option(val.ARG_NAME_VERBOSE, default=val.ARG_DEFAULT_VERBOSE, help="出力ログレベルを指定", type=click.Choice(val.ARG_CHOICE_VERBOSE))
 @click.option(val.ARG_NAME_LOG_FILE, default=val.ARG_DEFAULT_LOG_FILE, help="ログファイルの出力ファイル名を指定します", type=str)
 @click.option(val.ARG_NAME_LOG_DIRECTORY, default=val.ARG_DEFAULT_LOG_DIRECTORY, help="ログ格納先のディレクトリを指定します", type=str)
@@ -119,8 +147,6 @@ def main(
     filter_hpf_cutoff_upper:int,
     disable_lpf:bool,
     disable_hpf:bool,
-    print_mics:bool,
-    list_devices:bool,
     verbose:str,
     log_file:str,
     log_directory:Optional[str],
@@ -134,17 +160,6 @@ def main(
     if not ilm_enviroment.is_exe:
         os.makedirs(ilm_enviroment.root, exist_ok=True)
         os.chdir(ilm_enviroment.root)
-
-    ilm_logger.log([
-        "起動",
-        f"platform = {platform.platform()}",
-        f"python = {sys.version}",
-        f"arg = {sys.argv}",
-    ])
-
-    if print_mics or list_devices:
-        __main_print_mics(ilm_logger, feature)
-        return
 
     cancel = CancellationObject()
     try:
@@ -284,26 +299,14 @@ def main(
     sys.exit()
 
 
-def __main_print_mics(logger:Logger, _:str) -> None:
-    """
-    マイク情報出力
-    """
-    audio = speech_recognition.Microphone.get_pyaudio().PyAudio()
-    try:
-        for i in range(audio.get_device_count()):
-            device_info = audio.get_device_info_by_index(i)
-            index = device_info.get("index")
-            host_api = device_info.get("hostApi")
-            name = device_info.get("name")
-            input = device_info.get("maxInputChannels")
-            host_api_name = "-"
-            rate = device_info.get("defaultSampleRate")
-            if isinstance(host_api, int):
-                host_api_name = audio.get_host_api_info_by_index(host_api).get("name")
-            if isinstance(input, int) and 0 < input:
-                logger.print(f"{index} : [{host_api_name}]{name} sample_rate={rate}")            
-    finally:
-        audio.terminate()
-
 if __name__ == "__main__":
+    from src import ilm_logger
+
+    ilm_logger.log([
+        "起動",
+        f"platform = {platform.platform()}",
+        f"python = {sys.version}",
+        f"arg = {sys.argv}",
+    ])
+
     main() # type: ignore
