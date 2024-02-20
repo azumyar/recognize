@@ -364,29 +364,30 @@ class Mic:
         return self.__recorder.end_insert_sec
 
     def get_mic_info(self) -> str:
-        return "\n".join(map(lambda x: f"{x}", [
+        import os
+        return os.linesep.join([
             f"initial-info",
-            f"device:{self.__mic_index}",
-            f"energy:{self.__energy}",
-            f"ambient_noise_to_energy:{self.__ambient_noise_to_energy}",
-            f"dynamic_energy:{self.__dynamic_energy}",
-            f"dynamic_energy_ratio:{self.__dynamic_energy_ratio}",
-            f"dynamic_energy_adjustment_damping:{self.__dynamic_energy_adjustment_damping}",
-            f"dynamic_energy_min:{self.__dynamic_energy_min}",
-            f"pause:{self.__pause}",
-            f"phrase:{self.__phrase}",
-            f"non_speaking:{self.__non_speaking}",
+            f"device : {self.__mic_index}",
+            f"energy_threshold : {round(self.__energy, 2)}",
+            f"ambient_noise_to_energy : {self.__ambient_noise_to_energy}",
+            f"dynamic_energy : {self.__dynamic_energy}",
+            f"dynamic_energy_ratio : {self.__dynamic_energy_ratio}",
+            f"dynamic_energy_adjustment_damping : {self.__dynamic_energy_adjustment_damping}",
+            f"dynamic_energy_min : {self.__dynamic_energy_min}",
+            f"pause : {round(self.__pause, 2)}",
+            f"phrase : {self.__phrase if self.__phrase is None else round(self.__phrase, 2)}",
+            f"non_speaking : {self.__non_speaking if self.__non_speaking is None else round(self.__non_speaking, 2)}",
             "",
             "current-info",
-            f"device:{self.__device_name}",
-            f"energy:{self.__recorder.energy_threshold}",
-            f"dynamic_energy:{self.__recorder.dynamic_energy_threshold}",
-            f"dynamic_energy_ratio:{self.__recorder.dynamic_energy_ratio}",
-            f"dynamic_energy_adjustment_damping:{self.__recorder.dynamic_energy_adjustment_damping}",
-            f"pause:{self.__recorder.pause_threshold}",
-            f"phrase:{self.__recorder.phrase_threshold}",
-            f"non_speaking:{self.__recorder.non_speaking_duration}",            
-        ]))
+            f"device : {self.__device_name}",
+            f"energy_threshold : {round(self.__recorder.energy_threshold,2)}",
+            f"dynamic_energy : {self.__recorder.dynamic_energy_threshold}",
+            f"dynamic_energy_ratio : {self.__recorder.dynamic_energy_ratio}",
+            f"dynamic_energy_adjustment_damping : {self.__recorder.dynamic_energy_adjustment_damping}",
+            f"pause : {round(self.__recorder.pause_threshold, 2)}",
+            f"phrase : {round(self.__recorder.phrase_threshold, 2)}",
+            f"non_speaking : {round(self.__recorder.non_speaking_duration, 2)}",
+        ])
 
     def get_verbose(self, verbose:int) -> str | None:
         if verbose < 2:
