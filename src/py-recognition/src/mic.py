@@ -9,21 +9,29 @@ from typing import Any, Callable, Deque, NamedTuple
 import src.exception as ex
 from src.cancellation import CancellationObject
 
+class ListenEnergy(NamedTuple):
+    value:float
+    max:float
+    min:float
+    value_phrase:float
+    min_phrase:float
+
+
 class ListenResultParam(NamedTuple):
     '''listenのコールバックパラメータ'''
     pcm:bytes
     '''PCMバイナリデータ'''
-    energy:float | None
+    energy:ListenEnergy | None
     '''pcmのRMS値(src.mic.AudioDataのみに格納)'''
 
 
 class AudioData(sr.AudioData):
-    def __init__(self, frame_data:bytes, sample_rate:int, sample_width:int, energy:float):
+    def __init__(self, frame_data:bytes, sample_rate:int, sample_width:int, energy:ListenEnergy):
         super().__init__(frame_data, sample_rate, sample_width)
         self.__energy = energy
 
     @property
-    def energy(self) -> float: return self.__energy
+    def energy(self) -> ListenEnergy: return self.__energy
 
 class Recognizer(sr.Recognizer):
     __PAPUSE_MIN_THREHOLD = 0.4
@@ -123,7 +131,15 @@ class Recognizer(sr.Recognizer):
             phrase_count -= pause_count  # exclude the buffers for the pause before the phrase
             if phrase_count >= phrase_buffer_count or len(buffer) == 0: break  # phrase is long enough or we've reached the end of the stream, so stop listening
 
-        def avg(buf:Deque[tuple[bytes, float]]) -> float: return sum(map(lambda x: x[1], buf)) / len(buf)
+        def eng(buf:Deque[tuple[bytes, float]], threshold:float) -> ListenEnergy:
+            upper = [i for i in map(lambda x: x[1], buf) if threshold < i]
+            return ListenEnergy(
+                sum(map(lambda x: x[1], buf)) / len(buf),
+                max(map(lambda x: x[1], buf)),
+                min(map(lambda x: x[1], buf)),
+                sum(upper) / len(upper),
+                min(upper))
+
         def gen_25ms() -> bytes | bytearray:
             def fade(i): return int((mx - i) / mx * last)
             last:int
@@ -146,17 +162,17 @@ class Recognizer(sr.Recognizer):
                 return b
             raise ex.ProgramError()
 
-        energy_avg:float
+        eng_p:ListenEnergy
         if Recognizer.__PAPUSE_MIN_THREHOLD <= self.pause_threshold:
             # obtain frame data
             for _ in range(pause_count - non_speaking_buffer_count): frames.pop()  # remove extra non-speaking frames at the end
-            energy_avg = avg(frames)
+            eng_p = eng(frames, self.energy_threshold)
         else:
-            energy_avg = avg(frames)
+            eng_p = eng(frames, self.energy_threshold)
             frames.append((gen_25ms(), 0))
         frame_data = b"".join(map(lambda x: x[0], frames))
 
-        return AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH, energy_avg)
+        return AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH, eng_p)
     
     @property
     def end_insert_sec(self) -> float:
@@ -364,29 +380,30 @@ class Mic:
         return self.__recorder.end_insert_sec
 
     def get_mic_info(self) -> str:
-        return "\n".join(map(lambda x: f"{x}", [
+        import os
+        return os.linesep.join([
             f"initial-info",
-            f"device:{self.__mic_index}",
-            f"energy:{self.__energy}",
-            f"ambient_noise_to_energy:{self.__ambient_noise_to_energy}",
-            f"dynamic_energy:{self.__dynamic_energy}",
-            f"dynamic_energy_ratio:{self.__dynamic_energy_ratio}",
-            f"dynamic_energy_adjustment_damping:{self.__dynamic_energy_adjustment_damping}",
-            f"dynamic_energy_min:{self.__dynamic_energy_min}",
-            f"pause:{self.__pause}",
-            f"phrase:{self.__phrase}",
-            f"non_speaking:{self.__non_speaking}",
+            f"device : {self.__mic_index}",
+            f"energy_threshold : {round(self.__energy, 2)}",
+            f"ambient_noise_to_energy : {self.__ambient_noise_to_energy}",
+            f"dynamic_energy : {self.__dynamic_energy}",
+            f"dynamic_energy_ratio : {self.__dynamic_energy_ratio}",
+            f"dynamic_energy_adjustment_damping : {self.__dynamic_energy_adjustment_damping}",
+            f"dynamic_energy_min : {self.__dynamic_energy_min}",
+            f"pause : {round(self.__pause, 2)}",
+            f"phrase : {self.__phrase if self.__phrase is None else round(self.__phrase, 2)}",
+            f"non_speaking : {self.__non_speaking if self.__non_speaking is None else round(self.__non_speaking, 2)}",
             "",
             "current-info",
-            f"device:{self.__device_name}",
-            f"energy:{self.__recorder.energy_threshold}",
-            f"dynamic_energy:{self.__recorder.dynamic_energy_threshold}",
-            f"dynamic_energy_ratio:{self.__recorder.dynamic_energy_ratio}",
-            f"dynamic_energy_adjustment_damping:{self.__recorder.dynamic_energy_adjustment_damping}",
-            f"pause:{self.__recorder.pause_threshold}",
-            f"phrase:{self.__recorder.phrase_threshold}",
-            f"non_speaking:{self.__recorder.non_speaking_duration}",            
-        ]))
+            f"device : {self.__device_name}",
+            f"energy_threshold : {round(self.__recorder.energy_threshold,2)}",
+            f"dynamic_energy : {self.__recorder.dynamic_energy_threshold}",
+            f"dynamic_energy_ratio : {self.__recorder.dynamic_energy_ratio}",
+            f"dynamic_energy_adjustment_damping : {self.__recorder.dynamic_energy_adjustment_damping}",
+            f"pause : {round(self.__recorder.pause_threshold, 2)}",
+            f"phrase : {round(self.__recorder.phrase_threshold, 2)}",
+            f"non_speaking : {round(self.__recorder.non_speaking_duration, 2)}",
+        ])
 
     def get_verbose(self, verbose:int) -> str | None:
         if verbose < 2:
@@ -419,7 +436,7 @@ class Mic:
                     source = microphone,
                     timeout = timeout,
                     phrase_time_limit = phrase_time_limit)
-            energy:float|None = None
+            energy:ListenEnergy|None = None
             if isinstance(audio, AudioData):
                 energy = audio.energy 
             onrecord(1, ListenResultParam(audio.get_raw_data(), energy))
@@ -451,7 +468,7 @@ class Mic:
             while cancel.alive:
                 if not q.empty():
                     audio = q.get()
-                    energy:float|None = None
+                    energy:ListenEnergy|None = None
                     if isinstance(audio, AudioData):
                         energy = audio.energy 
                     onrecord(index, ListenResultParam(audio.get_raw_data(), energy))
