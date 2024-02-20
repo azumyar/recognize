@@ -15,7 +15,7 @@ import datetime as dt
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Iterable, Optional, NamedTuple
 
-from src import Logger, Enviroment, db2rms, rms2db
+from src import Logger, Enviroment, Record, db2rms, rms2db, save_wav
 import src.mic
 import src.recognition as recognition
 import src.output as output
@@ -24,15 +24,6 @@ import src.google_recognizers as google
 import src.exception
 from src.cancellation import CancellationObject
 from src.filter import *
-
-
-class Record(NamedTuple):
-    """
-    録音設定
-    """
-    is_record:bool
-    file:str
-    directory:str
 
 @click.command()
 @click.option("--test", default="", help="テストを行います",type=click.Choice(val.ARG_CHOICE_TEST))
@@ -344,14 +335,14 @@ def __main_test_mic(mic:src.mic.Mic, rec:Record, logger:Logger, cancel:Cancellat
         logger.print("認識終了")
         logger.print(f"{round(sec - mic.end_insert_sec, 2)}[秒]発声を認識しました")
         if not param.energy is None:
-            logger.print(f"入力　　　 : {rms2db(param.energy):.2f}dB")
+            logger.print(f"入力　　　 : {rms2db(param.energy.value):.2f}dB")
             logger.print(f"現在の閾値 : {rms2db(pp.energy_threshold):.2f}dB")
         logger.print(" ")
 
         logger.log([
             f"認識 #{str(index).zfill(2)}",
             f"PCM    = {round(sec - mic.end_insert_sec, 2)}sec",
-            f"dB     = {(rms2db(param.energy) if not param.energy is None else 0):.2f}, threshold={rms2db(pp.energy_threshold):.2f}",
+            f"dB     = {(rms2db(param.energy.value) if not param.energy is None else 0):.2f}, threshold={rms2db(pp.energy_threshold):.2f}",
             f"energy = {(param.energy if not param.energy is None else 0):.2f}, threshold={pp.energy_threshold:.2f}"
         ])
         save_wav(rec, index, param.pcm, mic.sample_rate, 2, logger)
@@ -580,7 +571,7 @@ def __main_run(
         else:
             insert = ""
         if not param.energy is None:
-            insert = f"{insert}, dB={rms2db(param.energy):.2f}"
+            insert = f"{insert}, dB={rms2db(param.energy.value):.2f}"
         data = param.pcm
         pcm_sec = len(data) / 2 / mic.sample_rate
         logger.debug(f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)}, {round(pcm_sec, 2)}s{insert})")
@@ -645,15 +636,16 @@ def __main_run(
             log_exception_s = " - "
             log_insert:str
             if not r.result is None:
-                if r.result[0] not in ["", " ", "\n", None]:
-                    log_transcribe = r.result[0]
-                if not r.result[1] is None:
-                    log_transcribe = f"{log_transcribe}\n{r.result[1]}"
+                assert(isinstance(r.result, recognition.TranscribeResult)) # ジェネリクス使った型定義の方法がわかってないのでassert置いて型を確定させる
+                if r.result.transcribe not in ["", " ", "\n", None]:
+                    log_transcribe = r.result.transcribe
+                if not r.result.extend_data is None:
+                    log_transcribe = f"{log_transcribe}{os.linesep}{r.result.extend_data}"
                 log_time = f"{round(r.time, 2)}s {round(r.time/pcm_sec, 2)}tps"
             if not log_exception is None:
                 log_exception_s = f"{type(log_exception)}"
                 if isinstance(log_exception, src.exception.IlluminateException):
-                    log_exception_s = f"{log_exception}:{log_exception.message}\ninner = {type(log_exception.inner)}:{log_exception.inner}"
+                    log_exception_s = f"{log_exception}:{log_exception.message}{os.linesep}inner = {type(log_exception.inner)}:{log_exception.inner}"
                 else:
                     log_exception_s = f"{log_exception}:{log_exception}"
                 if isinstance(log_exception, recognition.TranscribeException):
@@ -662,17 +654,20 @@ def __main_run(
                 log_insert = f"({round(mic.end_insert_sec, 2)}s挿入)"
             else:
                 log_insert = ""
+            log_en_info = " - "
             if not param.energy is None:
-                log_insert = f"{log_insert}, energy={param.energy:.2f};{rms2db(param.energy):.2f}dB"
+                log_insert = f"{log_insert}, dB={rms2db(param.energy.value):.2f}dB"
+                log_en_info = f"energy={round(param.energy.value, 2)}, max={round(param.energy.max, 2)}, min={round(param.energy.min, 2)}, energy(閾値外)={round(param.energy.value_phrase, 2)}, min(閾値外)={round(param.energy.min_phrase, 2)}"
 
             logger.log([
-                f"認識処理　　　: #{index}",
-                f"録音情報　　　: {round(pcm_sec, 2)}s{log_insert}, {(int)(len(data)/2)}sample / {mic.sample_rate}Hz",
-                f"認識結果　　　: {log_transcribe}",
-                f"認識時間　　　: {log_time}",
-                f"例外情報　　　: {log_exception_s}",
-                f"マイク情報　　: {log_info_mic}",
-                f"認識モデル情報: {log_info_recognition}",
+                f"認識処理　　　 : #{index}",
+                f"録音情報　　　 : {round(pcm_sec, 2)}s{log_insert}, {(int)(len(data)/2)}sample / {mic.sample_rate}Hz",
+                f"エネルギー生値 : {log_en_info}",
+                f"認識結果　　　 : {log_transcribe}",
+                f"認識時間　　　 : {log_time}",
+                f"例外情報　　　 : {log_exception_s}",
+                f"マイク情報　　 : {log_info_mic}",
+                f"認識モデル情報 : {log_info_recognition}",
             ])
         except Exception as e_: # eにするとPylanceの動きがおかしくなるので名前かえとく
             logger.error([
@@ -703,23 +698,6 @@ def is_feature(feature:str, func:str) -> bool:
         return str.strip(s)
     return func in map(strip, feature.split(","))
 
-
-def save_wav(record:Record, index:int, data:bytes, sampling_rate:int, sample_width:int, logger:Logger) -> None:
-    """
-    音声データをwavに保存
-    """
-    if record.is_record:
-        try:
-            with open(f"{record.directory}{os.sep}{record.file}-{str(index).zfill(4)}.wav", "wb") as fout:      
-                fout.write(speech_recognition.AudioData(data, sampling_rate, 2).get_wav_data())
-        except OSError as e:
-            logger.error([
-                "##########################",
-                "wavファイルの保存に失敗しました",
-                str(e),
-                traceback.format_exc(),
-                "##########################"
-            ])
 
 if __name__ == "__main__":
     main() # type: ignore

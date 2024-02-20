@@ -9,21 +9,29 @@ from typing import Any, Callable, Deque, NamedTuple
 import src.exception as ex
 from src.cancellation import CancellationObject
 
+class ListenEnergy(NamedTuple):
+    value:float
+    max:float
+    min:float
+    value_phrase:float
+    min_phrase:float
+
+
 class ListenResultParam(NamedTuple):
     '''listenのコールバックパラメータ'''
     pcm:bytes
     '''PCMバイナリデータ'''
-    energy:float | None
+    energy:ListenEnergy | None
     '''pcmのRMS値(src.mic.AudioDataのみに格納)'''
 
 
 class AudioData(sr.AudioData):
-    def __init__(self, frame_data:bytes, sample_rate:int, sample_width:int, energy:float):
+    def __init__(self, frame_data:bytes, sample_rate:int, sample_width:int, energy:ListenEnergy):
         super().__init__(frame_data, sample_rate, sample_width)
         self.__energy = energy
 
     @property
-    def energy(self) -> float: return self.__energy
+    def energy(self) -> ListenEnergy: return self.__energy
 
 class Recognizer(sr.Recognizer):
     __PAPUSE_MIN_THREHOLD = 0.4
@@ -123,7 +131,15 @@ class Recognizer(sr.Recognizer):
             phrase_count -= pause_count  # exclude the buffers for the pause before the phrase
             if phrase_count >= phrase_buffer_count or len(buffer) == 0: break  # phrase is long enough or we've reached the end of the stream, so stop listening
 
-        def avg(buf:Deque[tuple[bytes, float]]) -> float: return sum(map(lambda x: x[1], buf)) / len(buf)
+        def eng(buf:Deque[tuple[bytes, float]], threshold:float) -> ListenEnergy:
+            upper = [i for i in map(lambda x: x[1], buf) if threshold < i]
+            return ListenEnergy(
+                sum(map(lambda x: x[1], buf)) / len(buf),
+                max(map(lambda x: x[1], buf)),
+                min(map(lambda x: x[1], buf)),
+                sum(upper) / len(upper),
+                min(upper))
+
         def gen_25ms() -> bytes | bytearray:
             def fade(i): return int((mx - i) / mx * last)
             last:int
@@ -146,17 +162,17 @@ class Recognizer(sr.Recognizer):
                 return b
             raise ex.ProgramError()
 
-        energy_avg:float
+        eng_p:ListenEnergy
         if Recognizer.__PAPUSE_MIN_THREHOLD <= self.pause_threshold:
             # obtain frame data
             for _ in range(pause_count - non_speaking_buffer_count): frames.pop()  # remove extra non-speaking frames at the end
-            energy_avg = avg(frames)
+            eng_p = eng(frames, self.energy_threshold)
         else:
-            energy_avg = avg(frames)
+            eng_p = eng(frames, self.energy_threshold)
             frames.append((gen_25ms(), 0))
         frame_data = b"".join(map(lambda x: x[0], frames))
 
-        return AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH, energy_avg)
+        return AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH, eng_p)
     
     @property
     def end_insert_sec(self) -> float:
@@ -420,7 +436,7 @@ class Mic:
                     source = microphone,
                     timeout = timeout,
                     phrase_time_limit = phrase_time_limit)
-            energy:float|None = None
+            energy:ListenEnergy|None = None
             if isinstance(audio, AudioData):
                 energy = audio.energy 
             onrecord(1, ListenResultParam(audio.get_raw_data(), energy))
@@ -452,7 +468,7 @@ class Mic:
             while cancel.alive:
                 if not q.empty():
                     audio = q.get()
-                    energy:float|None = None
+                    energy:ListenEnergy|None = None
                     if isinstance(audio, AudioData):
                         energy = audio.energy 
                     onrecord(index, ListenResultParam(audio.get_raw_data(), energy))
