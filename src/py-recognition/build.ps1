@@ -9,6 +9,21 @@ if (-not($?)) {
     }
 }
 echo ok
+echo ""
+
+echo pythonのバージョン確認
+$py_v = python -V | ConvertFrom-String -Delimiter '[\s\.]+'
+# python 3.10.x以上を要求
+if(($py_v.P2 -ne 3) -or (($py_v.P2 -eq 3) -and ($py_v.P3 -lt 10))) {
+    echo エラー
+    echo インストールされているpythonはサポートされていません
+    python -V
+    Get-Command python | Select-Object Source | Format-Table -AutoSize -Wrap
+    exit 1
+}
+echo ok
+echo ""
+
 
 echo gitのインストール確認
 Get-Command git > $null
@@ -21,9 +36,10 @@ if(-not($?)) {
     }
 }
 echo ok
+echo ""
 
 $env:PIPENV_VENV_IN_PROJECT = 1
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+#$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
 echo python環境にpipenvをインストールします
 pip3 install pipenv
@@ -32,6 +48,7 @@ if($LASTEXITCODE -ne 0) {
     exit 1
 }
 echo ok
+echo ""
 
 echo 仮想環境を作成しpython依存関係を復元します
 python -m pipenv install
@@ -45,6 +62,7 @@ if($LASTEXITCODE -ne 0) {
     exit 1
 }
 echo ok
+echo ""
 
 echo exe化を実行します
 python -m pipenv run archive1
@@ -55,6 +73,7 @@ if($LASTEXITCODE -ne 0) {
 $cd = Get-Location
 echo "$cd\dist\recognize に作成しました"
 echo ok
+echo ""
 
 echo 仮想環境を削除します
 python -m pipenv --rm
@@ -63,8 +82,10 @@ if($LASTEXITCODE -ne 0) {
     exit 1
 }
 echo ok
+echo ""
 
 echo 正常に終了しました
+echo ""
 
 echo ""
 echo "ビルドされたexeの場所："

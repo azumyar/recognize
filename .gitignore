@@ -1,10 +1,12 @@
-/**/**/bin
-/**/**/obj
+src/**/**/bin
+src/**/**/obj
 
 .vs/
 packages/
-py-recognition/.venv
+bin/tee.exe
+src/py-recognition/.venv
 *.csproj.user
+build.log
 recognize-gui.exe
 frontend.conf
 recognize.log
