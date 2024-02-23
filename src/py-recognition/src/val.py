@@ -10,6 +10,7 @@ VERBOSE_TRACE = 3
 ARG_NAME_VERBOSE = "--verbose"
 ARG_NAME_LOG_FILE = "--log_file"
 ARG_NAME_LOG_DIRECTORY = "--log_directory"
+ARG_NAME_LOG_ROTATE= "--log_rotate"
 
 ARG_DEFAULT_VERBOSE = str(VERBOSE_INFO)
 ARG_DEFAULT_LOG_FILE = "recognize.log"
