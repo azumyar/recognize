@@ -40,6 +40,13 @@ def print(
         file=file,
         flush=flush)
 
+def is_prod_or_debug() -> bool:
+    '''
+    exe化の際に__init.py__が実行されるので判定する
+    '''
+    import sys
+    return sys.argv[0] == "-m" or sys.argv[0].endswith(".exe"):
+
 class Enviroment:
     """
     実行環境クラス
@@ -71,7 +78,7 @@ class Enviroment:
         else:
             proj_root = f"{os.path.dirname(os.path.abspath(__file__))}{os.sep}.."
             self.__root = f"{proj_root}{os.sep}.debug"
-            if sys.argv[0] == "-m": # デバッグ用
+            if is_prod_or_debug():
                 os.makedirs(self.__root, exist_ok=True)
                 os.chdir(self.__root)
 
@@ -129,19 +136,9 @@ class Logger:
             verbose,
             log_dir,
             log_file, 
-            log_rotate, 
-            Logger.__is_log(sys.argv[0]))
-    
-    @staticmethod
-    def __is_log(arg0) -> bool:
-        import re
-        if arg0 == "-m":
-            return True
-        if not re.compile("\\.exe$", re.RegexFlag.IGNORECASE).match(arg0) is None:
-            return True
-        return False
+            log_rotate)
 
-    def __init__(self, verbose:int, dir:str, file:str, rotate:bool, create_log:bool) -> None:
+    def __init__(self, verbose:int, dir:str, file:str, rotate:bool) -> None:
         import io
         import os
         import re
@@ -150,7 +147,7 @@ class Logger:
         
         self.__file_io:io.TextIOWrapper|None = None
         try:
-            if create_log:
+            if is_prod_or_debug():
                 f = file
                 if rotate:
                     regexp = re.compile("^(.+)(\\..+)$", re.RegexFlag.IGNORECASE)
