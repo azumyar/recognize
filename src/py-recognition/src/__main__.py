@@ -8,7 +8,7 @@ import torch
 import speech_recognition
 from typing import Any, Callable, Iterable, Optional, NamedTuple
 
-from src import Logger, Enviroment, db2rms, rms2db
+from src import Logger, Enviroment, db2rms, rms2db, ilm_logger
 import src.main_run as main_run
 import src.main_test as main_test
 import src.mic
@@ -20,6 +20,23 @@ import src.exception
 from src.main_common import Record
 from src.cancellation import CancellationObject
 from src.filter import *
+
+def select_google_tcp(ctx, param, value):
+    import src.google_recognizers as google
+    if not value or ctx.resilient_parsing:
+        return
+    
+    if value == "urllib":
+        ilm_logger.log(f"google tcpは{value}で接続")
+        google.recognize_google = google.recognize_google_urllib
+        google.recognize_google_duplex = google.recognize_google_duplex_urllib
+    elif value == "requests":
+        ilm_logger.log(f"google tcpは{value}で接続")
+        google.recognize_google = google.recognize_google_requests
+        google.recognize_google_duplex = google.recognize_google_duplex_requests
+    else:
+        ilm_logger.error(f"unknown option-value: {value}")
+
 
 def print_mics(ctx, param, value):
     """
@@ -50,6 +67,7 @@ def print_mics(ctx, param, value):
 
 @click.command()
 @click.option("--test", default="", help="テストを行います",type=click.Choice(val.ARG_CHOICE_TEST))
+
 @click.option("--method", default=val.METHOD_VALUE_WHISPER_FASTER, help="使用する認識方法", type=click.Choice([val.METHOD_VALUE_WHISPER, val.METHOD_VALUE_WHISPER_FASTER, val.METHOD_VALUE_GOOGLE, val.METHOD_VALUE_GOOGLE_DUPLEX]))
 @click.option("--whisper_model", default="medium", help="(whisper)使用する推論モデル", type=click.Choice(["tiny","base", "small","medium","large","large-v2","large-v3"]))
 @click.option("--whisper_device", default=("cuda" if torch.cuda.is_available() else "cpu"), help="(whisper)使用する演算装置", type=click.Choice(["cpu","cuda"]))
@@ -61,6 +79,8 @@ def print_mics(ctx, param, value):
 @click.option("--google_duplex_parallel", default=False, help="(google_duplexのみ)複数並列リクエストを投げエラーの抑制を図ります", is_flag=True, type=bool)
 @click.option("--google_duplex_parallel_max", default=None, help="(google_duplexのみ)複数並列リクエスト数増減時の最大並列数", type=int)
 @click.option("--google_duplex_parallel_reduce_count", default=None, help="(google_duplexのみ)増加した並列数を減少するために必要な成功数", type=int)
+@click.option("--google_tcp", default=None, help="-", type=click.Choice(["urllib", "requests"]), callback=select_google_tcp, expose_value=False, is_eager=True)
+
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
 
 @click.option("--mic_energy", default=None, help="互換性のため残されています", type=float)
@@ -81,12 +101,13 @@ def print_mics(ctx, param, value):
 @click.option("--mic_phrase", default=None, help="発話音声として認識される最小秒数", type=float)
 @click.option("--mic_non_speaking", default=None, help="-", type=float)
 @click.option("--mic_sampling_rate", default=16000, help="-", type=int)
-
 @click.option("--mic_listen_interval", default=0.25, help="マイク監視ループで1回あたりのマイクデバイス監視間隔(秒)", type=float)
+
 @click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice([val.OUT_VALUE_PRINT,val.OUT_VALUE_YUKARINETTE, val.OUT_VALUE_YUKACONE]))
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
 @click.option("--out_yukacone",default=None, help="ゆかコネNEOの外部連携ポートを指定", type=int)
 #@click.option("--out_illuminate",default=495134, help="未実装",type=int)
+
 @click.option("--filter_lpf_cutoff", default=200, help="ローパスフィルタのカットオフ周波数を設定", type=int)
 @click.option("--filter_lpf_cutoff_upper", default=200, help="ローパスフィルタのカットオフ周波数(アッパー)を設定", type=int)
 @click.option("--filter_hpf_cutoff", default=200, help="ハイパスフィルタのカットオフ周波数を設定します", type=int)
@@ -99,10 +120,13 @@ def print_mics(ctx, param, value):
 @click.option(val.ARG_NAME_VERBOSE, default=val.ARG_DEFAULT_VERBOSE, help="出力ログレベルを指定", type=click.Choice(val.ARG_CHOICE_VERBOSE))
 @click.option(val.ARG_NAME_LOG_FILE, default=val.ARG_DEFAULT_LOG_FILE, help="ログファイルの出力ファイル名を指定します", type=str)
 @click.option(val.ARG_NAME_LOG_DIRECTORY, default=val.ARG_DEFAULT_LOG_DIRECTORY, help="ログ格納先のディレクトリを指定します", type=str)
+@click.option(val.ARG_NAME_LOG_ROTATE, default=False, help="-", is_flag=True, type=bool)
+
 @click.option("--record",default=False, help="録音した音声をファイルとして出力します", is_flag=True, type=bool)
 @click.option("--record_file", default="record", help="録音データの出力ファイル名を指定します", type=str)
 @click.option("--record_directory", default=None, help="録音データの出力先ディレクトリを指定します", type=str)
-@click.option("--feature", default="", help="-", type=str) 
+
+@click.option("--feature", default="", help="-", type=str)
 def main(
     test:str,
     method:str,
@@ -292,7 +316,6 @@ def main(
         ilm_logger.print(f"{type(e.inner)}{e.inner}")
     except KeyboardInterrupt:
         cancel.cancel()
-        cancel_mp.value = 0 # type: ignore
         ilm_logger.print("ctrl+c")
     finally:
         pass
