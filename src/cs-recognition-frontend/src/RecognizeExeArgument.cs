@@ -314,8 +314,6 @@ namespace Haru.Kei {
 		[Description("無音閾値を調整する際この値より閾値は落ちません。標準では40.0が設定されています。")]
 		[DefaultValue(null)]
 		[ArgAttribute("--mic_dynamic_db_min")]
-		[Browsable(false)]
-		[Save(IsSave = false)]
 		public float? ArgMicDynamicDBMin { get; set; }
 
 		[Category(categoryMic)]
