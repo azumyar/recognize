@@ -45,7 +45,7 @@ def is_prod_or_debug() -> bool:
     exe化の際に__init.py__が実行されるので判定する
     '''
     import sys
-    return sys.argv[0] == "-m" or sys.argv[0].endswith(".exe"):
+    return sys.argv[0] == "-m" or sys.argv[0].endswith(".exe")
 
 class Enviroment:
     """
