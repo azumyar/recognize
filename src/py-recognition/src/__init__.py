@@ -155,8 +155,11 @@ class Logger:
                 if rotate:
                     regexp = re.compile("^(.+)(\\..+)$", re.RegexFlag.IGNORECASE)
                     m = regexp.match(file)
+                    d = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
                     if not m is None:
-                        f = f"{m.group(1)}.{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}{m.group(2)}"
+                        f = f"{m.group(1)}.{d}{m.group(2)}"
+                    else:
+                        f = f"{f}.{d}"
 
                 self.__file_io = open(
                     f"{dir}{os.sep}{f}",
