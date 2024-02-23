@@ -71,6 +71,9 @@ class Enviroment:
         else:
             proj_root = f"{os.path.dirname(os.path.abspath(__file__))}{os.sep}.."
             self.__root = f"{proj_root}{os.sep}.debug"
+            if sys.argv[0] == "-m": # デバッグ用
+                os.makedirs(self.__root, exist_ok=True)
+                os.chdir(self.__root)
 
     @property
     def is_exe(self):
@@ -102,6 +105,7 @@ class Logger:
         is_log_file = False
         log_dir = defualt_log_dir
         log_file = val.ARG_DEFAULT_LOG_FILE
+        log_rotate = False
         for arg in sys.argv:
             if is_log_dir:
                 is_log_dir = False
@@ -118,20 +122,47 @@ class Logger:
             if arg == val.ARG_NAME_LOG_FILE:
                 is_log_file = True
                 continue
-        return Logger(verbose, log_dir, log_file)
+            if arg == val.ARG_NAME_LOG_ROTATE:
+                log_rotate = True
+                continue
+        return Logger(
+            verbose,
+            log_dir,
+            log_file, 
+            log_rotate, 
+            Logger.__is_log(sys.argv[0]))
+    
+    @staticmethod
+    def __is_log(arg0) -> bool:
+        import re
+        if arg0 == "-m":
+            return True
+        if not re.compile("\\.exe$", re.RegexFlag.IGNORECASE).match(arg0) is None:
+            return True
+        return False
 
-    def __init__(self, verbose:int, dir:str, file:str) -> None:
+    def __init__(self, verbose:int, dir:str, file:str, rotate:bool, create_log:bool) -> None:
         import io
         import os
+        import re
+        import datetime
         self.__verbose = verbose
         
         self.__file_io:io.TextIOWrapper|None = None
         try:
-            self.__file_io = open(
-                f"{dir}{os.sep}{file}",
-                 "w",
-                encoding="UTF-8",
-                newline="")
+            if create_log:
+                f = file
+                if rotate:
+                    regexp = re.compile("^(.+)(\\..+)$", re.RegexFlag.IGNORECASE)
+                    m = regexp.match(file)
+                    if not m is None:
+                        f = f"{m.group(1)}.{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}{m.group(2)}"
+
+                self.__file_io = open(
+                    f"{dir}{os.sep}{f}",
+                    "w",
+                    encoding="UTF-8",
+                    newline="")
         except OSError as e:
             print("##########################")
             print("ログファイルを開けません")
