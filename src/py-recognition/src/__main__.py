@@ -71,6 +71,7 @@ from src.filter import *
 @click.option(val.ARG_NAME_VERBOSE, default=val.ARG_DEFAULT_VERBOSE, help="出力ログレベルを指定", type=click.Choice(val.ARG_CHOICE_VERBOSE))
 @click.option(val.ARG_NAME_LOG_FILE, default=val.ARG_DEFAULT_LOG_FILE, help="ログファイルの出力ファイル名を指定します", type=str)
 @click.option(val.ARG_NAME_LOG_DIRECTORY, default=val.ARG_DEFAULT_LOG_DIRECTORY, help="ログ格納先のディレクトリを指定します", type=str)
+@click.option(val.ARG_NAME_LOG_ROTATE, default=False, help="-", is_flag=True, type=bool)
 @click.option("--record",default=False, help="録音した音声をファイルとして出力します", is_flag=True, type=bool)
 @click.option("--record_file", default="record", help="録音データの出力ファイル名を指定します", type=str)
 @click.option("--record_directory", default=None, help="録音データの出力先ディレクトリを指定します", type=str)
@@ -124,16 +125,13 @@ def main(
     verbose:str,
     log_file:str,
     log_directory:Optional[str],
+    log_rotate:bool,
     record:bool,
     record_file:str,
     record_directory:Optional[str],
     feature:str
     ) -> None:
     from src import ilm_logger, ilm_enviroment
-
-    if not ilm_enviroment.is_exe:
-        os.makedirs(ilm_enviroment.root, exist_ok=True)
-        os.chdir(ilm_enviroment.root)
 
     ilm_logger.log([
         "起動",
