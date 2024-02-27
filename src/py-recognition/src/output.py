@@ -127,7 +127,7 @@ class YukaconeOutputer(WebSocketOutputer):
 
 class IlluminateSpeechOutputer(WebSocketOutputer):
     def __init__(self, uri:str, print:Callable[[str], None]):
-        super().__init__(uri, print, "-")
+        super().__init__(uri, print, "IlluminateSpeech")
 
     def output(self, text:str):
         super().output(json.dumps({
