@@ -68,7 +68,7 @@ def print_mics(ctx, param, value):
 @click.command()
 @click.option("--test", default="", help="テストを行います",type=click.Choice(val.ARG_CHOICE_TEST))
 
-@click.option("--method", default=val.METHOD_VALUE_WHISPER_FASTER, help="使用する認識方法", type=click.Choice([val.METHOD_VALUE_WHISPER, val.METHOD_VALUE_WHISPER_FASTER, val.METHOD_VALUE_GOOGLE, val.METHOD_VALUE_GOOGLE_DUPLEX]))
+@click.option("--method", default=val.DEFALUT_METHOD_VALUE, help="使用する認識方法", type=click.Choice(val.ARG_CHOICE_METHOD))
 @click.option("--whisper_model", default="medium", help="(whisper)使用する推論モデル", type=click.Choice(["tiny","base", "small","medium","large","large-v2","large-v3"]))
 @click.option("--whisper_device", default=("cuda" if torch.cuda.is_available() else "cpu"), help="(whisper)使用する演算装置", type=click.Choice(["cpu","cuda"]))
 @click.option("--whisper_language", default="", help="(whisper)音声解析対象の言語", type=click.Choice(val.LANGUAGE_CODES))
@@ -163,7 +163,7 @@ def main(
     out:str,
     out_yukarinette:int,
     out_yukacone:Optional[int],
-#    out_illuminate:int,
+    out_illuminate:int,
     filter_lpf_cutoff:int,
     filter_lpf_cutoff_upper:int,
     filter_hpf_cutoff:int,
