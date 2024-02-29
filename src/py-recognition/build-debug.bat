@@ -11,6 +11,8 @@ if %errorlevel% neq 0 goto error
 python -m pipenv run archive1
 if %errorlevel% neq 0 goto error
 
+python -m pipenv requirements > requirements.txt
+
 popd
 exit
 
