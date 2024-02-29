@@ -44,7 +44,7 @@ namespace Haru.Kei {
 			protected override string[] GetItems() {
 				return new[] {
 					"",
-					"whisper",
+					// "whisper",
 					"faster_whisper",
 					"google",
 					"google_duplex",
