@@ -153,11 +153,11 @@ else:
                 beam_size=5)
                 #max_new_tokens = 128,
                 #condition_on_previous_text = False)
-            r = ""
+            c = []
             for s in segments:
-                r = s.text
-                break
-            return TranscribeResult(r, segments)
+                c.append(s.text)
+            return TranscribeResult("".join(c), segments)
+
 
 class RecognitionModelGoogleApi(RecognitionModel):
     """
