@@ -95,7 +95,7 @@ else:
             return ""
 
 try:
-   import faster_whisper as fwis # type: ignore
+   import faster_whisper # type: ignore
 except:
     pass
 else:
@@ -108,6 +108,7 @@ else:
             model:str,
             language:str,
             device:str,
+            device_index:int,
             download_root:str) -> None:
             self.__language = language if language != "" else None
 
@@ -128,11 +129,12 @@ else:
 
             m = f"{model}.{language}" if (model != "large") and (model != "large-v2") and (language == "en") else model
             run_device, compute_type = get(device)
-            self.audio_model = fwis.WhisperModel(
+            self.audio_model = faster_whisper.WhisperModel(
                 m,
                 run_device,
+                device_index = device_index,
                 compute_type = compute_type,
-                download_root=download_root)
+                download_root = download_root)
 
         @property
         def required_sample_rate(self) -> int | None:
@@ -147,11 +149,15 @@ else:
         def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
             segments, _  = self.audio_model.transcribe(
                 audio_data.astype(np.float32) / float(np.iinfo(np.int16).max),
-                language = self.__language)
-            c = []
+                language = self.__language,
+                beam_size=5)
+                #max_new_tokens = 128,
+                #condition_on_previous_text = False)
+            r = ""
             for s in segments:
-                c.append(s.text)
-            return TranscribeResult("".join(c), segments)
+                r = s.text
+                break
+            return TranscribeResult(r, segments)
 
 class RecognitionModelGoogleApi(RecognitionModel):
     """

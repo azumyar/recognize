@@ -6,17 +6,17 @@ def __support_wisper() -> bool:
     try:
         import whisper # type: ignore
     except:
-        pass
+        return False
     else:
         return True
 
+def __support_wisper_faster() -> bool:
     try:
         import faster_whisper # type: ignore
     except:
         return False
     else:
         return True
-
 
 def __default_method_value() -> str:
     try:
@@ -29,23 +29,18 @@ def __default_method_value() -> str:
 
 def __choice_method() -> list[str]:
     r = []
-    try:
-        import whisper # type: ignore
-    except:
-        pass
-    else:
+    if SUPPORT_LIB_WISPER:
         r.append(METHOD_VALUE_WHISPER)
-    try:
-        import faster_whisper # type: ignore
-    except:
-        pass
-    else:
+    if SUPPORT_LIB_WISPER_FASTER:
         r.append(METHOD_VALUE_WHISPER_FASTER)
+
     r.append(METHOD_VALUE_GOOGLE)
     r.append(METHOD_VALUE_GOOGLE_DUPLEX)
     return r
 
-SUPPORT_WISPER = __support_wisper()
+SUPPORT_LIB_WISPER = __support_wisper()
+SUPPORT_LIB_WISPER_FASTER = __support_wisper_faster()
+SUPPORT_WISPER = SUPPORT_LIB_WISPER or SUPPORT_LIB_WISPER_FASTER
 
 VERBOSE_MIN = 0
 VERBOSE_INFO = 1
