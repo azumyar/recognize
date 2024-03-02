@@ -1,7 +1,6 @@
 import os
 import time
 import math
-import torch
 import numpy as np
 import speech_recognition as sr
 import urllib.error as urlerr
@@ -54,6 +53,7 @@ class RecognitionModel:
 
 try:
     import whisper # type: ignore
+    import torch
 except:
     pass
 else:
@@ -95,7 +95,8 @@ else:
             return ""
 
 try:
-   import faster_whisper # type: ignore
+    import faster_whisper # type: ignore
+    import torch
 except:
     pass
 else:
