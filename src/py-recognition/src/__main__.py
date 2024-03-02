@@ -4,7 +4,6 @@ import os
 import sys
 import platform
 import click
-import torch
 import speech_recognition
 from typing import Any, Callable, Iterable, Optional, NamedTuple
 
@@ -65,6 +64,15 @@ def print_mics(ctx, param, value):
         audio.terminate()
         ctx.exit()
 
+def __available_cuda() -> str:
+    try:
+        import torch
+    except ImportError:
+        return "cpu"
+    else:
+        return "cuda" if torch.cuda.is_available() else "cpu"
+
+
 def __whiper_help(s:str) -> str:
     if not val.SUPPORT_WISPER:
         return "サポートしていません"
@@ -75,7 +83,7 @@ def __whiper_help(s:str) -> str:
 
 @click.option("--method", default=val.DEFALUT_METHOD_VALUE, help="使用する認識方法", type=click.Choice(val.ARG_CHOICE_METHOD))
 @click.option("--whisper_model", default="medium", help=__whiper_help("(whisper)使用する推論モデル"), type=str) # type=click.Choice(["tiny","base", "small","medium","large","large-v2","large-v3"])
-@click.option("--whisper_device", default=("cuda" if torch.cuda.is_available() else "cpu"), help=__whiper_help("(whisper)使用する演算装置"), type=click.Choice(["cpu","cuda"]))
+@click.option("--whisper_device", default=__available_cuda(), help=__whiper_help("(whisper)使用する演算装置"), type=click.Choice(["cpu","cuda"]))
 @click.option("--whisper_device_index", default=0, help=__whiper_help("(whisper)使用するデバイスindex"), type=int)
 @click.option("--whisper_language", default="", help=__whiper_help("(whisper)音声解析対象の言語"), type=click.Choice(val.LANGUAGE_CODES))
 @click.option("--google_language", default="ja-JP", help="(google)音声解析対象の言語", type=str)
