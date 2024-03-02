@@ -3,7 +3,6 @@ import sys
 import platform
 import traceback
 import click
-import torch
 import speech_recognition
 import urllib.error as urlerr
 import multiprocessing
