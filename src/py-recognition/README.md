@@ -13,28 +13,36 @@ build.batをダブルクリックで自動的に必要コンポーネントをwi
 ## コマンドオプション
 ### --test  string
 テストモードで起動します
-| オプション     |認識モデル|
+| オプション     |-|
 |:--------------|:------------|
 | recognition   |一度だけ音声認識して終了します|
 | mic           |マイクテストモードで起動します|
+| mic_ambient   |環境音測定モードで起動します|
 
 
 ### --method string
-認識方法を指定(whisper|faster_whisper|google)します。指定がない場合faster_whisperが設定されます。
+認識方法を指定(~~whisper|~~faster_whisper|google)します。指定がない場合faster_whisperが設定されます。
 | オプション     |認識モデル|
 |:--------------|:------------|
-| whisper       |wisperモデルを使用してローカルでAI音声認識を行います|
+| ~~whisper~~   |~~wisperモデルを使用してローカルでAI音声認識を行います~~|
 | faster_whisper|wisperを軽量化したfaster_whisperを使用してローカルでAI音声認識を行います|
 | google        |googleの音声認識API(v2)を使用してインターネット経由で音声認識を行います|
 | google_duplex |googleの音声認識API(全二重)を使用してインターネット経由で音声認識を行います|
 
+whisperはopenai-whisperを含めてビルドした場合有効になります。標準では含まれていません。
+
+
 ### --whisper_model string
 whisper系で有効  
-使用する推論モデル(tiny|base|small|medium|large|large-v2|large-v3)を指定します。指定がない場合mediumが設定されます。推論モデルは初回の使用時にダウンロードされます。
+使用する推論モデル(tiny|base|small|medium|large|large-v2|large-v3)などを指定します。指定がない場合mediumが設定されます。推論モデルは初回の使用時にダウンロードされます。
 
 ### --whisper_device string
 whisper系で有効  
 推論を行う演算装置(cpu|cuda)を指定します。指定がない場合cudaが設定されますがcudaが使用できない環境の場合cpuにバックフォールされます。
+
+### --whisper_device_index int
+faster_whisperのみで有効  
+推論を行うGPU indexを指定します。指定がない場合0が設定されます。
 
 ### --whisper_language string
 whisper系で有効  
@@ -75,10 +83,10 @@ google_duplexのみで有効
 指定した音量より小さい値を無音として扱います。標準では300.0が指定されていますがこの適切な値は使用されているマイクにより異なります。なにもしゃべってなくても音声認識処理が走る場合はこの値を大きくしてください。
 
 ### --mic_ambient_noise_to_energy
-このオプションを指定すると起動時に環境音を収拾して--mic_energyの値を設定します。このオプションが有効な場合--mic_energyは無視されます。また--mic_dynamic_energy_minよりさがることはありません。
+このオプションを指定すると起動時に環境音を収拾して--mic_energyの値を変更します。また--mic_dynamic_energy_minよりさがることはありません。
 
 ### --mic_dynamic_energy
-このオプションを指定すると周りの騒音レベルに応じてマイクの収音レベルを動的に変更します。使用しているライブラリは一般的な環境では有効にすることを推奨しています。
+このオプションを指定すると環境音に応じてマイクの収音レベルを動的に変更します。使用しているライブラリは一般的な環境では有効にすることを推奨しています。
 
 ### --mic_dynamic_energy_ratio float
 指定がない場合1.5が設定されます。

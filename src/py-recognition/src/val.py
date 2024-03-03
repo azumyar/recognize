@@ -2,6 +2,46 @@
 定数モジュール
 """
 
+def __support_wisper() -> bool:
+    try:
+        import whisper # type: ignore
+    except:
+        return False
+    else:
+        return True
+
+def __support_wisper_faster() -> bool:
+    try:
+        import faster_whisper # type: ignore
+    except:
+        return False
+    else:
+        return True
+
+def __default_method_value() -> str:
+    try:
+        import faster_whisper # type: ignore
+    except:
+        return METHOD_VALUE_GOOGLE_DUPLEX
+    else:
+        return METHOD_VALUE_WHISPER_FASTER
+
+
+def __choice_method() -> list[str]:
+    r = []
+    if SUPPORT_LIB_WISPER:
+        r.append(METHOD_VALUE_WHISPER)
+    if SUPPORT_LIB_WISPER_FASTER:
+        r.append(METHOD_VALUE_WHISPER_FASTER)
+
+    r.append(METHOD_VALUE_GOOGLE)
+    r.append(METHOD_VALUE_GOOGLE_DUPLEX)
+    return r
+
+SUPPORT_LIB_WISPER = __support_wisper()
+SUPPORT_LIB_WISPER_FASTER = __support_wisper_faster()
+SUPPORT_WISPER = SUPPORT_LIB_WISPER or SUPPORT_LIB_WISPER_FASTER
+
 VERBOSE_MIN = 0
 VERBOSE_INFO = 1
 VERBOSE_DEBUG = 2
@@ -37,11 +77,19 @@ METHOD_VALUE_WHISPER = "whisper"
 METHOD_VALUE_WHISPER_FASTER = "faster_whisper"
 METHOD_VALUE_GOOGLE= "google"
 METHOD_VALUE_GOOGLE_DUPLEX = "google_duplex"
+DEFALUT_METHOD_VALUE = __default_method_value()
+ARG_CHOICE_METHOD = __choice_method()
 
 OUT_VALUE_PRINT = "print"
 OUT_VALUE_YUKARINETTE = "yukarinette"
 OUT_VALUE_YUKACONE = "yukacone"
 OUT_VALUE_ILLUMINATE= "illuminate"
+ARG_CHOICE_OUT = [
+    OUT_VALUE_PRINT,
+    OUT_VALUE_YUKARINETTE,
+    OUT_VALUE_YUKACONE,
+    OUT_VALUE_ILLUMINATE,
+]
 
 LANGUAGE_CODES = [
     "",
