@@ -66,7 +66,7 @@ def print_mics(ctx, param, value):
 
 def __available_cuda() -> str:
     try:
-        import torch
+        import torch # type: ignore
     except ImportError:
         return "cpu"
     else:

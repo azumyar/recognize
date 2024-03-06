@@ -53,7 +53,7 @@ class RecognitionModel:
 
 try:
     import whisper # type: ignore
-    import torch
+    import torch # type: ignore
 except:
     pass
 else:
@@ -96,7 +96,7 @@ else:
 
 try:
     import faster_whisper # type: ignore
-    import torch
+    import torch # type: ignore
 except:
     pass
 else:
