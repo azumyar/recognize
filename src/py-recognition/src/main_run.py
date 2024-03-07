@@ -66,7 +66,8 @@ def run(
             start = time.perf_counter() 
             r = func()
             return PerformanceResult(r, time.perf_counter()-start)
-        log_info_mic = mic.get_log_info()
+        log_mic_info = mic.current_param
+        log_info_mic = f"current energy_threshold = {log_mic_info.energy_threshold}"
         log_info_recognition = recognition_model.get_log_info()
 
         insert:str

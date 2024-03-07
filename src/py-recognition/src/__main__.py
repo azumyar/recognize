@@ -302,10 +302,37 @@ def main(
             for f in filters:
                ilm_logger.debug(f"#{type(f)}")
 
-
+            mic_ip = mc.initilaze_param
+            mic_cp = mc.current_param
+            # 構文警告避けassert
+            assert not mic_cp.phrase_threshold is None
+            assert not mic_cp.non_speaking_duration is None
+            log_mic_info = os.linesep.join([
+                f"initial-info",
+                f"device : {mic_ip.index}",
+                f"energy_threshold : {round(mic_ip.energy_threshold, 2)}",
+                f"ambient_noise_to_energy : {mic_ip.ambient_noise_to_energy}",
+                f"dynamic_energy : {mic_ip.dynamic_energy}",
+                f"dynamic_energy_ratio : {mic_ip.dynamic_energy_ratio}",
+                f"dynamic_energy_adjustment_damping : {mic_ip.dynamic_energy_ratio}",
+                f"dynamic_energy_min : {mic_ip.dynamic_energy_min}",
+                f"pause : {round(mic_ip.pause_threshold, 2)}",
+                f"phrase : {mic_ip.phrase_threshold if mic_ip.phrase_threshold is None else round(mic_ip.phrase_threshold, 2)}",
+                f"non_speaking : {mic_ip.non_speaking_duration if mic_ip.non_speaking_duration is None else round(mic_ip.non_speaking_duration, 2)}",
+                "",
+                "current-info",
+                f"device : {mic_cp.device_name}",
+                f"energy_threshold : {round(mic_cp.energy_threshold,2)}",
+                f"dynamic_energy : {mic_cp.dynamic_energy}",
+                f"dynamic_energy_ratio : {mic_cp.dynamic_energy_ratio}",
+                f"dynamic_energy_adjustment_damping : {mic_cp.dynamic_energy_adjustment_damping}",
+                f"pause : {round(mic_cp.pause_threshold, 2)}",
+                f"phrase : {round(mic_cp.phrase_threshold, 2)}",
+                f"non_speaking : {round(mic_cp.non_speaking_duration, 2)}",
+            ])
             ilm_logger.log([
                 f"マイク: {mc.device_name}",
-                f"{mc.get_mic_info()}",
+                log_mic_info,
                 f"認識モデル: {type(recognition_model)}",
                 f"出力 = {type(outputer)}",
                 f"フィルタ = {','.join(list(map(lambda x: f'{type(x)}', filters)))}"

@@ -392,7 +392,7 @@ class Mic:
     def end_insert_sec(self) -> float:
         return self.__recorder.end_insert_sec
 
-    def get_mic_info(self) -> str:
+    def get_mic_info_(self) -> str:
         import os
         return os.linesep.join([
             f"initial-info",
@@ -425,8 +425,6 @@ class Mic:
             return None
         return f"current energy_threshold = {self.__recorder.energy_threshold}"
 
-    def get_log_info(self) -> str:
-        return f"current energy_threshold = {self.__recorder.energy_threshold}"
 
     def __get_audio_data(self, min_time:float=-1.) -> bytes:
         audio = bytes()
