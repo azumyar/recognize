@@ -90,7 +90,7 @@ namespace Haru.Kei {
 					.AppendLine("if %ERRORLEVEL% neq 0 (")
 					.AppendLine("  pause")
 					.AppendLine(")");
-				File.WriteAllText(this.TEMP_BAT, bat.ToString());
+				File.WriteAllText(this.TEMP_BAT, bat.ToString(), Encoding.GetEncoding("Shift_JIS"));
 
 
 				try {
