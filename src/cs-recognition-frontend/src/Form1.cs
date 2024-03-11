@@ -27,7 +27,7 @@ namespace Haru.Kei {
 						.AppendLine()
 						.AppendFormat("\"{0}\"", this.arg.RecognizeExePath).Append(" ").AppendLine(this.GenExeArguments(this.arg))
 						.AppendLine("pause");
-					File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.BAT_FILE), bat.ToString(), Encoding.GetEncoding("Shift_JIS");
+					File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.BAT_FILE), bat.ToString(), Encoding.GetEncoding("Shift_JIS"));
 					MessageBox.Show(this, string.Format("{0}を作成しました！", this.BAT_FILE), "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
 				}
 				catch(System.IO.IOException) { }
