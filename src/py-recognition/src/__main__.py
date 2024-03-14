@@ -116,6 +116,7 @@ def __whiper_help(s:str) -> str:
 @click.option("--mic_non_speaking", default=None, help="-", type=float)
 @click.option("--mic_sampling_rate", default=16000, help="-", type=int)
 @click.option("--mic_listen_interval", default=0.25, help="マイク監視ループで1回あたりのマイクデバイス監視間隔(秒)", type=float)
+@click.option("--mic_delay_duration", default=None, help="-", type=float)
 
 @click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice(val.ARG_CHOICE_OUT))
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
@@ -175,6 +176,7 @@ def main(
     mic_non_speaking:Optional[float],
     mic_sampling_rate:int,
     mic_listen_interval:float,
+    mic_delay_duration:Optional[float],
     out:str,
     out_yukarinette:int,
     out_yukacone:Optional[int],
@@ -206,6 +208,13 @@ def main(
         rec = Record(record, record_file, record_directory)
 
         ilm_logger.print("マイクの初期化")
+        mp_recog_conf:recognition.RecognizeMicrophoneConfig = {
+            val.METHOD_VALUE_WHISPER: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
+            val.METHOD_VALUE_WHISPER_FASTER: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
+            val.METHOD_VALUE_GOOGLE: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
+            val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
+        }[method]()
+
         def mp_value(db, en): return db if en is None else en
         mp_energy = mp_value(db2rms(mic_db_threshold), mic_energy)
         mp_ambient_noise_to_energy = mp_value(mic_ambient_noise_to_db, mic_ambient_noise_to_energy)
@@ -225,6 +234,7 @@ def main(
             mic_phrase,
             mic_non_speaking,
             mic_listen_interval,
+            mp_recog_conf,
             mic)
         ilm_logger.print(f"マイクは{mc.device_name}を使用します")
         ilm_logger.debug(f"指定音圧閾値　 : {rms2db(mp_energy):.2f}")

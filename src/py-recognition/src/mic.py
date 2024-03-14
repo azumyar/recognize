@@ -6,6 +6,7 @@ import speech_recognition.exceptions
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Deque, NamedTuple
 
+import src.recognition as recognition
 import src.exception as ex
 from src.cancellation import CancellationObject
 
@@ -38,6 +39,8 @@ class Recognizer(sr.Recognizer):
     def __init__(self):
         super().__init__()
         self.dynamic_energy_min:float = 100.0
+        self.is_tail_cut = False
+        self.delay_duration = 0.
         '''adjust_for_ambient_noise()およびdynamic_energy_thresholdがTrueの場合energy_thresholdがとる最低の値'''
 
     def adjust_for_ambient_noise(self, source:sr.AudioSource, duration:float=1.0) -> None:
@@ -153,10 +156,10 @@ class Recognizer(sr.Recognizer):
                 sum(map(lambda x: x[1], b)),
                 min(map(lambda x: x[1], b)))
 
-        def gen_25ms() -> bytes | bytearray:
+        def gen_fade(buffer:bytes, duration:float) -> bytes | bytearray:
             def fade(i): return int((mx - i) / mx * last)
             last:int
-            mx = math.ceil(source.SAMPLE_RATE * self.end_insert_sec)
+            mx = math.ceil(source.SAMPLE_RATE * duration)
 
             assert source.SAMPLE_WIDTH in [2, 3]
             if source.SAMPLE_WIDTH == 2:
@@ -175,20 +178,17 @@ class Recognizer(sr.Recognizer):
                 return b
             raise ex.ProgramError()
 
-        eng_p:ListenEnergy
-        if Recognizer.__PAPUSE_MIN_THREHOLD <= self.pause_threshold:
-            # obtain frame data
+        if not self.is_tail_cut:
             for _ in range(pause_count - non_speaking_buffer_count): frames.pop()  # remove extra non-speaking frames at the end
-            eng_p = eng(frames, self.energy_threshold)
-        else:
-            eng_p = eng(frames, self.energy_threshold)
-            frames.append((gen_25ms(), 0))
-        frame_data = b"".join(map(lambda x: x[0], frames))
-
-        return AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH, eng_p)
+        engy_p = eng(frames, self.energy_threshold)
+        if 0 < self.delay_duration:
+            frames.append((gen_fade(buffer, self.delay_duration), 0))
+        frame_data = b"".join(map(lambda x: x[0], frames))        
+        return AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH, engy_p)
     
     @property
     def end_insert_sec(self) -> float:
+        return self.delay_duration
         if Recognizer.__PAPUSE_MIN_THREHOLD <= self.pause_threshold:
             return 0.0
         else:
@@ -207,6 +207,7 @@ class MicParamObject(NamedTuple):
     dynamic_energy_ratio:float|None
     dynamic_energy_adjustment_damping:float|None
     dynamic_energy_min:float
+    delay_duration:float
 
 
 class Mic:
@@ -230,6 +231,7 @@ class Mic:
         phrase:float | None,
         non_speaking:float | None,
         listen_interval:float,
+        recoginize_config:recognition.RecognizeMicrophoneConfig,
         mic_index:int | None) -> None:
 
         def check_mic(audio, mic_index:int, sample_rate:int):
@@ -271,7 +273,8 @@ class Mic:
             dynamic_energy = dynamic_energy,
             dynamic_energy_ratio = dynamic_energy_ratio,
             dynamic_energy_adjustment_damping = dynamic_energy_adjustment_damping,
-            dynamic_energy_min = dynamic_energy_min
+            dynamic_energy_min = dynamic_energy_min,
+            delay_duration = recoginize_config.delay_duration
         )
 
         self.__mic_index = mic_index
@@ -285,6 +288,7 @@ class Mic:
         self.__phrase = phrase
         self.__non_speaking = non_speaking
         self.__listen_timeout = listen_interval
+        self.__recoginize_config = recoginize_config
 
         self.__sample_rate = sample_rate
         self.__audio_queue = queue.Queue()
@@ -297,7 +301,8 @@ class Mic:
             dynamic_energy_adjustment_damping,
             dynamic_energy_min,
             phrase,
-            non_speaking)
+            non_speaking,
+            recoginize_config)
 
         if ambient_noise_to_energy:
             with self.__source as mic:
@@ -321,7 +326,8 @@ class Mic:
         dynamic_energy_adjustment_damping:float|None,
         dynamic_energy_min:float,
         phrase:float | None,
-        non_speaking:float | None,) -> Recognizer:
+        non_speaking:float | None,
+        recoginize_config:recognition.RecognizeMicrophoneConfig) -> Recognizer:
 
         r = Recognizer()
         r.energy_threshold = energy
@@ -339,6 +345,7 @@ class Mic:
         if not dynamic_energy_adjustment_damping is None:
             r.dynamic_energy_adjustment_damping = dynamic_energy_adjustment_damping
         r.dynamic_energy_min = dynamic_energy_min
+        r.delay_duration = recoginize_config.delay_duration
         return r
 
     @staticmethod
@@ -380,7 +387,8 @@ class Mic:
             dynamic_energy = self.__recorder.dynamic_energy_threshold,
             dynamic_energy_ratio = self.__recorder.dynamic_energy_ratio,
             dynamic_energy_adjustment_damping = self.__recorder.dynamic_energy_adjustment_damping,
-            dynamic_energy_min = self.__recorder.dynamic_energy_min
+            dynamic_energy_min = self.__recorder.dynamic_energy_min,
+            delay_duration = self.__recoginize_config.delay_duration
         )
 
 
