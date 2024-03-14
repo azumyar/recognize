@@ -66,7 +66,7 @@ def print_mics(ctx, param, value):
 
 def __available_cuda() -> str:
     try:
-        import torch
+        import torch # type: ignore
     except ImportError:
         return "cpu"
     else:
@@ -116,6 +116,7 @@ def __whiper_help(s:str) -> str:
 @click.option("--mic_non_speaking", default=None, help="-", type=float)
 @click.option("--mic_sampling_rate", default=16000, help="-", type=int)
 @click.option("--mic_listen_interval", default=0.25, help="マイク監視ループで1回あたりのマイクデバイス監視間隔(秒)", type=float)
+@click.option("--mic_delay_duration", default=None, help="-", type=float)
 
 @click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice(val.ARG_CHOICE_OUT))
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
@@ -175,6 +176,7 @@ def main(
     mic_non_speaking:Optional[float],
     mic_sampling_rate:int,
     mic_listen_interval:float,
+    mic_delay_duration:Optional[float],
     out:str,
     out_yukarinette:int,
     out_yukacone:Optional[int],
@@ -206,6 +208,13 @@ def main(
         rec = Record(record, record_file, record_directory)
 
         ilm_logger.print("マイクの初期化")
+        mp_recog_conf:recognition.RecognizeMicrophoneConfig = {
+            val.METHOD_VALUE_WHISPER: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
+            val.METHOD_VALUE_WHISPER_FASTER: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
+            val.METHOD_VALUE_GOOGLE: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
+            val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
+        }[method]()
+
         def mp_value(db, en): return db if en is None else en
         mp_energy = mp_value(db2rms(mic_db_threshold), mic_energy)
         mp_ambient_noise_to_energy = mp_value(mic_ambient_noise_to_db, mic_ambient_noise_to_energy)
@@ -225,6 +234,7 @@ def main(
             mic_phrase,
             mic_non_speaking,
             mic_listen_interval,
+            mp_recog_conf,
             mic)
         ilm_logger.print(f"マイクは{mc.device_name}を使用します")
         ilm_logger.debug(f"指定音圧閾値　 : {rms2db(mp_energy):.2f}")
@@ -302,10 +312,37 @@ def main(
             for f in filters:
                ilm_logger.debug(f"#{type(f)}")
 
-
+            mic_ip = mc.initilaze_param
+            mic_cp = mc.current_param
+            # 構文警告避けassert
+            assert not mic_cp.phrase_threshold is None
+            assert not mic_cp.non_speaking_duration is None
+            log_mic_info = os.linesep.join([
+                f"initial-info",
+                f"device : {mic_ip.index}",
+                f"energy_threshold : {round(mic_ip.energy_threshold, 2)}",
+                f"ambient_noise_to_energy : {mic_ip.ambient_noise_to_energy}",
+                f"dynamic_energy : {mic_ip.dynamic_energy}",
+                f"dynamic_energy_ratio : {mic_ip.dynamic_energy_ratio}",
+                f"dynamic_energy_adjustment_damping : {mic_ip.dynamic_energy_ratio}",
+                f"dynamic_energy_min : {mic_ip.dynamic_energy_min}",
+                f"pause : {round(mic_ip.pause_threshold, 2)}",
+                f"phrase : {mic_ip.phrase_threshold if mic_ip.phrase_threshold is None else round(mic_ip.phrase_threshold, 2)}",
+                f"non_speaking : {mic_ip.non_speaking_duration if mic_ip.non_speaking_duration is None else round(mic_ip.non_speaking_duration, 2)}",
+                "",
+                "current-info",
+                f"device : {mic_cp.device_name}",
+                f"energy_threshold : {round(mic_cp.energy_threshold,2)}",
+                f"dynamic_energy : {mic_cp.dynamic_energy}",
+                f"dynamic_energy_ratio : {mic_cp.dynamic_energy_ratio}",
+                f"dynamic_energy_adjustment_damping : {mic_cp.dynamic_energy_adjustment_damping}",
+                f"pause : {round(mic_cp.pause_threshold, 2)}",
+                f"phrase : {round(mic_cp.phrase_threshold, 2)}",
+                f"non_speaking : {round(mic_cp.non_speaking_duration, 2)}",
+            ])
             ilm_logger.log([
                 f"マイク: {mc.device_name}",
-                f"{mc.get_mic_info()}",
+                log_mic_info,
                 f"認識モデル: {type(recognition_model)}",
                 f"出力 = {type(outputer)}",
                 f"フィルタ = {','.join(list(map(lambda x: f'{type(x)}', filters)))}"

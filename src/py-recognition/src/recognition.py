@@ -33,6 +33,37 @@ class GoogleTranscribeExtend(NamedTuple):
         else:
             return str(self.raw_data)
 
+class RecognizeMicrophoneConfig:
+    def __init__(self, is_tail_cut:bool, delay_duration:float) -> None:
+        self.__is_tail_cut = is_tail_cut
+        self.__delay_duration = delay_duration
+
+    @property
+    def is_tail_cut(self) -> bool:
+        return self.__is_tail_cut
+
+    @property
+    def delay_duration(self) -> float:
+        return self.__delay_duration
+
+
+class WhisperMicrophoneConfig(RecognizeMicrophoneConfig):
+    __DEFAULT_DELAY_DULATION = 0.
+
+    def __init__(self, delay_duration:float | None = None) -> None:
+        super().__init__(
+            True if (not delay_duration is None) and (0 < delay_duration) else False,
+            delay_duration if not delay_duration is None else WhisperMicrophoneConfig.__DEFAULT_DELAY_DULATION)
+
+class GoogleMicrophoneConfig(RecognizeMicrophoneConfig):
+    __DEFAULT_DELAY_DULATION = 0.25
+
+    def __init__(self, delay_duration:float | None = None) -> None:
+        super().__init__(
+            True if (not delay_duration is None) and (0 < delay_duration) else False,
+            delay_duration if not delay_duration is None else GoogleMicrophoneConfig.__DEFAULT_DELAY_DULATION)
+
+
 class RecognitionModel:
     """
     認識モデル抽象基底クラス
@@ -53,7 +84,7 @@ class RecognitionModel:
 
 try:
     import whisper # type: ignore
-    import torch
+    import torch # type: ignore
 except:
     pass
 else:
@@ -96,7 +127,7 @@ else:
 
 try:
     import faster_whisper # type: ignore
-    import torch
+    import torch # type: ignore
 except:
     pass
 else:
