@@ -61,7 +61,7 @@ def run_mic(mic:src.mic.Mic, rec:Record, logger:Logger, cancel:CancellationObjec
     logger.log([
         "マイクテスト起動"
         f"マイク: {mic.device_name}",
-        f"{mic.get_log_info()}",
+        f"current energy_threshold = {prm.energy_threshold}"
     ])
 
     logger.print("マイクテストを行います")

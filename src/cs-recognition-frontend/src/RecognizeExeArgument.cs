@@ -291,8 +291,6 @@ namespace Haru.Kei {
 		[Description("trueの場合常時環境音に応じて無音閾値を調整します")]
 		[DefaultValue(null)]
 		[ArgAttribute("--mic_dynamic_db", IsFlag = true)]
-		[Browsable(false)]
-		[Save(IsSave = false)]
 		public bool? ArgMicDynamicDB { get; set; }
 
 		[Category(categoryMic)]
