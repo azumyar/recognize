@@ -153,7 +153,7 @@ class Recognizer(sr.Recognizer):
 
             return ListenEnergy(
                 sum(map(lambda x: x[1], b)) / len(b),
-                sum(map(lambda x: x[1], b)),
+                max(map(lambda x: x[1], b)),
                 min(map(lambda x: x[1], b)))
 
         def gen_fade(buffer:bytes, duration:float) -> bytes | bytearray:
