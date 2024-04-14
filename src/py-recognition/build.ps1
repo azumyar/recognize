@@ -1,3 +1,16 @@
+function ExistsStream ($file, $stream) {
+  foreach ($s in (Get-Item -Path $file -Stream *).Stream) {
+    if ($s -eq $stream ) {
+        return $true
+    }
+  }
+  return $false
+}
+
+# プログレスバー無効化
+$global:progressPreference = 'silentlyContinue'
+
+
 echo pythonのインストール確認
 Get-Command pip3 > $null
 if (-not($?)) {
@@ -100,6 +113,23 @@ if($LASTEXITCODE -ne 0) {
 
 # CUDA関連が容量を圧迫するのでキャッシュは削除する
 # python -m pipenv shell pip cache purge
+echo ok
+echo ""
+
+
+echo ブートローダーを差し替えます
+# NTFS代替ストリームが持っているダウンロード情報を削除する(エラーは無視)
+(Get-ChildItem -Path ..\bootloader\bootloader.zip -File).FullName | ForEach-Object { Remove-Item -Path $_ -Stream Zone.Identifier } 2>&1 > $null
+#事前に検知する実装
+#if (ExistsStream ..\bootloader\bootloader.zip Zone.Identifier) {
+#  Remove-Item -Path ..\bootloader\bootloader.zip -Stream Zone.Identifier
+#}
+Expand-Archive -Path ..\bootloader\bootloader.zip -DestinationPath .\.venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel -Force
+if($LASTEXITCODE -ne 0) {
+    echo ブートローダーを差し替えに失敗しました
+    popd
+    exit 1
+}
 echo ok
 echo ""
 
