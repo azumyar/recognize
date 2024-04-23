@@ -380,26 +380,6 @@ def main(
         pass
     sys.exit()
 
-def mm_callback(id, state) -> None:
-    from src import ilm_logger
-    ilm_logger.print("mm_callback")
-    if mm_is_capture_device(id):
-        ilm_logger.print("マイクの構成が変更されました")
-
-        DEVICE_STATE_ACTIVE = 1
-        DEVICE_STATE_DISABLED = 2
-        DEVICE_STATE_NOTPRESENT = 4
-        DEVICE_STATE_UNPLUGGED = 8
-        state_str = "-不明-"
-        if state == DEVICE_STATE_ACTIVE:
-            state_str = "ACTIVE"
-        elif state == DEVICE_STATE_DISABLED:
-            state_str = "DISABLED"
-        elif state == DEVICE_STATE_NOTPRESENT:
-            state_str = "NOTPRESENT"
-        elif state == DEVICE_STATE_UNPLUGGED:
-            state_str = DEVICE_STATE_UNPLUGGED
-        ilm_logger.log(f"マイクの構成が変更:{id}->{state_str})({state})")
 
 if __name__ == "__main__":
     from src import ilm_logger
