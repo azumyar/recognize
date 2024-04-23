@@ -395,6 +395,113 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
         else:
             return func()
 
+class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
+    """
+    認識モデルのgoogle全二重API実装
+    """
+
+    __MAX_PARALLEL_SUCESS = 3
+    '''スレッド数を下げるために必要な平行実行の成功回数'''
+    __MIN_PARALLEL_DUPLEX = 3
+    '''変動スレッド数の最低値'''
+    __MAX_PARALLEL_DUPLEX = 6
+    '''変動スレッド数の最大値'''
+
+    def __init__(
+        self,
+        sample_rate:int,
+        sample_width:int,
+        convert_sample_rete:bool=False,
+        language:str = "ja-JP",
+        key:str|None = None,
+        timeout:float|None = None,
+        challenge:int = 1,
+        parallel_max_duplex:int|None = None,
+        parallel_reduce_count_duplex:int|None = None):
+
+        super().__init__(sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
+        self.__parallel_recognize = 2
+
+
+        self.__parallel__duplex = 3
+        '''平行実行のスレッド数'''
+        self.__parallel_successed__duplex = 0
+        '''平行実行の成功回数'''
+        self.__parallel_max__duplex = RecognitionModelGoogleMix.__MAX_PARALLEL_DUPLEX
+        '''平行実行の最大数'''
+        if not parallel_max_duplex is None:
+            self.__parallel_max__duplex = max(parallel_max_duplex, RecognitionModelGoogleMix.__MIN_PARALLEL_DUPLEX)
+        self.__parallel_reduce_count__duplex = RecognitionModelGoogleMix.__MAX_PARALLEL_SUCESS
+        '''平行実行を減少させるための必要な成功数'''
+        if not parallel_reduce_count_duplex is None:
+            self.__parallel_reduce_count__duplex = max(parallel_reduce_count_duplex, 1)
+
+    def get_verbose(self, verbose:int) -> str | None:
+        if verbose < 2:
+            return None
+        return f"current parallel num = ({ self.__parallel_recognize}, {self.__parallel__duplex})"
+
+    def get_log_info(self) -> str | None:
+        return f"current parallel num = ({ self.__parallel_recognize}, {self.__parallel__duplex})"
+
+    def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
+        class Extend(NamedTuple):
+            exceptions:list[Exception]
+            raw_data:str
+
+            def __str__(self) -> str:
+                if 0 < len(self.exceptions):
+                    return f"{self.raw_data}{os.linesep}{len(self.exceptions)}回の失敗:{os.linesep}{f'{os.linesep}'.join(map(lambda x: f'{type(x)}:{x}', self.exceptions))}"
+                else:
+                    return f"{self.raw_data}"
+        def func_recognize(_:int = 0, __=0.1) -> tuple[bool, TranscribeResult]:
+            r = google.recognize_google(
+                flac,
+                self._operation_timeout,
+                self._key,
+                self._language,
+                0)
+            return (False, TranscribeResult(r.transcript, r.raw_data))
+
+        def func_duplex(index:int = 0, delay_ratio=0.1) -> tuple[bool, TranscribeResult]:
+            if RecognitionModelGoogleMix.__MIN_PARALLEL_DUPLEX < index:
+                # 増加スレッドは遅延させてから実行する
+                wait = math.ceil(index / RecognitionModelGoogleMix.__MIN_PARALLEL_DUPLEX) - 1
+                if(0 < wait):
+                    time.sleep(wait * delay_ratio)
+            r = google.recognize_google_duplex(
+                flac,
+                self._operation_timeout,
+                self._key,
+                self._language,
+                0)
+            return (True, TranscribeResult(r.transcript, r.raw_data))
+
+
+        thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=self.__parallel__duplex + 2)
+        try:
+            futures = [thread_pool.submit(func_recognize) for _ in range( self.__parallel_recognize)] \
+                + [thread_pool.submit(func_duplex, i) for i in range(self.__parallel__duplex)]
+            ex:list[Exception] = []
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    r = future.result()
+                    if r[0]:
+                        self.__parallel_successed__duplex += 1
+                        if(self.__parallel_reduce_count__duplex < self.__parallel_successed__duplex):
+                            self.__parallel_successed__duplex = 0
+                            self.__parallel__duplex = max(self.__parallel__duplex - 1, RecognitionModelGoogleMix.__MIN_PARALLEL_DUPLEX)
+                    return TranscribeResult(r[1].transcribe, Extend(ex, f"{r[1].extend_data}"))
+                except Exception as e:
+                    ex.append(e)
+
+            raise_ex = ParallelTranscribeException("すべての並列実行が失敗", ex)
+            if raise_ex.is_error500:
+                self.__parallel_successed__duplex = 0
+                self.__parallel = min(self.__parallel + 1, self.__parallel_max__duplex)
+            raise raise_ex
+        finally:
+            thread_pool.shutdown(wait=False)
 
 class TranscribeException(ex.IlluminateException):
     """
@@ -408,7 +515,7 @@ class ParallelTranscribeException(ex.IlluminateException):
         self.__exceptions = exceptions
 
         self.__is_error500 = not (False in map(
-            lambda x:isinstance(x, google.HttpStatusError)
+            lambda x:isinstance(x, google.HttpStatusErrorDuplex)
               and x.status_code == 500,
             exceptions))
 

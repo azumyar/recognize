@@ -213,6 +213,7 @@ def main(
             val.METHOD_VALUE_WHISPER_FASTER: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
             val.METHOD_VALUE_GOOGLE: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
             val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
+            val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
         }[method]()
 
         def mp_value(db, en): return db if en is None else en
@@ -284,6 +285,15 @@ def main(
                     is_parallel_run=google_duplex_parallel,
                     parallel_max=google_duplex_parallel_max,
                     parallel_reduce_count=google_duplex_parallel_reduce_count),
+                val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.RecognitionModelGoogleMix(
+                    sample_rate=sampling_rate,
+                    sample_width=2,
+                    convert_sample_rete=google_convert_sampling_rate,
+                    language=google_language,
+                    timeout=google_timeout if 0 < google_timeout else None,
+                    challenge=google_error_retry,
+                    parallel_max_duplex=google_duplex_parallel_max,
+                    parallel_reduce_count_duplex=google_duplex_parallel_reduce_count),
             }[method]()
             ilm_logger.debug(f"#認識モデルは{type(recognition_model)}を使用")
 
@@ -370,6 +380,26 @@ def main(
         pass
     sys.exit()
 
+def mm_callback(id, state) -> None:
+    from src import ilm_logger
+    ilm_logger.print("mm_callback")
+    if mm_is_capture_device(id):
+        ilm_logger.print("マイクの構成が変更されました")
+
+        DEVICE_STATE_ACTIVE = 1
+        DEVICE_STATE_DISABLED = 2
+        DEVICE_STATE_NOTPRESENT = 4
+        DEVICE_STATE_UNPLUGGED = 8
+        state_str = "-不明-"
+        if state == DEVICE_STATE_ACTIVE:
+            state_str = "ACTIVE"
+        elif state == DEVICE_STATE_DISABLED:
+            state_str = "DISABLED"
+        elif state == DEVICE_STATE_NOTPRESENT:
+            state_str = "NOTPRESENT"
+        elif state == DEVICE_STATE_UNPLUGGED:
+            state_str = DEVICE_STATE_UNPLUGGED
+        ilm_logger.log(f"マイクの構成が変更:{id}->{state_str})({state})")
 
 if __name__ == "__main__":
     from src import ilm_logger

@@ -34,9 +34,7 @@ def __choice_method() -> list[str]:
     if SUPPORT_LIB_WISPER_FASTER:
         r.append(METHOD_VALUE_WHISPER_FASTER)
 
-    r.append(METHOD_VALUE_GOOGLE)
-    r.append(METHOD_VALUE_GOOGLE_DUPLEX)
-    return r
+    return r + [METHOD_VALUE_GOOGLE, METHOD_VALUE_GOOGLE_DUPLEX, METHOD_VALUE_GOOGLE_MIX]
 
 SUPPORT_LIB_WISPER = __support_wisper()
 SUPPORT_LIB_WISPER_FASTER = __support_wisper_faster()
@@ -77,6 +75,7 @@ METHOD_VALUE_WHISPER = "whisper"
 METHOD_VALUE_WHISPER_FASTER = "faster_whisper"
 METHOD_VALUE_GOOGLE= "google"
 METHOD_VALUE_GOOGLE_DUPLEX = "google_duplex"
+METHOD_VALUE_GOOGLE_MIX = "google_mix"
 DEFALUT_METHOD_VALUE = __default_method_value()
 ARG_CHOICE_METHOD = __choice_method()
 
