@@ -482,6 +482,7 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
         try:
             futures = [thread_pool.submit(func_recognize) for _ in range( self.__parallel_recognize)] \
                 + [thread_pool.submit(func_duplex, i) for i in range(self.__parallel__duplex)]
+            rt:list[tuple[bool, TranscribeResult]] = []
             ex:list[Exception] = []
             for future in concurrent.futures.as_completed(futures):
                 try:
@@ -491,9 +492,24 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
                         if(self.__parallel_reduce_count__duplex < self.__parallel_successed__duplex):
                             self.__parallel_successed__duplex = 0
                             self.__parallel__duplex = max(self.__parallel__duplex - 1, RecognitionModelGoogleMix.__MIN_PARALLEL_DUPLEX)
-                    return TranscribeResult(r[1].transcribe, Extend(ex, f"{r[1].extend_data}"))
+                    #return TranscribeResult(r[1].transcribe, Extend(ex, f"{r[1].extend_data}"))
+                    rt.append(r)
                 except Exception as e:
                     ex.append(e)
+            
+            # 評価用ログ出力
+            if 0 < len(rt):
+                def tp(b:bool):
+                    if b:
+                        return "duplex-api"
+                    else:
+                        return "recognize-api"
+
+                r = rt[0][1]
+                text =  f"{r.extend_data}{os.linesep}" \
+                    + f"@@{(len(rt))}回の成功:{os.linesep}{f'{os.linesep}'.join(map(lambda x: tp(x[0]), rt))}{os.linesep}" \
+                    + f"@@{(len(ex))}回の失敗:{os.linesep}{f'{os.linesep}'.join(map(lambda x: f'{type(x)}:{x}', ex))}"
+                return TranscribeResult(r.transcribe, text)
 
             raise_ex = ParallelTranscribeException("すべての並列実行が失敗", ex)
             if raise_ex.is_error500:
