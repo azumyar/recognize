@@ -485,14 +485,15 @@ namespace Haru.Kei {
 						WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
 						CreateNoWindow = true,
 					})) {
+						string s;
+						var list = new List<string>() {
+							""
+						};
+						while((s = p.StandardOutput.ReadLine()) != null) {
+							list.Add(s);
+						}
 						p.WaitForExit();
 						if(p.ExitCode == 0) {
-							string s;
-							var list = new List<string>();
-							list.Add("");
-							while((s = p.StandardOutput.ReadLine()) != null) {
-								list.Add(s);
-							}
 							s_mic_devices = list;
 							return new RecognizeExeArgumentEx();
 						}
