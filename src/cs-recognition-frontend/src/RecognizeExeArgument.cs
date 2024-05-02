@@ -48,6 +48,7 @@ namespace Haru.Kei {
 					"faster_whisper",
 					"google",
 					"google_duplex",
+					"google_mix",
 				};
 			}
 		}

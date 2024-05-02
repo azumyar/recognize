@@ -213,6 +213,7 @@ def main(
             val.METHOD_VALUE_WHISPER_FASTER: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
             val.METHOD_VALUE_GOOGLE: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
             val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
+            val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
         }[method]()
 
         def mp_value(db, en): return db if en is None else en
@@ -284,6 +285,15 @@ def main(
                     is_parallel_run=google_duplex_parallel,
                     parallel_max=google_duplex_parallel_max,
                     parallel_reduce_count=google_duplex_parallel_reduce_count),
+                val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.RecognitionModelGoogleMix(
+                    sample_rate=sampling_rate,
+                    sample_width=2,
+                    convert_sample_rete=google_convert_sampling_rate,
+                    language=google_language,
+                    timeout=google_timeout if 0 < google_timeout else None,
+                    challenge=google_error_retry,
+                    parallel_max_duplex=google_duplex_parallel_max,
+                    parallel_reduce_count_duplex=google_duplex_parallel_reduce_count),
             }[method]()
             ilm_logger.debug(f"#認識モデルは{type(recognition_model)}を使用")
 

@@ -2,10 +2,10 @@
 
 ## 動作環境
 Windows 10/11
-python 3.10/3.11
+python 3.10/3.11/3.12
 
 ## ビルド
-build.batをダブルクリックで自動的に必要コンポーネントをwiinget,pip3経由でインストールしexeを作成します。python 3.9以前がインストールされている場合事前にアンインストールしてください。ビルドに失敗します。3.12は現時点で依存ライブラリが対応していないため未保障です。
+build.batをダブルクリックで自動的に必要コンポーネントをwiinget,pip3経由でインストールしexeを作成します。python 3.9以前がインストールされている場合事前にアンインストールしてください。ビルドに失敗します。3.13は現時点で依存ライブラリが対応していないため未保障です。
 
 ## 実行
 環境に応じて*-template.batを実行してください。必要に応じてオプションを編集してください。
@@ -28,6 +28,7 @@ build.batをダブルクリックで自動的に必要コンポーネントをwi
 | faster_whisper|wisperを軽量化したfaster_whisperを使用してローカルでAI音声認識を行います|
 | google        |googleの音声認識API(v2)を使用してインターネット経由で音声認識を行います|
 | google_duplex |googleの音声認識API(全二重)を使用してインターネット経由で音声認識を行います|
+| google_mix    |googleの音声認識API(v2)とgoogleの音声認識API(全二重)を併用してインターネット経由で音声認識を行います|
 
 whisperはopenai-whisperを含めてビルドした場合有効になります。標準では含まれていません。
 
@@ -66,14 +67,15 @@ google系で有効
 
 ### --google_duplex_parallel
 google_duplexのみで有効  
-このオプションが指定された場合3並列でリクエストを投げ500エラーの抑制を図ります。
+このオプションが指定された場合3並列でリクエストを投げ500エラーの抑制を図ります。  
+google_mixでは標準で有効化されます。
 
 ### --google_duplex_parallel_max int
-google_duplexのみで有効  
+google_duplex,google_mixで有効  
 エラー時に増やしていく並列数の最大増加数。指定がない場合6が設定されます。
 
 ### --google_duplex_parallel_reduce_count int
-google_duplexのみで有効  
+google_duplex,google_mixで有効  
 増加した並列数を減らすために必要な成功数。指定がない場合3が設定されます。
 
 ### --mic int
