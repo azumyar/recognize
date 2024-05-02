@@ -61,7 +61,7 @@ namespace Haru.Kei {
 				this.propertyGrid.Refresh();
 			};
 			this.googleToolStripMenuItem.Click += (_, __) => {
-				this.arg.ArgMethod = "google_duplex";
+				this.arg.ArgMethod = "google_mix";
 				this.arg.ArgGoogleConvertSamplingRate = true;
 				this.arg.ArgDisableLpf = true;
 				this.arg.ArgDisableHpf = true;
