@@ -401,11 +401,17 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
     """
 
     __MAX_PARALLEL_SUCESS = 3
-    '''スレッド数を下げるために必要な平行実行の成功回数'''
+    '''スレッド数を下げるために必要な平行実行の成功回数(duplex)'''
     __MIN_PARALLEL_DUPLEX = 3
-    '''変動スレッド数の最低値'''
+    '''変動スレッド数の最低値(duplex)'''
     __MAX_PARALLEL_DUPLEX = 6
-    '''変動スレッド数の最大値'''
+    '''変動スレッド数の最大値(duplex)'''
+
+    API_RECOGNIZE = 1
+    '''API-No:recognize API'''
+    API_DUPLEX = 2
+    '''API-No:duplex API'''
+
 
     def __init__(
         self,
@@ -420,19 +426,20 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
         parallel_reduce_count_duplex:int|None = None):
 
         super().__init__(sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
-        self.__parallel_recognize = 2
+        self.__parallel_recognize = 1
+        '''平行実行のスレッド数(recognize)'''
 
 
         self.__parallel__duplex = 3
-        '''平行実行のスレッド数'''
+        '''平行実行のスレッド数(duplex)'''
         self.__parallel_successed__duplex = 0
-        '''平行実行の成功回数'''
+        '''平行実行の成功回数(duplex)'''
         self.__parallel_max__duplex = RecognitionModelGoogleMix.__MAX_PARALLEL_DUPLEX
-        '''平行実行の最大数'''
+        '''平行実行の最大数(duplex)'''
         if not parallel_max_duplex is None:
             self.__parallel_max__duplex = max(parallel_max_duplex, RecognitionModelGoogleMix.__MIN_PARALLEL_DUPLEX)
         self.__parallel_reduce_count__duplex = RecognitionModelGoogleMix.__MAX_PARALLEL_SUCESS
-        '''平行実行を減少させるための必要な成功数'''
+        '''平行実行を減少させるための必要な成功数(duplex)'''
         if not parallel_reduce_count_duplex is None:
             self.__parallel_reduce_count__duplex = max(parallel_reduce_count_duplex, 1)
 
@@ -445,25 +452,37 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
         return f"current parallel num = ({ self.__parallel_recognize}, {self.__parallel__duplex})"
 
     def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
+        class FutureResult(NamedTuple):
+            api_no:int
+            result:TranscribeResult
+
         class Extend(NamedTuple):
             exceptions:list[Exception]
+            api_no:int
             raw_data:str
 
             def __str__(self) -> str:
+                def api(i:int):
+                    if i == RecognitionModelGoogleMix.API_RECOGNIZE:
+                        return "recognize-api"
+                    if i == RecognitionModelGoogleMix.API_DUPLEX:
+                        return "duplex-api"
+                    return "unknown-api"
                 if 0 < len(self.exceptions):
-                    return f"{self.raw_data}{os.linesep}{len(self.exceptions)}回の失敗:{os.linesep}{f'{os.linesep}'.join(map(lambda x: f'{type(x)}:{x}', self.exceptions))}"
+                    return f"transcribe:{api(self.api_no)}{os.linesep}{self.raw_data}{os.linesep}{len(self.exceptions)}回の失敗:{os.linesep}{f'{os.linesep}'.join(map(lambda x: f'{type(x)}:{x}', self.exceptions))}"
                 else:
-                    return f"{self.raw_data}"
-        def func_recognize(_:int = 0, __=0.1) -> tuple[bool, TranscribeResult]:
+                    return f"transcribe:{api(self.api_no)}{os.linesep}{self.raw_data}"
+
+        def func_recognize(_:int = 0, __=0.1) -> FutureResult:
             r = google.recognize_google(
                 flac,
                 self._operation_timeout,
                 self._key,
                 self._language,
                 0)
-            return (False, TranscribeResult(r.transcript, r.raw_data))
+            return FutureResult(RecognitionModelGoogleMix.API_RECOGNIZE, TranscribeResult(r.transcript, r.raw_data))
 
-        def func_duplex(index:int = 0, delay_ratio=0.1) -> tuple[bool, TranscribeResult]:
+        def func_duplex(index:int = 0, delay_ratio=0.1) -> FutureResult:
             if RecognitionModelGoogleMix.__MIN_PARALLEL_DUPLEX < index:
                 # 増加スレッドは遅延させてから実行する
                 wait = math.ceil(index / RecognitionModelGoogleMix.__MIN_PARALLEL_DUPLEX) - 1
@@ -475,41 +494,25 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
                 self._key,
                 self._language,
                 0)
-            return (True, TranscribeResult(r.transcript, r.raw_data))
+            return FutureResult(RecognitionModelGoogleMix.API_DUPLEX, TranscribeResult(r.transcript, r.raw_data))
 
 
         thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=self.__parallel__duplex + 2)
         try:
             futures = [thread_pool.submit(func_recognize) for _ in range( self.__parallel_recognize)] \
                 + [thread_pool.submit(func_duplex, i) for i in range(self.__parallel__duplex)]
-            rt:list[tuple[bool, TranscribeResult]] = []
             ex:list[Exception] = []
             for future in concurrent.futures.as_completed(futures):
                 try:
                     r = future.result()
-                    if r[0]:
+                    if r.api_no == RecognitionModelGoogleMix.API_DUPLEX:
                         self.__parallel_successed__duplex += 1
                         if(self.__parallel_reduce_count__duplex < self.__parallel_successed__duplex):
                             self.__parallel_successed__duplex = 0
                             self.__parallel__duplex = max(self.__parallel__duplex - 1, RecognitionModelGoogleMix.__MIN_PARALLEL_DUPLEX)
-                    #return TranscribeResult(r[1].transcribe, Extend(ex, f"{r[1].extend_data}"))
-                    rt.append(r)
+                    return TranscribeResult(r.result.transcribe, Extend(ex, r.api_no, f"{r.result.extend_data}"))
                 except Exception as e:
                     ex.append(e)
-            
-            # 評価用ログ出力
-            if 0 < len(rt):
-                def tp(b:bool):
-                    if b:
-                        return "duplex-api"
-                    else:
-                        return "recognize-api"
-
-                r = rt[0][1]
-                text =  f"{r.extend_data}{os.linesep}" \
-                    + f"@@{(len(rt))}回の成功:{os.linesep}{f'{os.linesep}'.join(map(lambda x: tp(x[0]), rt))}{os.linesep}" \
-                    + f"@@{(len(ex))}回の失敗:{os.linesep}{f'{os.linesep}'.join(map(lambda x: f'{type(x)}:{x}', ex))}"
-                return TranscribeResult(r.transcribe, text)
 
             raise_ex = ParallelTranscribeException("すべての並列実行が失敗", ex)
             if raise_ex.is_error500:
