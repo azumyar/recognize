@@ -131,6 +131,7 @@ class Recognizer(sr.Recognizer):
             # check how long the detected phrase is, and retry listening if the phrase is too short
             phrase_count -= pause_count  # exclude the buffers for the pause before the phrase
             if phrase_count >= phrase_buffer_count or len(buffer) == 0: break  # phrase is long enough or we've reached the end of the stream, so stop listening
+            time.sleep(0.01)
 
         def eng(buf:Deque[tuple[bytes, float]], threshold:float) -> ListenEnergy:
             top = None
