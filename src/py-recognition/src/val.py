@@ -58,7 +58,7 @@ ARG_CHOICE_VERBOSE = list(map(lambda x: str(x), [
     VERBOSE_MIN,
     VERBOSE_INFO,
     VERBOSE_DEBUG,
-#    VERBOSE_TRACE
+    VERBOSE_TRACE
     ]))
 
 TEST_VALUE_RECOGNITION = "recognition"
