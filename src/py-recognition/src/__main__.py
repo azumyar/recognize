@@ -301,7 +301,7 @@ def main(
                 val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
                 val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}", lambda x: ilm_logger.info(x)),
                 val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}", lambda x: ilm_logger.info(x)),
-                #val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}"),
+                val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}", lambda x: ilm_logger.info(x)),
             }[out]()
             ilm_logger.debug(f"#出力は{type(outputer)}を使用")
 

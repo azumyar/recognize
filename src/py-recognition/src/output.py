@@ -132,7 +132,7 @@ class IlluminateSpeechOutputer(WebSocketOutputer):
     def output(self, text:str):
         super().output(json.dumps({
             "transcript": text
-        }))
+        }, ensure_ascii=False))
 
 class WsOutputException(ex.IlluminateException):
     """
