@@ -7,6 +7,14 @@ function ExistsStream ($file, $stream) {
   return $false
 }
 
+if(-not($env:RECOGNIZE_WITHOUT_TORCH)) {
+	$REQUIREMENTS_FILE = "requirements.txt"
+} else {
+	echo torchを使用せずビルドします
+	Get-Content .\requirements.txt | foreach { $_ -replace "^(torch|faster-whisper).*$", "" } | Set-Content .\requirements-without_torch.txt
+	$REQUIREMENTS_FILE = "requirements-without_torch.txt"
+}
+
 # プログレスバー無効化
 $global:progressPreference = 'silentlyContinue'
 
@@ -104,7 +112,7 @@ if($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-python -m pipenv shell pip install -r ../requirements.txt --no-cache-dir
+python -m pipenv shell pip install -r ../$REQUIREMENTS_FILE --no-cache-dir
 if($LASTEXITCODE -ne 0) {
     echo python依存関係の復元に失敗しました
     popd
