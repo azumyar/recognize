@@ -6,3 +6,4 @@ src/__pycache__
 
 Pipfile.lock
 recognize.spec
+requirements-without_torch.txt
