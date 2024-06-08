@@ -96,6 +96,8 @@ def __whiper_help(s:str) -> str:
 @click.option("--google_tcp", default=None, help="-", type=click.Choice(["urllib", "requests"]), callback=select_google_tcp, expose_value=False, is_eager=True)
 
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
+@click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
+@click.option("--mic_api", default=val.MIC_API_VALUE_MME, help="--mic_nameで検索するマイクのAPIを指定します", type=click.Choice(val.ARG_CHOICE_MIC_API))
 
 @click.option("--mic_energy", default=None, help="互換性のため残されています", type=float)
 @click.option("--mic_ambient_noise_to_energy", default=None, help="互換性のため残されています", is_flag=True, type=bool)
@@ -156,6 +158,8 @@ def main(
     google_duplex_parallel_max:Optional[int],
     google_duplex_parallel_reduce_count:Optional[int],
     mic:Optional[int],
+    mic_name:Optional[str],
+    mic_api:str,
 
     mic_energy:Optional[float],
     mic_ambient_noise_to_energy:Optional[bool],
@@ -223,6 +227,12 @@ def main(
         mp_dynamic_energy_ratio = mp_value(mic_dynamic_db_ratio, mic_dynamic_energy_ratio)
         mp_dynamic_energy_adjustment = mp_value(mic_dynamic_db_adjustment_damping, mic_dynamic_energy_adjustment_damping)
         mp_dynamic_energy_min = mp_value(db2rms(mic_dynamic_db_min), mic_dynamic_energy_min)
+        mp_mic = mic
+        if mp_mic is None and (not mic_name is None) and mic_name != "":
+            mp_mic = src.mic.Mic.choice_mic(mic_name, mic_api)
+            if mp_mic is None:
+                ilm_logger.info(f"マイク[{mic_name}]を検索しましたが見つかりませんでした")
+                ilm_logger.log("choice_mic() not found")
         mc = src.mic.Mic(
             sampling_rate,
             mp_ambient_noise_to_energy,
@@ -236,7 +246,7 @@ def main(
             mic_non_speaking,
             mic_listen_interval,
             mp_recog_conf,
-            mic)
+            mp_mic)
         ilm_logger.print(f"マイクは{mc.device_name}を使用します")
         ilm_logger.debug(f"指定音圧閾値　 : {rms2db(mp_energy):.2f}")
         ilm_logger.debug(f"現在の音圧閾値 : {rms2db(mc.current_param.energy_threshold):.2f}")

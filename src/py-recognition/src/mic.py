@@ -8,6 +8,7 @@ from typing import Any, Callable, Deque, NamedTuple
 
 import src.recognition as recognition
 import src.exception as ex
+import src.val as val
 from src.cancellation import CancellationObject
 
 class ListenEnergy(NamedTuple):
@@ -365,6 +366,39 @@ class Mic:
             finally:
                 audio.terminate()
         return ret
+    
+    @staticmethod
+    def choice_mic(name:str, api:str) -> int | None:
+        """
+        名前とAPIからマイクを検索する
+        """
+        audio = speech_recognition.Microphone.get_pyaudio().PyAudio()
+        try:
+            host_api_index:int | None = None
+            api_name = {
+                val.MIC_API_VALUE_MME: lambda: "MME",
+                val.MIC_API_VALUE_WASAPI: lambda: "Windows WASAPI",
+            }[api]()
+            for i in range(audio.get_host_api_count()):
+                host_api = audio.get_host_api_info_by_index(i)
+                
+                if host_api.get("name") == api_name:
+                    host_api_index = i
+                    break
+            if host_api_index is None:
+                return None
+
+            for i in range(audio.get_device_count()):
+                device_info = audio.get_device_info_by_index(i)
+                host_api = device_info.get("hostApi")
+                device_name = device_info.get("name")
+                if isinstance(host_api, int) and (host_api == host_api_index):
+                    if isinstance(device_name, str) and (name.lower() in device_name.lower()):
+                        return i
+        finally:
+            audio.terminate()
+
+        return None
     
     @property
     def device_name(self):

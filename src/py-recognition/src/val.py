@@ -79,6 +79,13 @@ METHOD_VALUE_GOOGLE_MIX = "google_mix"
 DEFALUT_METHOD_VALUE = __default_method_value()
 ARG_CHOICE_METHOD = __choice_method()
 
+MIC_API_VALUE_MME = "mme"
+MIC_API_VALUE_WASAPI = "wasapi"
+ARG_CHOICE_MIC_API = [
+    MIC_API_VALUE_MME,
+    MIC_API_VALUE_WASAPI,
+]
+
 OUT_VALUE_PRINT = "print"
 OUT_VALUE_YUKARINETTE = "yukarinette"
 OUT_VALUE_YUKACONE = "yukacone"
