@@ -49,7 +49,7 @@ def run_mic(mic:src.mic.Mic, rec:Record, logger:Logger, cancel:CancellationObjec
             f"認識 #{str(index).zfill(2)}",
             f"PCM    = {round(sec - mic.end_insert_sec, 2)}sec",
             f"dB     = {(rms2db(param.energy.value) if not param.energy is None else 0):.2f}, threshold={rms2db(pp.energy_threshold):.2f}",
-            f"energy = {(param.energy if not param.energy is None else 0):.2f}, threshold={pp.energy_threshold:.2f}"
+            f"energy = {(param.energy.value if not param.energy is None else 0):.2f}, threshold={pp.energy_threshold:.2f}"
         ])
         save_wav(rec, index, param.pcm, mic.sample_rate, 2, logger)
 
