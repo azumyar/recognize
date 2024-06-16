@@ -98,11 +98,16 @@ def run(
             r = performance(lambda: recognition_model.transcribe(filter(np.frombuffer(d, np.int16).flatten())))
             assert(isinstance(r.result, recognition.TranscribeResult)) # ジェネリクス使った型定義の方法がわかってないのでassert置いて型を確定させる
             if r.result.transcribe not in ["", " ", "\n", None]:
+                if env.verbose == val.VERBOSE_INFO:
+                    logger.notice(f"#{index}", end=" ")
                 logger.notice(f"認識時間[{round(r.time, 2)}s],PCM[{round(pcm_sec, 2)}s],{round(r.time/pcm_sec, 2)}tps", end=": ")
                 outputer.output(r.result.transcribe)
             if not r.result.extend_data is None:
-                logger.debug(f"{r.result.extend_data}")
+                logger.trace(f"${r.result.extend_data}")
         except recognition.TranscribeException as e:
+            if env.verbose == val.VERBOSE_INFO:
+                logger.notice(f"#{index}", end=" ")
+            logger.notice("認識失敗")
             log_exception = e
             if e.inner is None:
                 logger.info(e.message)
@@ -112,17 +117,18 @@ def run(
                 elif isinstance(e.inner, google.UnknownValueError):
                     raw = e.inner.raw_data
                     if raw is None:
-                        logger.debug(f"#{e.message}")
+                        logger.trace(f"${e.message}")
                     else:
-                        logger.debug(f"#{e.message}{os.linesep}{raw}")
+                        logger.trace(f"${e.message}{os.linesep}{raw}")
                 else:
-                    logger.debug(f"#{e.message}")
-                    logger.debug(f"#{type(e.inner)}:{e.inner}")
+                    logger.trace(f"#{e.message}")
+                    logger.trace(f"#{type(e.inner)}:{e.inner}")
         except output.WsOutputException as e:
             log_exception = e
+            logger.info("!!!!連携失敗!!!!")
             logger.info(e.message)
             if not e.inner is None:
-                logger.debug(f"# => {type(e.inner)}:{e.inner}")
+                logger.trace(f"$ => {type(e.inner)}:{e.inner}")
         except Exception as e:
             log_exception = e
             logger.error([

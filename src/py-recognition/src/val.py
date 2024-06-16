@@ -58,7 +58,7 @@ ARG_CHOICE_VERBOSE = list(map(lambda x: str(x), [
     VERBOSE_MIN,
     VERBOSE_INFO,
     VERBOSE_DEBUG,
-#    VERBOSE_TRACE
+    VERBOSE_TRACE
     ]))
 
 TEST_VALUE_RECOGNITION = "recognition"
@@ -78,6 +78,13 @@ METHOD_VALUE_GOOGLE_DUPLEX = "google_duplex"
 METHOD_VALUE_GOOGLE_MIX = "google_mix"
 DEFALUT_METHOD_VALUE = __default_method_value()
 ARG_CHOICE_METHOD = __choice_method()
+
+MIC_API_VALUE_MME = "mme"
+MIC_API_VALUE_WASAPI = "wasapi"
+ARG_CHOICE_MIC_API = [
+    MIC_API_VALUE_MME,
+    MIC_API_VALUE_WASAPI,
+]
 
 OUT_VALUE_PRINT = "print"
 OUT_VALUE_YUKARINETTE = "yukarinette"
