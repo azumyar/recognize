@@ -164,10 +164,10 @@ class Logger:
                     encoding="UTF-8",
                     newline="")
         except OSError as e:
-            print("##########################")
-            print("ログファイルを開けません")
-            print(e)
-            print("##########################")
+            print(f"{val.Console.Red}##########################")
+            print(f"{val.Console.Red}ログファイルを開けません")
+            print(f"{val.Console.Red}{e}")
+            print(f"{val.Console.Red}##########################{val.Console.Reset}")
 
 
     @property
@@ -186,24 +186,41 @@ class Logger:
             is_print:bool,
             sep:str|None = " ",
             end:str|None = "\n",
-            out_file:bool|None = None
+            out_file:bool|None = None,
+            console:val.Console|list[val.Console]|str|None = None,
+            reset_console:bool=False,
             ) -> None:
+        con:str = ""
+        if isinstance(console, val.Console):
+            con = console.value
+        if isinstance(console, list):
+            con = "".join(map(lambda x: str(x.value), console))
+        elif isinstance(console, str):
+            con = console
+        if reset_console:
+            r_con = val.Console.Reset.value
+        else:
+            r_con = ""
+
         if obj and is_print:
-            print(str(obj), sep=sep, end=end)
+            print(f"{con}{obj}{r_con}", sep=sep, end=end)
         if not out_file is None and out_file:
             self.log(obj)
 
-    def print(self, obj:Any, sep:str|None=" ", end:str|None="\n", out_file:bool|None=None) -> None: self.__print(obj, True, sep=sep, end=end, out_file=out_file)
-    def info(self, obj:Any, sep:str|None=" ", end:str|None="\n", out_file:bool|None=None) -> None: self.__print(obj, self.is_min, sep=sep, end=end, out_file=out_file)
-    def notice(self, obj:Any, sep:str|None=" ", end:str|None="\n", out_file:bool|None=None) -> None: self.__print(obj, self.is_info, sep=sep, end=end, out_file=out_file)
-    def debug(self, obj:Any, sep:str|None=" ", end:str|None="\n", out_file:bool|None=None) -> None: self.__print(obj, self.is_debug, sep=sep, end=end, out_file=out_file)
-    def trace(self, obj:Any, sep:str|None=" ", end:str|None="\n", out_file:bool|None=None) -> None: self.__print(obj, self.is_trace, sep=sep, end=end, out_file=out_file)
+    def print(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|str|None=None, reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, True, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
+    def info(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|str|None=val.Console.Cyan, reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_min, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
+    def notice(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|str|None=None, reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_info, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
+    def debug(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|list[val.Console]|str|None=[val.Console.Yellow, val.Console.BackgroundBlack], reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_debug, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
+    def trace(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|list[val.Console]|str|None=[val.Console.Yellow, val.Console.BackgroundBlack, val.Console.UnderLine], reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_trace, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
 
-    def error(self, obj:Any, sep:str|None = " ", end:str|None = "\n") -> None:
+    def error(self, obj:Any, sep:str|None = " ", end:str|None = "\n", console:val.Console|str|None=None) -> None:
         '''
         標準出力とファイル両方にだす verbose >= min
         '''
-        self.info(self.__join(obj), sep, end, out_file=True)
+        _console = console
+        if _console is None:
+            _console = val.Console.Red
+        self.info(self.__join(obj), sep, end, out_file=True, console=_console, reset_console=True)
 
     def log(self, arg:object) -> None:
         '''
@@ -240,7 +257,6 @@ def db2rms(db:float, p0:float=1.) -> float:
     dB値をRMS値にする
     '''
     return (10 ** (db / 20)) * p0
-
 
 ilm_enviroment:Enviroment = Enviroment.init_system()
 ilm_logger:Logger = Logger.init_system(ilm_enviroment.verbose, ilm_enviroment.root)
