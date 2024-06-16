@@ -231,7 +231,7 @@ def main(
         if mp_mic is None and (not mic_name is None) and mic_name != "":
             mp_mic = src.mic.Mic.choice_mic(mic_name, mic_api)
             if mp_mic is None:
-                ilm_logger.info(f"マイク[{mic_name}]を検索しましたが見つかりませんでした")
+                ilm_logger.info(f"マイク[{mic_name}]を検索しましたが見つかりませんでした", console=val.Console.Red, reset_console=True)
                 ilm_logger.log("choice_mic() not found")
         mc = src.mic.Mic(
             sampling_rate,
@@ -248,8 +248,8 @@ def main(
             mp_recog_conf,
             mp_mic)
         ilm_logger.print(f"マイクは{mc.device_name}を使用します")
-        ilm_logger.debug(f"指定音圧閾値　 : {rms2db(mp_energy):.2f}")
-        ilm_logger.debug(f"現在の音圧閾値 : {rms2db(mc.current_param.energy_threshold):.2f}")
+        ilm_logger.debug(f"#指定音圧閾値　 : {rms2db(mp_energy):.2f}", reset_console=True)
+        ilm_logger.debug(f"#現在の音圧閾値 : {rms2db(mc.current_param.energy_threshold):.2f}", reset_console=True)
 
         if test == val.TEST_VALUE_MIC:
             main_test.run_mic(
@@ -305,7 +305,7 @@ def main(
                     parallel_max_duplex=google_duplex_parallel_max,
                     parallel_reduce_count_duplex=google_duplex_parallel_reduce_count),
             }[method]()
-            ilm_logger.debug(f"#認識モデルは{type(recognition_model)}を使用")
+            ilm_logger.debug(f"#認識モデルは{type(recognition_model)}を使用", reset_console=True)
 
             outputer:output.RecognitionOutputer = {
                 val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
@@ -313,7 +313,7 @@ def main(
                 val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}", lambda x: ilm_logger.info(x)),
                 val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}", lambda x: ilm_logger.info(x)),
             }[out]()
-            ilm_logger.debug(f"#出力は{type(outputer)}を使用")
+            ilm_logger.debug(f"#出力は{type(outputer)}を使用", reset_console=True)
 
             filters:list[NoiseFilter] = []
             if not disable_lpf:
@@ -328,9 +328,9 @@ def main(
                         sampling_rate,
                         filter_hpf_cutoff,
                         filter_hpf_cutoff_upper))        
-            ilm_logger.debug(f"#使用音声フィルタ({len(filters)}):")
+            ilm_logger.debug(f"#使用音声フィルタ({len(filters)}):", reset_console=True)
             for f in filters:
-               ilm_logger.debug(f"#{type(f)}")
+               ilm_logger.debug(f"#{type(f)}", reset_console=True)
 
             mic_ip = mc.initilaze_param
             mic_cp = mc.current_param

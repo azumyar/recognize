@@ -1,6 +1,7 @@
 """
 定数モジュール
 """
+from enum import Enum
 
 def __support_wisper() -> bool:
     try:
@@ -35,6 +36,71 @@ def __choice_method() -> list[str]:
         r.append(METHOD_VALUE_WHISPER_FASTER)
 
     return r + [METHOD_VALUE_GOOGLE, METHOD_VALUE_GOOGLE_DUPLEX, METHOD_VALUE_GOOGLE_MIX]
+
+class Console(Enum):
+    Bold = "\033[1m"
+    """太字"""
+    UnderLine = "\033[4m"
+    """下線"""
+    Invisible = "\033[08m"
+    """不可視"""
+
+    Black = "\033[30m"
+    """(文字色)黒"""
+    Red = "\033[31m"
+    """(文字色)赤"""
+    Green = "\033[32m"
+    """(文字色)緑"""
+    Yellow = "\033[33m"
+    """(文字色)黄"""
+    Blue = "\033[34m"
+    """(文字色)青"""
+    Magenta = "\033[35m"
+    """(文字色)マゼンタ"""
+    Cyan = "\033[36m"
+    """(文字色)シアン"""
+    White = "\033[37m"
+    """(文字色)白"""
+    DefaultColor  = "\033[39m"
+    """デフォルト文字色"""
+
+    BackgroundBlack = "\033[40m"
+    """(背景色)黒"""
+    BackgroundRed = "\033[41m"
+    """(背景色)赤"""
+    BackgroundGreen = "\033[42m"
+    """(背景色)緑"""
+    BackgroundYellow = "\033[43m"
+    """(背景色)黄"""
+    BackgroundBlue = "\033[44m"
+    """(背景色)青"""
+    BackgroundMagenta = "\033[45m"
+    """(背景色)マゼンタ"""
+    BackgroundCyan = "\033[46m"
+    """(背景色)シアン"""
+    BackgroundWhite = "\033[47m"
+    """(背景色)白"""
+    BackgroundDefaultColor = "\033[49m"
+    """背景色をデフォルトに戻す"""
+    Reset = "\033[0m"
+    """全てリセット"""
+
+    ReverseColor = "\033[07m"
+    """文字色と背景色を反転"""
+
+    @staticmethod
+    def foreground(r:int, g:int, b:int) -> str:
+        return f"\033[38;2;{r};{g};{b}m"
+    @staticmethod
+    def foreground_index(index:int) -> str:
+        return f"\033[38;5;{index}m"
+    @staticmethod
+    def background(r:int, g:int, b:int) -> str:
+        return f"\033[48;2;{r};{g};{b}m"
+    @staticmethod
+    def background_index(index:int) -> str:
+        return f"\033[48;5;{index}m"
+
 
 SUPPORT_LIB_WISPER = __support_wisper()
 SUPPORT_LIB_WISPER_FASTER = __support_wisper_faster()
