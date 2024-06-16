@@ -5,6 +5,7 @@
 実行ファイルは使用者の環境でビルドして作成する形になります。  
 build-all.batを実行してexeを作成してください。  
 バックエンドの実行オプションなどは[py-recognition配下のREADME.md](py-recognition/README.md)を参照してください。  
+※ビルド時exeを作成する都合上、4～5Gほど容量を使用します。実行するドライブの容量にお気を付けください。
 
 ## ビルドするためのソースコードの取得
 右上のコードボタンから[zip](https://gitlab.com/HARUKei66494739/recognize/-/archive/main/recognize-main.zip)をダウンロードできます。
