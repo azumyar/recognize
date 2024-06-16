@@ -19,6 +19,15 @@ def __support_wisper_faster() -> bool:
     else:
         return True
 
+def __support_wisper_kotoba() -> bool:
+    try:
+        from transformers import pipeline # type: ignore
+        import torch # type: ignore
+    except:
+        return False
+    else:
+        return True
+
 def __default_method_value() -> str:
     try:
         import faster_whisper # type: ignore
@@ -34,6 +43,8 @@ def __choice_method() -> list[str]:
         r.append(METHOD_VALUE_WHISPER)
     if SUPPORT_LIB_WISPER_FASTER:
         r.append(METHOD_VALUE_WHISPER_FASTER)
+    if SUPPORT_LIB_WISPER_KOTOBA:
+        r.append(METHOD_VALUE_WHISPER_KOTOBA)
 
     return r + [METHOD_VALUE_GOOGLE, METHOD_VALUE_GOOGLE_DUPLEX, METHOD_VALUE_GOOGLE_MIX]
 
@@ -104,7 +115,8 @@ class Console(Enum):
 
 SUPPORT_LIB_WISPER = __support_wisper()
 SUPPORT_LIB_WISPER_FASTER = __support_wisper_faster()
-SUPPORT_WISPER = SUPPORT_LIB_WISPER or SUPPORT_LIB_WISPER_FASTER
+SUPPORT_LIB_WISPER_KOTOBA = __support_wisper_kotoba()
+SUPPORT_WISPER = SUPPORT_LIB_WISPER or SUPPORT_LIB_WISPER_FASTER or SUPPORT_LIB_WISPER_KOTOBA
 
 VERBOSE_MIN = 0
 VERBOSE_INFO = 1
@@ -139,6 +151,7 @@ ARG_CHOICE_TEST = [
 
 METHOD_VALUE_WHISPER = "whisper"
 METHOD_VALUE_WHISPER_FASTER = "faster_whisper"
+METHOD_VALUE_WHISPER_KOTOBA = "kotoba_whisper"
 METHOD_VALUE_GOOGLE= "google"
 METHOD_VALUE_GOOGLE_DUPLEX = "google_duplex"
 METHOD_VALUE_GOOGLE_MIX = "google_mix"

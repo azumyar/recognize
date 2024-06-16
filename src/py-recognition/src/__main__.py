@@ -215,6 +215,7 @@ def main(
         mp_recog_conf:recognition.RecognizeMicrophoneConfig = {
             val.METHOD_VALUE_WHISPER: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
             val.METHOD_VALUE_WHISPER_FASTER: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
+            val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
             val.METHOD_VALUE_GOOGLE: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
             val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
             val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
@@ -278,6 +279,8 @@ def main(
                     device=whisper_device,
                     device_index=whisper_device_index,
                     download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
+                val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.RecognitionModelWhisperKotoba(
+                    device=whisper_device),
                 val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
                     sample_rate=sampling_rate,
                     sample_width=2,
