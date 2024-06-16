@@ -78,6 +78,15 @@ namespace Haru.Kei {
 				this.arg.ArgOut = "yukacone";
 				this.propertyGrid.Refresh();
 			};
+			this.micToolStripMenuItem.Click += (_, __) => {
+				this.arg.ArgMicDbThreshold = 49.54f;
+				this.arg.ArgMicAmbientNoiseToDB = true;
+				this.arg.ArgMicDynamicDB = true;
+				this.arg.ArgMicDynamicDBMin = 40.0f;
+				this.arg.ArgMicPharse = 0.3f;
+				this.arg.ArgMicPause = 0.4f;
+				this.propertyGrid.Refresh();
+			};
 
 			this.button.Click += (_, __) => {
 				this.SaveConfig(this.arg);
