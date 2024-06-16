@@ -24,6 +24,10 @@ recognize-gui.exeをダブルクリックで実行します。
 
 ![_](assets/kantan04.png)
 
+### google_duplexで認識失敗が多い方はgoogle_mixを使用してみてください
+複数のgoogle音声認識を組み合わせて認識率向上を図るモデルです！
+
+![_](assets/kantan04-2.png)
 
 ### \[ゆかりねっと限定\]外部連携の設定！
 ![_](assets/kantan05.png)
