@@ -19,11 +19,10 @@ recognize-gui.exeをダブルクリックで実行します。
 
 ![_](assets/kantan03.png)
 
-### google_duplexおすすめ設定！(2024/02/08時点)
-並列呼び出しをTrueにしておくと認識失敗がへりますよ！
+### 認識モデル
+認識モデルはプリセット選択後以下のように表示されていればOKです！
 
 ![_](assets/kantan04.png)
-
 
 ### \[ゆかりねっと限定\]外部連携の設定！
 ![_](assets/kantan05.png)
