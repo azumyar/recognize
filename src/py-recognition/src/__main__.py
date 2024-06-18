@@ -74,7 +74,7 @@ def __available_cuda() -> str:
 
 
 def __whiper_help(s:str) -> str:
-    if not val.SUPPORT_WISPER:
+    if not val.SUPPORT_WHISPER:
         return "サポートしていません"
     return s
 

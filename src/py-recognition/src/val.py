@@ -3,7 +3,7 @@
 """
 from enum import Enum
 
-def __support_wisper() -> bool:
+def __support_whisper() -> bool:
     try:
         import whisper # type: ignore
     except:
@@ -11,7 +11,7 @@ def __support_wisper() -> bool:
     else:
         return True
 
-def __support_wisper_faster() -> bool:
+def __support_whisper_faster() -> bool:
     try:
         import faster_whisper # type: ignore
     except:
@@ -19,7 +19,7 @@ def __support_wisper_faster() -> bool:
     else:
         return True
 
-def __support_wisper_kotoba() -> bool:
+def __support_whisper_kotoba() -> bool:
     try:
         from transformers import pipeline # type: ignore
         import torch # type: ignore
@@ -39,11 +39,11 @@ def __default_method_value() -> str:
 
 def __choice_method() -> list[str]:
     r = []
-    if SUPPORT_LIB_WISPER:
+    if SUPPORT_LIB_WHISPER:
         r.append(METHOD_VALUE_WHISPER)
-    if SUPPORT_LIB_WISPER_FASTER:
+    if SUPPORT_LIB_WHISPER_FASTER:
         r.append(METHOD_VALUE_WHISPER_FASTER)
-    if SUPPORT_LIB_WISPER_KOTOBA:
+    if SUPPORT_LIB_WHISPER_KOTOBA:
         r.append(METHOD_VALUE_WHISPER_KOTOBA)
 
     return r + [METHOD_VALUE_GOOGLE, METHOD_VALUE_GOOGLE_DUPLEX, METHOD_VALUE_GOOGLE_MIX]
@@ -113,10 +113,10 @@ class Console(Enum):
         return f"\033[48;5;{index}m"
 
 
-SUPPORT_LIB_WISPER = __support_wisper()
-SUPPORT_LIB_WISPER_FASTER = __support_wisper_faster()
-SUPPORT_LIB_WISPER_KOTOBA = __support_wisper_kotoba()
-SUPPORT_WISPER = SUPPORT_LIB_WISPER or SUPPORT_LIB_WISPER_FASTER or SUPPORT_LIB_WISPER_KOTOBA
+SUPPORT_LIB_WHISPER = __support_whisper()
+SUPPORT_LIB_WHISPER_FASTER = __support_whisper_faster()
+SUPPORT_LIB_WHISPER_KOTOBA = __support_whisper_kotoba()
+SUPPORT_WHISPER = SUPPORT_LIB_WHISPER or SUPPORT_LIB_WHISPER_FASTER or SUPPORT_LIB_WHISPER_KOTOBA
 
 VERBOSE_MIN = 0
 VERBOSE_INFO = 1
