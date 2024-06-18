@@ -17,8 +17,6 @@ import src.google_recognizers as google
 google.recognize_google = google.recognize_google_requests
 google.recognize_google_duplex = google.recognize_google_duplex_requests
 
-
-import sys
 import os
 def is_prod_or_debug() -> bool:
     '''
@@ -27,7 +25,8 @@ def is_prod_or_debug() -> bool:
     import sys
     return sys.argv[0] == "-m" or sys.argv[0].endswith(".exe")
 
-def __path() -> str:
+def _root_path() -> str:
+    import sys
     __is_exe = sys.argv[0].endswith(".exe")
     if __is_exe:
         proj_root = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -41,7 +40,7 @@ def __path() -> str:
             os.chdir(__root)
         return __root
 # kotoba-whisperのダウンロード設定をする
-os.environ["HUGGINGFACE_HUB_CACHE"] = f"{__path()}{os.sep}.cache"
+os.environ["HUGGINGFACE_HUB_CACHE"] = f"{_root_path()}{os.sep}.cache"
 
 from typing import Any, Callable, Iterable, Optional, NamedTuple, Literal
 import src.val as val
@@ -90,15 +89,7 @@ class Enviroment:
         import os
         self.__verbose = verbose
         self.__is_exe = sys.argv[0].endswith(".exe")
-        if self.__is_exe:
-            proj_root = os.path.dirname(os.path.abspath(sys.argv[0]))
-            self.__root = proj_root
-        else:
-            proj_root = f"{os.path.dirname(os.path.abspath(__file__))}{os.sep}.."
-            self.__root = f"{proj_root}{os.sep}.debug"
-            if is_prod_or_debug():
-                os.makedirs(self.__root, exist_ok=True)
-                os.chdir(self.__root)
+        self.__root = _root_path()
 
     @property
     def is_exe(self):
