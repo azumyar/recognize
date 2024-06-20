@@ -53,9 +53,7 @@ namespace Haru.Kei {
 			this.exitToolStripMenuItem.Click += (_, __) => this.Close();
 
 			this.whisperToolStripMenuItem.Click+= (_, __) => {
-				this.arg.ArgMethod = "faster_whisper";
-				this.arg.ArgWhisperModel = "medium";
-				this.arg.ArgWhisperLanguage = "ja";
+				this.arg.ArgMethod = "kotoba_whisper";
 				this.arg.ArgDisableLpf = null;
 				this.arg.ArgDisableHpf = null;
 				this.propertyGrid.Refresh();
