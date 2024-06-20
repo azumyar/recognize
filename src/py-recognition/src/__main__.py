@@ -125,9 +125,9 @@ def __whiper_help(s:str) -> str:
 @click.option("--out_yukacone",default=None, help="ゆかコネNEOの外部連携ポートを指定", type=int)
 @click.option("--out_illuminate",default=495134, help="-",type=int)
 
-@click.option("--filter_lpf_cutoff", default=200, help="ローパスフィルタのカットオフ周波数を設定", type=int)
+@click.option("--filter_lpf_cutoff", default=0, help="ローパスフィルタのカットオフ周波数を設定", type=int)
 @click.option("--filter_lpf_cutoff_upper", default=200, help="ローパスフィルタのカットオフ周波数(アッパー)を設定", type=int)
-@click.option("--filter_hpf_cutoff", default=200, help="ハイパスフィルタのカットオフ周波数を設定します", type=int)
+@click.option("--filter_hpf_cutoff", default=0, help="ハイパスフィルタのカットオフ周波数を設定します", type=int)
 @click.option("--filter_hpf_cutoff_upper", default=200, help="ハイパスフィルタのカットオフ周波数(アッパー)を設定", type=int)
 @click.option("--disable_lpf", default=False, help="ローパスフィルタを使用しません", is_flag=True, type=bool)
 @click.option("--disable_hpf", default=False, help="ハイパスフィルタを使用しません", is_flag=True, type=bool)

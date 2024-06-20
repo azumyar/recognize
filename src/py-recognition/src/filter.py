@@ -20,17 +20,18 @@ class LowPassFilter(NoiseFilter):
     def __init__(   
         self,
         sampling_rate:int,
-        cutoff:int=200,
+        cutoff:int=0,
         cutoff_upper:int=200) -> None:
         super().__init__(sampling_rate)
         self.__cutoff = cutoff
         self.__cutoff_upper = sampling_rate - cutoff_upper
 
     def filter(self, data:np.ndarray):
-        freq = np.fft.fftfreq(data.size, 1.0 / self.sampling_rate)
-        cutoff = self.__cutoff * np.pi / 2
-        cutoff_upper = self.__cutoff_upper * np.pi / 2 * -1
-        data[(freq > cutoff) | (freq < cutoff_upper)] = 0.0
+        pass
+        #freq = np.fft.fftfreq(data.size, 1.0 / self.sampling_rate)
+        #cutoff = self.__cutoff
+        #cutoff_upper = (1 / self.sampling_rate) - cutoff
+        #data[((freq > cutoff)&(freq < cutoff_upper))] = 0 + 0j
 
 class HighPassFilter(NoiseFilter):
     """
@@ -39,7 +40,7 @@ class HighPassFilter(NoiseFilter):
     def __init__(   
         self,
         sampling_rate:int,
-        cutoff:int=200,
+        cutoff:int=0,
         cutoff_upper:int=200) -> None:
         super().__init__(sampling_rate)
         self.__cutoff = cutoff
@@ -47,6 +48,6 @@ class HighPassFilter(NoiseFilter):
 
     def filter(self, data:np.ndarray):
         freq = np.fft.fftfreq(data.size, 1.0 / self.sampling_rate)
-        cutoff = self.__cutoff * np.pi / 2
-        cutoff_upper = self.__cutoff_upper * np.pi / 2 * -1
+        cutoff = self.__cutoff
+        cutoff_upper = (1 / self.sampling_rate) - cutoff
         data[((freq > 0) & (freq < cutoff)) | ((freq < 0) & (freq > -cutoff_upper))] = 0.0
