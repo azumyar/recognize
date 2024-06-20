@@ -11,7 +11,7 @@ if(-not($env:RECOGNIZE_WITHOUT_TORCH)) {
 	$REQUIREMENTS_FILE = "requirements.txt"
 } else {
 	echo torchを使用せずビルドします
-	Get-Content .\requirements.txt | foreach { $_ -replace "^(torch|faster-whisper).*$", "" } | Set-Content .\requirements-without_torch.txt
+	Get-Content .\requirements.txt | foreach { $_ -replace "^(torch|mkl|faster-whisper|accelerate|transformers).*$", "" } | Set-Content .\requirements-without_torch.txt
 	$REQUIREMENTS_FILE = "requirements-without_torch.txt"
 }
 

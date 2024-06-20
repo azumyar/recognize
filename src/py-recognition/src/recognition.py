@@ -191,6 +191,46 @@ else:
             return TranscribeResult("".join(c), segments)
 
 
+try:
+    from transformers import pipeline # type: ignore
+    import torch # type: ignore
+except:
+    pass
+else:
+    class RecognitionModelWhisperKotoba(RecognitionModel):
+        def __init__(self, device:str) -> None:
+            model_id = "kotoba-tech/kotoba-whisper-v1.0"
+            torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+            model_kwargs = {"attn_implementation": "sdpa"} if torch.cuda.is_available() else {}
+
+            self.__generate_kwargs = {"language": "japanese", "task": "transcribe"}
+            self.__pipe = pipeline(
+                "automatic-speech-recognition",
+                model = model_id,
+                torch_dtype = torch_dtype,
+                device = device,
+                model_kwargs = model_kwargs
+            )
+
+        @property
+        def required_sample_rate(self) -> int | None:
+            return 16000
+
+        def get_verbose(self, _:int) -> str | None:
+            return None
+
+        def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
+            reslut = self.__pipe(
+                audio_data.astype(np.float32) / float(np.iinfo(np.int16).max),
+                generate_kwargs = self.__generate_kwargs)
+            r = reslut["text"] #type: ignore
+            if isinstance(r, str):
+                return TranscribeResult(r, None)
+            if isinstance(r, list):
+                return TranscribeResult("".join(r), None)
+            raise ex.ProgramError(f"pipelineから意図しない戻り値型:{type(r)}")
+
+
 class RecognitionModelGoogleApi(RecognitionModel):
     """
     google系認識モデルの基底クラス    

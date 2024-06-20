@@ -87,31 +87,36 @@ def run(
         log_exception:Exception | None = None
         try:
             save_wav(record, index, data, mic.sample_rate, 2, logger)
-            if recognition_model.required_sample_rate is None or mic.sample_rate == recognition_model.required_sample_rate:
-                d = data
+            f_data = filter(np.frombuffer(data, np.int16).flatten()).astype(np.uint16, order="C")
+            sm = sum(f_data) / len(data) / 2
+            save_wav(record, index * -1, f_data.tobytes(), mic.sample_rate, 2, logger)
+            if sm < mic.current_param.energy_threshold:
+                logger.info(f"ノイズ判定", console=val.Console.Yellow, reset_console=True)
             else:
-                d, _ = audioop.ratecv(
-                    data,
-                    2, # sample_width
-                    1,
-                    mic.sample_rate,
-                    recognition_model.required_sample_rate,
-                    None)
-
-            r = performance(lambda: recognition_model.transcribe(filter(np.frombuffer(d, np.int16).flatten())))
-            assert(isinstance(r.result, recognition.TranscribeResult)) # ジェネリクス使った型定義の方法がわかってないのでassert置いて型を確定させる
-            if r.result.transcribe not in ["", " ", "\n", None]:
-                def green(o:object, dg:str = "") -> str:
-                    return f"{val.Console.Green.value}{o}{dg}{val.Console.Reset.value}"
-                if env.verbose == val.VERBOSE_INFO:
-                    logger.notice(f"#{index}", end=" ")
-                logger.notice(
-                    f"認識時間[{green(round(r.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(r.time/pcm_sec, 2), 'tps')}",
-                    end=": ",
-                    console=val.Console.DefaultColor)
-                outputer.output(r.result.transcribe)
-            if not r.result.extend_data is None:
-                logger.trace(f"${r.result.extend_data}")
+                if recognition_model.required_sample_rate is None or mic.sample_rate == recognition_model.required_sample_rate:
+                    d = f_data.tobytes()
+                else:
+                    d, _ = audioop.ratecv(
+                        f_data.tobytes(),
+                        2, # sample_width
+                        1,
+                        mic.sample_rate,
+                        recognition_model.required_sample_rate,
+                        None)                
+                r = performance(lambda: recognition_model.transcribe(np.frombuffer(d, np.int16).flatten()))
+                assert(isinstance(r.result, recognition.TranscribeResult)) # ジェネリクス使った型定義の方法がわかってないのでassert置いて型を確定させる
+                if r.result.transcribe not in ["", " ", "\n", None]:
+                    def green(o:object, dg:str = "") -> str:
+                        return f"{val.Console.Green.value}{o}{dg}{val.Console.Reset.value}"
+                    if env.verbose == val.VERBOSE_INFO:
+                        logger.notice(f"#{index}", end=" ")
+                    logger.notice(
+                        f"認識時間[{green(round(r.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(r.time/pcm_sec, 2), 'tps')}",
+                        end=": ",
+                        console=val.Console.DefaultColor)
+                    outputer.output(r.result.transcribe)
+                if not r.result.extend_data is None:
+                    logger.trace(f"${r.result.extend_data}")
         except recognition.TranscribeException as e:
             if env.verbose == val.VERBOSE_INFO:
                 logger.notice(f"#{index}", end=" ")
