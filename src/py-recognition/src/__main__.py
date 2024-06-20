@@ -74,7 +74,7 @@ def __available_cuda() -> str:
 
 
 def __whiper_help(s:str) -> str:
-    if not val.SUPPORT_WISPER:
+    if not val.SUPPORT_WHISPER:
         return "サポートしていません"
     return s
 
@@ -125,9 +125,9 @@ def __whiper_help(s:str) -> str:
 @click.option("--out_yukacone",default=None, help="ゆかコネNEOの外部連携ポートを指定", type=int)
 @click.option("--out_illuminate",default=495134, help="-",type=int)
 
-@click.option("--filter_lpf_cutoff", default=200, help="ローパスフィルタのカットオフ周波数を設定", type=int)
+@click.option("--filter_lpf_cutoff", default=0, help="ローパスフィルタのカットオフ周波数を設定", type=int)
 @click.option("--filter_lpf_cutoff_upper", default=200, help="ローパスフィルタのカットオフ周波数(アッパー)を設定", type=int)
-@click.option("--filter_hpf_cutoff", default=200, help="ハイパスフィルタのカットオフ周波数を設定します", type=int)
+@click.option("--filter_hpf_cutoff", default=0, help="ハイパスフィルタのカットオフ周波数を設定します", type=int)
 @click.option("--filter_hpf_cutoff_upper", default=200, help="ハイパスフィルタのカットオフ周波数(アッパー)を設定", type=int)
 @click.option("--disable_lpf", default=False, help="ローパスフィルタを使用しません", is_flag=True, type=bool)
 @click.option("--disable_hpf", default=False, help="ハイパスフィルタを使用しません", is_flag=True, type=bool)
@@ -215,6 +215,7 @@ def main(
         mp_recog_conf:recognition.RecognizeMicrophoneConfig = {
             val.METHOD_VALUE_WHISPER: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
             val.METHOD_VALUE_WHISPER_FASTER: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
+            val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
             val.METHOD_VALUE_GOOGLE: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
             val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
             val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
@@ -278,6 +279,8 @@ def main(
                     device=whisper_device,
                     device_index=whisper_device_index,
                     download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
+                val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.RecognitionModelWhisperKotoba(
+                    device=whisper_device),
                 val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
                     sample_rate=sampling_rate,
                     sample_width=2,

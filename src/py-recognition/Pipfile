@@ -24,6 +24,8 @@ requests = "*"
 faster-whisper = "*"
 #openai-whisper = {git = "git+https://github.com/openai/whisper.git"}
 #faster-whisper = {git = "git+https://github.com/guillaumekln/faster-whisper.git"}
+transformers = "*"
+accelerate = "*"
 
 [dev-packages]
 pyinstaller = "*"
