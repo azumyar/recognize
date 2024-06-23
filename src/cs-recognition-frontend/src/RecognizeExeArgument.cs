@@ -46,6 +46,7 @@ namespace Haru.Kei {
 					"",
 					// "whisper",
 					"faster_whisper",
+					"kotoba_whisper",
 					"google",
 					"google_duplex",
 					"google_mix",
@@ -144,7 +145,7 @@ namespace Haru.Kei {
 
 		[Category(categoryModel)]
 		[DisplayName("音声認識モデル(whisper)")]
-		[Description("ウィスパーの音声認識モデル")]
+		[Description("ウィスパーの音声認識モデル(kotoba_whisperは無視します)")]
 		[DefaultValue("")]
 		[TypeConverter(typeof(ArgWhisperModelConverter))]
 		[ArgAttribute("--whisper_model", TargetProperty = "ArgMethod", TargetValue = "whisper;faster_whisper")]
@@ -152,7 +153,7 @@ namespace Haru.Kei {
 
 		[Category(categoryModel)]
 		[DisplayName("音声認識言語(whisper)")]
-		[Description("whisperの音声認識言語")]
+		[Description("whisperの音声認識言語(kotoba_whisperは無視します)")]
 		[DefaultValue("")]
 		[TypeConverter(typeof(ArgWhisperLangConverter))]
 		[ArgAttribute("--whisper_language", TargetProperty = "ArgMethod", TargetValue = "whisper;faster_whisper")]
