@@ -1,4 +1,4 @@
-# recognize
+# ゆーかねすぴこれ(Yukarinette Speech Recognition)
 
 ## 概要
 ゆかりねっと-Yukarinette-の音声認識エンジンを別処理で認識させるためのツールです。  
@@ -24,6 +24,8 @@ build-all.batを実行してexeを作成してください。
 追加された認識モデルkotoba_whisperについてはこちら。  
 [認識モデル kotoba_whisper](docs/KOTOBA_WHISPER.md)
 
+## ドキュメント
+[作成中](docs/index.md)
 
 ## その他
 google認識を指定した場合別処理を経由しているとは言え最終的に認識させているエンジンはgoogleになります。  
