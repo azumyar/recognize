@@ -5,9 +5,8 @@
 実行ファイルは使用者の環境でビルドして作成する形になります。  
 build-all.batを実行してexeを作成してください。  
 バックエンドの実行オプションなどは[py-recognition配下のREADME.md](src/py-recognition/README.md)を参照してください。  
-※ビルド時exeを作成する都合上、<span style="color: red; ">4～5Gほど容量を使用します。</span>  
-※kotoba_whisperを使用する場合は<span style="color: red; ">容量合計10Gほど使用します。</span>  
-実行するドライブの容量にお気を付けください。
+※exeを作ったり音声認識モデルをDLしますので<span style="color: red; ">10GB程度の容量を使用します。</span>  
+　実行するドライブの容量にお気を付けください。
 
 ## ビルドするためのソースコードの取得
 右上のコードボタンから[zip](https://gitlab.com/HARUKei66494739/recognize/-/archive/main/recognize-main.zip)をダウンロードできます。
