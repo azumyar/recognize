@@ -89,7 +89,7 @@ def run(
             save_wav(record, index, data, mic.sample_rate, 2, logger)
             f_data = filter(np.frombuffer(data, np.int16).flatten()).astype(np.uint16, order="C")
             sm = sum(f_data) / len(data) / 2
-            save_wav(record, index * -1, f_data.tobytes(), mic.sample_rate, 2, logger)
+            #save_wav(record, index * -1, f_data.tobytes(), mic.sample_rate, 2, logger)
             if sm < mic.current_param.energy_threshold:
                 logger.info(f"ノイズ判定", console=val.Console.Yellow, reset_console=True)
             else:
