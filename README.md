@@ -1,4 +1,4 @@
-# ゆーかねすぴこれ(Yukarinette Speech Recognition)
+# ゆーかねすぴれこ(Yukarinette Speech Recognition)
 
 ## 概要
 ゆかりねっと-Yukarinette-の音声認識エンジンを別処理で認識させるためのツールです。  
