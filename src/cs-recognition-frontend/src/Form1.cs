@@ -55,14 +55,14 @@ namespace Haru.Kei {
 			this.whisperToolStripMenuItem.Click+= (_, __) => {
 				this.arg.ArgMethod = "kotoba_whisper";
 				this.arg.ArgDisableLpf = null;
-				this.arg.ArgDisableHpf = null;
+				this.arg.ArgHpfParamater = "";
 				this.propertyGrid.Refresh();
 			};
 			this.googleToolStripMenuItem.Click += (_, __) => {
 				this.arg.ArgMethod = "google_mix";
 				this.arg.ArgGoogleConvertSamplingRate = true;
 				this.arg.ArgDisableLpf = true;
-				this.arg.ArgDisableHpf = true;
+				this.arg.ArgHpfParamater = HpfArgGenerater.HpfParamater.無効.ToString();
 				this.propertyGrid.Refresh();
 			};
 			this.yukarinetteToolStripMenuItem.Click += (_, __) => {
