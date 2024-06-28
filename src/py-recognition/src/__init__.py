@@ -173,10 +173,10 @@ class Logger:
                     encoding="UTF-8",
                     newline="")
         except OSError as e:
-            print(f"{val.Console.Red}##########################")
-            print(f"{val.Console.Red}ログファイルを開けません")
-            print(f"{val.Console.Red}{e}")
-            print(f"{val.Console.Red}##########################{val.Console.Reset}")
+            print(f"{val.Console.Red.value}##########################")
+            print(f"{val.Console.Red.value}ログファイルを開けません")
+            print(f"{val.Console.Red.value}{e}")
+            print(f"{val.Console.Red.value}##########################{val.Console.Reset.value}")
 
 
     @property
