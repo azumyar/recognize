@@ -92,6 +92,20 @@ namespace Haru.Kei {
 			// 自由に編集して
 			public override bool GetStandardValuesExclusive(ITypeDescriptorContext context) { return false; }
 		}
+		
+
+		/// <summary>--outの選択一覧</summary>
+		class ArgHpfConverter : SelectableConverter<string> {
+			protected override string[] GetItems() {
+				return new[] {
+					"",
+					HpfArgGenerater.HpfParamater.無効.ToString(),
+					HpfArgGenerater.HpfParamater.弱い.ToString(),
+					HpfArgGenerater.HpfParamater.普通.ToString(),
+					HpfArgGenerater.HpfParamater.強め.ToString(),
+				};
+			}
+		}
 		/// <summary>--outの選択一覧</summary>
 		class ArgOutConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
@@ -361,8 +375,29 @@ namespace Haru.Kei {
 		[DefaultValue(null)]
 		[DisplayName("HPFを無効化")]
 		[Description("HPFフィルタを無効にする場合trueにします。google音声認識を使用する場合trueを推奨します")]
-		[ArgAttribute("--disable_hpf", IsFlag = true)]
-		public bool? ArgDisableHpf { get; set; }
+		//[ArgAttribute("--disable_hpf", IsFlag = true)]
+		[Browsable(false)]
+		[Save(IsSave = false)]
+		public bool? ArgDisableHpf {
+			get {
+				return null;
+			}
+			set {
+				if(value.HasValue) {
+					if(value.Value) {
+						this.ArgHpfParamater = HpfArgGenerater.HpfParamater.無効.ToString();
+					}
+				}
+			}
+		}
+
+		[Category(categoryFilter)]
+		[DefaultValue("")]
+		[DisplayName("HPFの設定")]
+		[Description("HPFフィルタの強度を設定します。google音声認識を使用する場合無効を推奨します")]
+		[ArgAttribute("", IsFlag = true, Generater = typeof(HpfArgGenerater))]
+		[TypeConverter(typeof(ArgHpfConverter))]
+		public string ArgHpfParamater { get; set; }
 
 		[DisplayName("ログレベル")]
 		[Description("コンソールに出すログ出力レベルを設定します")]
@@ -509,6 +544,10 @@ namespace Haru.Kei {
 
 	}
 
+	interface IArgGeneratable {
+		string Generate(object o, RecognizeExeArgument arg);
+	}
+
 	/// <summary>プロパティを保存するかコントロールする</summary>
 	[AttributeUsage(AttributeTargets.Property)]
 	class SaveAttribute : Attribute {
@@ -530,6 +569,8 @@ namespace Haru.Kei {
 		public char TargetValueSplit = ';';
 		/// <summary>TargetValueの大文字小文字を無視</summary>
 		public bool IgnoreCase = false;
+		/// <summary>カスタム引数ジェネレータ</summary>
+		public Type Generater = null;
 
 		public ArgAttribute(string arg) {
 			this.arg = arg;
@@ -544,7 +585,16 @@ namespace Haru.Kei {
 						goto end;
 					}
 				}
-				if(IsFlag) {
+				if(Generater != null) {
+					var c = Generater.GetConstructor(new Type[0]);
+					if(c != null) {
+						var gen = c.Invoke(null) as IArgGeneratable;
+						if(gen != null) {
+							return gen.Generate(v, arg);
+						}
+					}
+					throw new ArgumentException();
+				} else if(IsFlag) {
 					if(v is bool && (bool)v) {
 						return this.arg;
 					}
@@ -557,4 +607,30 @@ namespace Haru.Kei {
 		}
 	}
 
+	class HpfArgGenerater : IArgGeneratable {
+		public enum HpfParamater {
+			無効,
+			弱い,
+			普通,
+			強め
+		}
+
+		public string Generate(object o, RecognizeExeArgument arg) {
+			var v = o as string;
+			if(v != null) {
+				if(v == HpfParamater.無効.ToString()) {
+					return "--disable_hpf";
+				} else if(v == HpfParamater.弱い.ToString()) {
+					return "--filter_hpf_cutoff_upper \"80\"";
+				} else if(v == HpfParamater.普通.ToString()) {
+					return "--filter_hpf_cutoff_upper \"120\"";
+				} else if(v == HpfParamater.強め.ToString()) {
+					return "--filter_hpf_cutoff_upper \"200\"";
+				}
+				return "";
+			}
+
+			throw new ArgumentException();
+		}
+	}
 }
