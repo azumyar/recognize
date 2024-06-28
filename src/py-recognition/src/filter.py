@@ -49,5 +49,6 @@ class HighPassFilter(NoiseFilter):
     def filter(self, data:np.ndarray):
         freq = np.fft.fftfreq(data.size, 1.0 / self.sampling_rate)
         cutoff = self.__cutoff
-        cutoff_upper = (1 / self.sampling_rate) - cutoff
+        cutoff_upper = self.__cutoff_upper
+        #cutoff_upper = (1 / self.sampling_rate) - cutoff
         data[((freq > 0) & (freq < cutoff)) | ((freq < 0) & (freq > -cutoff_upper))] = 0.0
