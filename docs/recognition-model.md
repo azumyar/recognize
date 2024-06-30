@@ -1,6 +1,6 @@
 # 認識モデル
 
-ゆーかねすぴこれはwhisper系のAI音声認識とgoogle音声認識の2系統の音声認識を扱えます。
+ゆーかねすぴれこはwhisper系のAI音声認識とgoogle音声認識の2系統の音声認識を扱えます。
 
 ## whisper系
 ローカルで音声認識を行います。CPUでも動作しますが、実用にはCUDAが使えるGPUが必要です。  
@@ -11,6 +11,7 @@ openai/whisperです。(ビルド構成ファイルを手動で変更しない�
 
 ### faster_whisper [LINK](https://github.com/SYSTRAN/faster-whisper)
 openai/whisperの高速な実装faster-whisperです。large-v3は高い認識精度を誇りますがその分高性能なGPUは必要です。
+使用のおすすめしません
 
 ### kotoba_whisper [LINK](https://huggingface.co/kotoba-tech/kotoba-whisper-v1.0/)
 distil-whisperの日本語限定実装kotoba-whisperです。日本語限定のためfaster_whisperより省メモリで動作します。おすすめです。  
