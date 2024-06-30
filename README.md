@@ -6,7 +6,9 @@
 build-all.batを実行してexeを作成してください。  
 バックエンドの実行オプションなどは[py-recognition配下のREADME.md](src/py-recognition/README.md)を参照してください。  
 ※exeを作ったり音声認識モデルをDLしますので<span style="color: red; ">10GB程度の容量を使用します。</span>  
-　実行するドライブの容量にお気を付けください。
+実行するドライブの容量にお気を付けください。
+
+<span style="color: red; ">本ソフトを更新する際はファイルを新たにDLして上書きするか古いフォルダを削除して再ビルドを行ってください。</span>
 
 ## ビルドするためのソースコードの取得
 右上のコードボタンから[zip](https://gitlab.com/HARUKei66494739/recognize/-/archive/main/recognize-main.zip)をダウンロードできます。
