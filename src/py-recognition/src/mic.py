@@ -165,14 +165,14 @@ class Recognizer(sr.Recognizer):
                 min(map(lambda x: x[1], b)))
 
         def gen_fade(buffer:bytes, duration:float) -> bytes | bytearray:
-            def fade(i): return int((mx - i) / mx * last)
+            def fade(i): return 0 #int((mx - i) / mx * last)
             last:int
             mx = math.ceil(source.SAMPLE_RATE * duration)
 
             assert source.SAMPLE_WIDTH in [2, 3]
             if source.SAMPLE_WIDTH == 2:
-                l, u = buffer[len(buffer) - 2], buffer[len(buffer) - 1]
-                last = l | (u << 8)
+                l, u = int(buffer[len(buffer) - 2]), int(buffer[len(buffer) - 1])
+                last = l | (u << 8) & 0xffff # 大きな値になることがあるので一度保留
                 return numpy.array(list(map(fade, range(mx))), numpy.uint16).tobytes("C")
             elif source.SAMPLE_WIDTH == 3:
                 # 使わないけど一応作っておく
