@@ -55,9 +55,11 @@ def run(
                 for f in filters:
                     f.filter(fft)
                 return np.real(np.fft.ifft(fft))
+
         class PerformanceResult(NamedTuple):
             result:Any
             time:float
+
         def performance(func:Callable[[], Any]) ->  PerformanceResult:
             """
             funcを実行した時間を計測
@@ -66,6 +68,7 @@ def run(
             start = time.perf_counter() 
             r = func()
             return PerformanceResult(r, time.perf_counter()-start)
+
         log_mic_info = mic.current_param
         log_info_mic = f"current energy_threshold = {log_mic_info.energy_threshold}"
         log_info_recognition = recognition_model.get_log_info()
@@ -87,17 +90,20 @@ def run(
         log_exception:Exception | None = None
         try:
             save_wav(record, index, data, mic.sample_rate, 2, logger)
-            f_data = filter(np.frombuffer(data, np.int16).flatten()).astype(np.uint16, order="C")
-            sm = sum(f_data) / len(data) / 2
+            f_data = data
+            #f_data = filter(np.frombuffer(data, np.int16).flatten()).astype(np.uint16, order="C")
+            #sm = sum(f_data) / len(data) / 2
             #save_wav(record, index * -1, f_data.tobytes(), mic.sample_rate, 2, logger)
-            if sm < mic.current_param.energy_threshold:
-                logger.info(f"ノイズ判定", console=val.Console.Yellow, reset_console=True)
+            #if sm < mic.current_param.energy_threshold:
+            #    logger.info(f"ノイズ判定", console=val.Console.Yellow, reset_console=True)
+            if False:
+                pass
             else:
                 if recognition_model.required_sample_rate is None or mic.sample_rate == recognition_model.required_sample_rate:
-                    d = f_data.tobytes()
+                    d = f_data
                 else:
                     d, _ = audioop.ratecv(
-                        f_data.tobytes(),
+                        f_data,
                         2, # sample_width
                         1,
                         mic.sample_rate,

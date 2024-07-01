@@ -211,6 +211,23 @@ def main(
         sampling_rate = src.mic.Mic.update_sample_rate(mic, mic_sampling_rate) #16000
         rec = Record(record, record_file, record_directory)
 
+        # マイクにフィルタを渡すので先に用意
+        filter_highPass:NoiseFilter | None = None
+        filters:list[NoiseFilter] = []
+        # LPFは動いてないので加えない
+        #if not disable_lpf:
+        #    filters.append(
+        #        LowPassFilter(
+        #            sampling_rate,
+        #            filter_lpf_cutoff,
+        #            filter_lpf_cutoff_upper))
+        if not disable_hpf:
+            filter_highPass = HighPassFilter(
+                sampling_rate,
+                filter_hpf_cutoff,
+                filter_hpf_cutoff_upper)
+            filters.append(filter_highPass)
+
         ilm_logger.print("マイクの初期化")
         mp_recog_conf:recognition.RecognizeMicrophoneConfig = {
             val.METHOD_VALUE_WHISPER: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
@@ -247,6 +264,7 @@ def main(
             mic_non_speaking,
             mic_listen_interval,
             mp_recog_conf,
+            filter_highPass,
             mp_mic)
         ilm_logger.print(f"マイクは{mc.device_name}を使用します")
         ilm_logger.debug(f"#指定音圧閾値　 : {rms2db(mp_energy):.2f}", reset_console=True)
@@ -317,20 +335,7 @@ def main(
                 val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}", lambda x: ilm_logger.info(x)),
             }[out]()
             ilm_logger.debug(f"#出力は{type(outputer)}を使用", reset_console=True)
-
-            filters:list[NoiseFilter] = []
-            if not disable_lpf:
-                filters.append(
-                    LowPassFilter(
-                        sampling_rate,
-                        filter_lpf_cutoff,
-                        filter_lpf_cutoff_upper))
-            if not disable_hpf:
-                filters.append(
-                    HighPassFilter(
-                        sampling_rate,
-                        filter_hpf_cutoff,
-                        filter_hpf_cutoff_upper))        
+     
             ilm_logger.debug(f"#使用音声フィルタ({len(filters)}):", reset_console=True)
             for f in filters:
                ilm_logger.debug(f"#{type(f)}", reset_console=True)
