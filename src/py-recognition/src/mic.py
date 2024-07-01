@@ -8,6 +8,7 @@ from typing import Any, Callable, Deque, NamedTuple
 
 import src.recognition as recognition
 import src.exception as ex
+import src.filter as filter
 import src.val as val
 from src.cancellation import CancellationObject
 
@@ -42,6 +43,7 @@ class Recognizer(sr.Recognizer):
         self.dynamic_energy_min:float = 100.0
         self.is_tail_cut = False
         self.delay_duration = 0.
+        self.filter_highPass:filter.NoiseFilter|None = None
         '''adjust_for_ambient_noise()およびdynamic_energy_thresholdがTrueの場合energy_thresholdがとる最低の値'''
 
     def adjust_for_ambient_noise(self, source:sr.AudioSource, duration:float=1.0) -> None:
@@ -78,6 +80,8 @@ class Recognizer(sr.Recognizer):
             if snowboy_configuration is None:
                 # store audio input until the phrase starts
                 while True:
+                    time.sleep(0.01)
+
                     # handle waiting too long for phrase by raising an exception
                     elapsed_time += seconds_per_buffer
                     if timeout and elapsed_time > timeout:
@@ -85,6 +89,7 @@ class Recognizer(sr.Recognizer):
 
                     buffer = source.stream.read(source.CHUNK)
                     if len(buffer) == 0: break  # reached end of the stream
+                    buffer = self.filter(buffer)
                     energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # energy of the audio signal
                     frames.append((buffer, energy))
                     if len(frames) > non_speaking_buffer_count:  # ensure we only keep the needed amount of non-speaking buffers
@@ -117,6 +122,7 @@ class Recognizer(sr.Recognizer):
 
                 buffer = source.stream.read(source.CHUNK)
                 if len(buffer) == 0: break  # reached end of the stream
+                buffer = self.filter(buffer)
                 energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # unit energy of the audio signal within the buffer
                 frames.append((buffer, energy))
                 phrase_count += 1
@@ -128,11 +134,11 @@ class Recognizer(sr.Recognizer):
                     pause_count += 1
                 if pause_count > pause_buffer_count:  # end of the phrase
                     break
+                time.sleep(0.01)
 
             # check how long the detected phrase is, and retry listening if the phrase is too short
             phrase_count -= pause_count  # exclude the buffers for the pause before the phrase
             if phrase_count >= phrase_buffer_count or len(buffer) == 0: break  # phrase is long enough or we've reached the end of the stream, so stop listening
-            time.sleep(0.01)
 
         def eng(buf:Deque[tuple[bytes, float]], threshold:float) -> ListenEnergy:
             top = None
@@ -159,15 +165,15 @@ class Recognizer(sr.Recognizer):
                 min(map(lambda x: x[1], b)))
 
         def gen_fade(buffer:bytes, duration:float) -> bytes | bytearray:
-            def fade(i): return int((mx - i) / mx * last)
+            def fade(i): return 0 #int((mx - i) / mx * last)
             last:int
             mx = math.ceil(source.SAMPLE_RATE * duration)
 
             assert source.SAMPLE_WIDTH in [2, 3]
             if source.SAMPLE_WIDTH == 2:
-                l, u = buffer[len(buffer) - 2], buffer[len(buffer) - 1]
-                last = l | (u << 8)
-                return numpy.array(list(map(fade, range(mx))), numpy.int16).tobytes("C")
+                l, u = int(buffer[len(buffer) - 2]), int(buffer[len(buffer) - 1])
+                last = l | (u << 8) & 0xffff # 大きな値になることがあるので一度保留
+                return numpy.array(list(map(fade, range(mx))), numpy.uint16).tobytes("C")
             elif source.SAMPLE_WIDTH == 3:
                 # 使わないけど一応作っておく
                 l, m, u = buffer[len(buffer) - 3], buffer[len(buffer) - 2], buffer[len(buffer) - 1]
@@ -191,10 +197,15 @@ class Recognizer(sr.Recognizer):
     @property
     def end_insert_sec(self) -> float:
         return self.delay_duration
-        if Recognizer.__PAPUSE_MIN_THREHOLD <= self.pause_threshold:
-            return 0.0
+
+    def filter(self, buffer:bytes) -> bytes:
+        import numpy as np
+        if self.filter_highPass is None:
+            return buffer
         else:
-            return 0.25
+            fft = np.fft.fft(np.frombuffer(buffer, np.int16).flatten())
+            self.filter_highPass.filter(fft)
+            return np.real(np.fft.ifft(fft)).astype(np.uint16, order="C").tobytes()
 
 class MicParamObject(NamedTuple):
     device_index:int|None
@@ -234,6 +245,7 @@ class Mic:
         non_speaking:float | None,
         listen_interval:float,
         recoginize_config:recognition.RecognizeMicrophoneConfig,
+        filter_highPass:filter.NoiseFilter|None,
         mic_index:int | None) -> None:
 
         def check_mic(audio, mic_index:int, sample_rate:int):
@@ -291,6 +303,7 @@ class Mic:
         self.__non_speaking = non_speaking
         self.__listen_timeout = listen_interval
         self.__recoginize_config = recoginize_config
+        self.__filter_highPass = filter_highPass
 
         self.__sample_rate = sample_rate
         self.__audio_queue = queue.Queue()
@@ -304,7 +317,8 @@ class Mic:
             dynamic_energy_min,
             phrase,
             non_speaking,
-            recoginize_config)
+            recoginize_config,
+            filter_highPass)
 
         if ambient_noise_to_energy:
             with self.__source as mic:
@@ -329,7 +343,8 @@ class Mic:
         dynamic_energy_min:float,
         phrase:float | None,
         non_speaking:float | None,
-        recoginize_config:recognition.RecognizeMicrophoneConfig) -> Recognizer:
+        recoginize_config:recognition.RecognizeMicrophoneConfig,
+        filter_highPass:filter.NoiseFilter|None) -> Recognizer:
 
         r = Recognizer()
         r.energy_threshold = energy
@@ -348,6 +363,7 @@ class Mic:
             r.dynamic_energy_adjustment_damping = dynamic_energy_adjustment_damping
         r.dynamic_energy_min = dynamic_energy_min
         r.delay_duration = recoginize_config.delay_duration
+        r.filter_highPass = filter_highPass
         return r
 
     @staticmethod
