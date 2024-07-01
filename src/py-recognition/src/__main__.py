@@ -221,7 +221,7 @@ def main(
         #            sampling_rate,
         #            filter_lpf_cutoff,
         #            filter_lpf_cutoff_upper))
-        if not disable_hpf:
+        if not disable_hpf and filter_hpf_cutoff < filter_hpf_cutoff_upper:
             filter_highPass = HighPassFilter(
                 sampling_rate,
                 filter_hpf_cutoff,
