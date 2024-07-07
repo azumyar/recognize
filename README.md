@@ -20,7 +20,9 @@ build-all.batを実行してexeを作成できます。
 詳しくは画像付きの[画像たくさん簡単スタート](docs/KANTAN.md)を用意しました。まずはこちらも見てみてね。
 
 ## アップデート
-srcとbinを削除してアーカイブから上書き更新した後build-all.batを再度実行してください。
+srcとbinを削除してアーカイブから上書き更新した後build-all.batを再度実行してください。  
+
+![_](docs/assets/update.png)
 
 ## ドキュメント
 [作成中](docs/index.md)
