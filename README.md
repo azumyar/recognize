@@ -7,7 +7,7 @@
 認識エンジンはwhisperとgoogleを選択できます。  
 追加された認識モデルkotoba_whisperについては[こちら](docs/KOTOBA_WHISPER.md)。
 
-何が違うのか[概要図](docs/Overview.md)をご確認ください。
+何が違うのか比べてみたので[これ見て！](docs/Overview.md)
 
 ## 動作環境
 Windows 10/11  
