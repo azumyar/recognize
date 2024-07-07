@@ -4,8 +4,10 @@
 ゆかりねっと-Yukarinette-の音声認識エンジンを別処理で認識させるためのツールです。  
 実行ファイルは使用者の環境でビルドして作成する形になります。
 
-認識エンジンはwhisperとgoogleを選択できます。
+認識エンジンはwhisperとgoogleを選択できます。  
 追加された認識モデルkotoba_whisperについては[こちら](docs/KOTOBA_WHISPER.md)。
+
+何が違うのか[概要図](docs/Overview.md)をご確認ください。
 
 ## 動作環境
 Windows 10/11  
@@ -29,3 +31,5 @@ srcとbinを削除してアーカイブから上書き更新した後build-all.b
 ## その他
 [FAQ](docs/FAQ.md)あります。  
 バックエンドの実行オプションなどは[py-recognition配下のREADME.md](src/py-recognition/README.md)を参照してください。  
+
+ゆかりねっと-Yukarinette-はおかゆぅさん氏のソフトウェアです。→[リンク](http://www.okayulu.moe/)
