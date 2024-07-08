@@ -103,7 +103,7 @@ def __whiper_help(s:str) -> str:
 @click.option("--mic_ambient_noise_to_energy", default=None, help="互換性のため残されています", is_flag=True, type=bool)
 @click.option("--mic_dynamic_energy", default=None, is_flag=True, help="互換性のため残されています", type=bool)
 @click.option("--mic_dynamic_energy_ratio", default=None, help="互換性のため残されています", type=float)
-@click.option("--mic_dynamic_energy_adjustment_damping", default=None, help="-", type=float)
+@click.option("--mic_dynamic_energy_adjustment_damping", default=None, help="互換性のため残されています", type=float)
 @click.option("--mic_dynamic_energy_min", default=None, help="互換性のため残されています", type=float)
 
 @click.option("--mic_db_threshold", default=rms2db(300), help="設定した値より小さい音を無言として扱う閾値", type=float)
@@ -125,11 +125,11 @@ def __whiper_help(s:str) -> str:
 @click.option("--out_yukacone",default=None, help="ゆかコネNEOの外部連携ポートを指定", type=int)
 @click.option("--out_illuminate",default=495134, help="-",type=int)
 
-@click.option("--filter_lpf_cutoff", default=0, help="ローパスフィルタのカットオフ周波数を設定", type=int)
-@click.option("--filter_lpf_cutoff_upper", default=200, help="ローパスフィルタのカットオフ周波数(アッパー)を設定", type=int)
-@click.option("--filter_hpf_cutoff", default=0, help="ハイパスフィルタのカットオフ周波数を設定します", type=int)
+@click.option("--filter_lpf_cutoff", default=0, help="動作しません", type=int)
+@click.option("--filter_lpf_cutoff_upper", default=200, help="動作しません", type=int)
+@click.option("--filter_hpf_cutoff", default=0, help="動作しません", type=int)
 @click.option("--filter_hpf_cutoff_upper", default=200, help="ハイパスフィルタのカットオフ周波数(アッパー)を設定", type=int)
-@click.option("--disable_lpf", default=False, help="ローパスフィルタを使用しません", is_flag=True, type=bool)
+@click.option("--disable_lpf", default=False, help="動作しません", is_flag=True, type=bool)
 @click.option("--disable_hpf", default=False, help="ハイパスフィルタを使用しません", is_flag=True, type=bool)
 
 @click.option("--print_mics", help="マイクデバイスの一覧をプリント", is_flag=True, callback=print_mics, expose_value=False, is_eager=True)
@@ -224,7 +224,6 @@ def main(
         if not disable_hpf and filter_hpf_cutoff < filter_hpf_cutoff_upper:
             filter_highPass = HighPassFilter(
                 sampling_rate,
-                filter_hpf_cutoff,
                 filter_hpf_cutoff_upper)
             filters.append(filter_highPass)
 
