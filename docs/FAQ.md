@@ -26,9 +26,10 @@
 設定した後ファイル→マイクテストでテストを起動してしゃべり終わったタイミングで認識修了が表示されるか確認してください。  
 しゃべり終わっても認識が続いている場合は雑音を拾っています。  
 
-## --method googleとgoogle_duplexは何が違いますか？
+## 認識モデルのgoogle、google_duplex、google_mixは何が違いますか？
 google : speech_recognition実装の移植  
 google_duplex : chromium実装の移植  
+google_mix : googleとgoogle_duplexを併用して認識精度を高めます
 
 ## 音声認識ランチャーのマイク一覧が出てきませんor音声認識ランチャーが立ち上がってきません
 これらはアンチウィルスソフトが悪さをしている可能性があります。  
