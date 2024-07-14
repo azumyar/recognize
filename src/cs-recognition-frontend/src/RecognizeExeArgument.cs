@@ -117,6 +117,20 @@ namespace Haru.Kei {
 				};
 			}
 		}
+
+		/// <summary>--filter_vadの選択一覧</summary>
+		class ArgVadConverter : SelectableConverter<string> {
+			protected override string[] GetItems() {
+				return new[] {
+					"",
+					"0",
+					"1",
+					"2",
+					"3",
+				};
+			}
+		}
+
 		/// <summary>--verboseの選択一覧</summary>
 		class ArgVerboseConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
@@ -395,11 +409,19 @@ namespace Haru.Kei {
 
 		[Category(categoryFilter)]
 		[DefaultValue("")]
-		[DisplayName("HPFの設定")]
+		[DisplayName("HPFの強度")]
 		[Description("HPFフィルタの強度を設定します。google音声認識を使用する場合無効を推奨します")]
 		[ArgAttribute("", IsFlag = true, Generater = typeof(HpfArgGenerater))]
 		[TypeConverter(typeof(ArgHpfConverter))]
 		public string ArgHpfParamater { get; set; }
+
+		[Category(categoryFilter)]
+		[DisplayName("VADの強度")]
+		[Description("VADフィルタの強度を設定します。数値が大きくなるほど積極的にノイズ判定します")]
+		[DefaultValue("")]
+		[TypeConverter(typeof(ArgVadConverter))]
+		[ArgAttribute("--filter_vad")]
+		public string ArgVadParamater { get; set; }
 
 		[DisplayName("ログレベル")]
 		[Description("コンソールに出すログ出力レベルを設定します")]
@@ -621,13 +643,13 @@ namespace Haru.Kei {
 			var v = o as string;
 			if(v != null) {
 				if(v == HpfParamater.無効.ToString()) {
-					return "--disable_hpf";
+					return "";
 				} else if(v == HpfParamater.弱い.ToString()) {
-					return "--filter_hpf_cutoff_upper \"80\"";
+					return "--filter_hpf \"80\"";
 				} else if(v == HpfParamater.普通.ToString()) {
-					return "--filter_hpf_cutoff_upper \"120\"";
+					return "--filter_hpf \"120\"";
 				} else if(v == HpfParamater.強め.ToString()) {
-					return "--filter_hpf_cutoff_upper \"200\"";
+					return "--filter_hpf \"200\"";
 				}
 				return "";
 			}
