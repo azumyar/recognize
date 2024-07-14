@@ -5,7 +5,7 @@
 
 # 各機能の詳細な説明
 - [認識モデル](recognition-model.md)
-- マイク
+- [マイク](mic.md)
 - 出力
 - [フィルタ](filter.md)
 
