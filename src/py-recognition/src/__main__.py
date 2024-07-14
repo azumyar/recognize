@@ -185,8 +185,6 @@ def main(
     filter_lpf:Optional[int],
     filter_hpf:Optional[int],
     filter_vad:Optional[str],
-    disable_lpf:bool,
-    disable_hpf:bool,
     verbose:str,
     log_file:str,
     log_directory:Optional[str],
