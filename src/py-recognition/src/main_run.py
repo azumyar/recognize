@@ -22,14 +22,17 @@ import src.google_recognizers as google
 import src.exception
 from src.cancellation import CancellationObject
 from src.main_common import Record, save_wav
-from src.filter import NoiseFilter
+from src.filter import VoiceActivityDetectorFilter
+
+class VadException(Exception):
+    pass
 
 def run(
     mic:src.mic.Mic,
     recognition_model:recognition.RecognitionModel,
     outputer:output.RecognitionOutputer,
-    filters:list[NoiseFilter],
     record:Record,
+    vad_filter:VoiceActivityDetectorFilter | None,
     env:Enviroment,
     cancel:CancellationObject,
     is_test:bool,
@@ -44,18 +47,6 @@ def run(
         """
         マイク認識データが返るコールバック関数
         """
-        def filter(ary:np.ndarray) -> np.ndarray:
-            """
-            フィルタ処理をする
-            """
-            if len(filters) == 0:
-                return ary
-            else:
-                fft = np.fft.fft(ary)
-                for f in filters:
-                    f.filter(fft)
-                return np.real(np.fft.ifft(fft))
-
         class PerformanceResult(NamedTuple):
             result:Any
             time:float
@@ -100,6 +91,10 @@ def run(
                     mic.sample_rate,
                     recognition_model.required_sample_rate,
                     None)                
+
+            if not vad_filter is None and not vad_filter.check(d):
+                raise(VadException())
+
             r = performance(lambda: recognition_model.transcribe(np.frombuffer(d, np.int16).flatten()))
             assert(isinstance(r.result, recognition.TranscribeResult)) # ジェネリクス使った型定義の方法がわかってないのでassert置いて型を確定させる
             if r.result.transcribe not in ["", " ", "\n", None]:
@@ -114,6 +109,9 @@ def run(
                 outputer.output(r.result.transcribe)
             if not r.result.extend_data is None:
                 logger.trace(f"${r.result.extend_data}")
+        except VadException as e:
+            logger.notice(f"#{index} {val.Console.Yellow.value}声未検出", reset_console=True)
+            log_exception = e
         except recognition.TranscribeException as e:
             if env.verbose == val.VERBOSE_INFO:
                 logger.notice(f"#{index}", end=" ")
