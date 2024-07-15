@@ -54,7 +54,6 @@ namespace Haru.Kei {
 
 			this.whisperToolStripMenuItem.Click+= (_, __) => {
 				this.arg.ArgMethod = "kotoba_whisper";
-				this.arg.ArgDisableLpf = null;
 				this.arg.ArgHpfParamater = HpfArgGenerater.HpfParamater.強め.ToString();
 				this.arg.ArgVadParamater = "0";
 				this.propertyGrid.Refresh();
@@ -62,7 +61,6 @@ namespace Haru.Kei {
 			this.googleToolStripMenuItem.Click += (_, __) => {
 				this.arg.ArgMethod = "google_mix";
 				this.arg.ArgGoogleConvertSamplingRate = true;
-				this.arg.ArgDisableLpf = true;
 				this.arg.ArgHpfParamater = HpfArgGenerater.HpfParamater.無効.ToString();
 				this.arg.ArgVadParamater = "";
 				this.propertyGrid.Refresh();
