@@ -380,14 +380,6 @@ namespace Haru.Kei {
 		public int? ArgOutYukacone { get; set; }
 
 		[Category(categoryFilter)]
-		[DisplayName("LPFを無効化")]
-		[DefaultValue(null)]
-		[Description("LPFフィルタを無効にする場合trueにします。google音声認識を使用する場合trueを推奨します")]
-		[ArgAttribute("--disable_lpf", IsFlag = true)]
-		[Browsable(false)] // 使っていないので表示しない
-		[Save(IsSave = true)] // 一応保存はする
-		public bool? ArgDisableLpf { get; set; }
-		[Category(categoryFilter)]
 		[DefaultValue(null)]
 		[DisplayName("HPFを無効化")]
 		[Description("HPFフィルタを無効にする場合trueにします。google音声認識を使用する場合trueを推奨します")]
