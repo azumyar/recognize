@@ -23,11 +23,13 @@ echo pythonのインストール確認
 Get-Command pip3 > $null
 if (-not($?)) {
     echo pipが見つからないのでpythonのインストールを行います
-    winget install python3.10
+    winget install python3.11 --silent
     if($LASTEXITCODE -ne 0) {
         echo インストールが失敗またはキャンセルされました
         exit 1
     }
+    echo pythonがインストールされました。一度閉じてもう一度ビルドしてください
+    exit 1
 }
 echo ok
 echo ""
@@ -111,6 +113,20 @@ if($LASTEXITCODE -ne 0) {
     popd
     exit 1
 }
+
+python -m pipenv shell pip install webrtcvad
+if($LASTEXITCODE -ne 0) {
+    echo インストールに失敗しました
+    echo C++ビルド環境をインストールします
+    winget install Microsoft.VisualStudio.2022.BuildTools --silent --override "--wait --quiet --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+    if($LASTEXITCODE -ne 0) {
+        echo インストールが失敗またはキャンセルされました
+        popd
+        exit 1
+    }
+}
+echo ok
+echo ""
 
 python -m pipenv shell pip install -r ../$REQUIREMENTS_FILE --no-cache-dir
 if($LASTEXITCODE -ne 0) {
