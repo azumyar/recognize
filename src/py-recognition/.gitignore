@@ -7,3 +7,6 @@ src/__pycache__
 Pipfile.lock
 recognize.spec
 requirements-without_torch.txt
+c/mm-interop.exp
+c/mm-interop.lib
+c/mm-interop.obj
