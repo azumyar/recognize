@@ -141,23 +141,24 @@ class Recognizer(sr.Recognizer):
             if phrase_count >= phrase_buffer_count or len(buffer) == 0: break  # phrase is long enough or we've reached the end of the stream, so stop listening
 
         def eng(buf:Deque[tuple[bytes, float]], threshold:float) -> ListenEnergy:
-            top = None
-            last = None
             b = list(buf)
-            for i in range(len(b)):
-                if not top is None and not last is None:
-                    break
-                if top is None:
-                    if threshold < (b[i])[1]:
-                        top = i
-                li = len(buf) - 1 - i
-                if last is None:
-                    if threshold < (b[li])[1]:
-                        last = li
-            assert not top is None
-            assert not last is None
-            assert top < last
-            b = b[top:last]
+            if 2 < len(list(buf)):
+                top = None
+                last = None
+                for i in range(len(b)):
+                    if not top is None and not last is None:
+                        break
+                    if top is None:
+                        if threshold < (b[i])[1]:
+                            top = i
+                    li = len(buf) - 1 - i
+                    if last is None:
+                        if threshold < (b[li])[1]:
+                            last = li
+                assert not top is None
+                assert not last is None
+                assert top < last
+                b = b[top:last]
 
             return ListenEnergy(
                 sum(map(lambda x: x[1], b)) / len(b),
