@@ -44,6 +44,7 @@ class Recognizer(sr.Recognizer):
         self.is_tail_cut = False
         self.delay_duration = 0.
         self.filter_highPass:filter.NoiseFilter|None = None
+        self.filter_vad:filter.VoiceActivityDetectorFilter|None = None
         '''adjust_for_ambient_noise()およびdynamic_energy_thresholdがTrueの場合energy_thresholdがとる最低の値'''
 
     def adjust_for_ambient_noise(self, source:sr.AudioSource, duration:float=1.0) -> None:
@@ -77,87 +78,117 @@ class Recognizer(sr.Recognizer):
         while True:
             frames = collections.deque()
 
-            if snowboy_configuration is None:
-                # store audio input until the phrase starts
-                while True:
-                    time.sleep(0.01)
+            if self.filter_vad is None:
+                if snowboy_configuration is None:
+                    # store audio input until the phrase starts
+                    while True:
+                        time.sleep(0.01)
 
-                    # handle waiting too long for phrase by raising an exception
+                        # handle waiting too long for phrase by raising an exception
+                        elapsed_time += seconds_per_buffer
+                        if timeout and elapsed_time > timeout:
+                            raise sr.WaitTimeoutError("listening timed out while waiting for phrase to start")
+
+                        buffer = source.stream.read(source.CHUNK)
+                        if len(buffer) == 0: break  # reached end of the stream
+                        buffer = self.filter(buffer)
+                        energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # energy of the audio signal
+                        frames.append((buffer, energy))
+                        if len(frames) > non_speaking_buffer_count:  # ensure we only keep the needed amount of non-speaking buffers
+                            frames.popleft()
+
+                        # detect whether speaking has started on audio input
+                        if energy > self.energy_threshold: break
+
+                        # dynamically adjust the energy threshold using asymmetric weighted average
+                        if self.dynamic_energy_threshold:
+                            damping = self.dynamic_energy_adjustment_damping ** seconds_per_buffer  # account for different chunk sizes and rates
+                            target_energy = energy * self.dynamic_energy_ratio
+                            self.energy_threshold = max(self.dynamic_energy_min, self.energy_threshold * damping + target_energy * (1 - damping))
+                else:
+                    # read audio input until the hotword is said
+                    snowboy_location, snowboy_hot_word_files = snowboy_configuration
+                    buffer, delta_time = self.snowboy_wait_for_hot_word(snowboy_location, snowboy_hot_word_files, source, timeout)
+                    elapsed_time += delta_time
+                    if len(buffer) == 0: break  # reached end of the stream
+                    frames.append(buffer)
+
+                # read audio input until the phrase ends
+                pause_count, phrase_count = 0, 0
+                phrase_start_time = elapsed_time
+                while True:
+                    # handle phrase being too long by cutting off the audio
                     elapsed_time += seconds_per_buffer
-                    if timeout and elapsed_time > timeout:
-                        raise sr.WaitTimeoutError("listening timed out while waiting for phrase to start")
+                    if phrase_time_limit and elapsed_time - phrase_start_time > phrase_time_limit:
+                        break
 
                     buffer = source.stream.read(source.CHUNK)
                     if len(buffer) == 0: break  # reached end of the stream
                     buffer = self.filter(buffer)
-                    energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # energy of the audio signal
+                    energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # unit energy of the audio signal within the buffer
                     frames.append((buffer, energy))
-                    if len(frames) > non_speaking_buffer_count:  # ensure we only keep the needed amount of non-speaking buffers
-                        frames.popleft()
+                    phrase_count += 1
 
-                    # detect whether speaking has started on audio input
-                    if energy > self.energy_threshold: break
+                    # check if speaking has stopped for longer than the pause threshold on the audio input
+                    if energy > self.energy_threshold:
+                        pause_count = 0
+                    else:
+                        pause_count += 1
+                    if pause_count > pause_buffer_count:  # end of the phrase
+                        break
+                    time.sleep(0.01)
 
-                    # dynamically adjust the energy threshold using asymmetric weighted average
-                    if self.dynamic_energy_threshold:
-                        damping = self.dynamic_energy_adjustment_damping ** seconds_per_buffer  # account for different chunk sizes and rates
-                        target_energy = energy * self.dynamic_energy_ratio
-                        self.energy_threshold = max(self.dynamic_energy_min, self.energy_threshold * damping + target_energy * (1 - damping))
+                # check how long the detected phrase is, and retry listening if the phrase is too short
+                phrase_count -= pause_count  # exclude the buffers for the pause before the phrase
+                if phrase_count >= phrase_buffer_count or len(buffer) == 0: break  # phrase is long enough or we've reached the end of the stream, so stop listening
             else:
-                # read audio input until the hotword is said
-                snowboy_location, snowboy_hot_word_files = snowboy_configuration
-                buffer, delta_time = self.snowboy_wait_for_hot_word(snowboy_location, snowboy_hot_word_files, source, timeout)
-                elapsed_time += delta_time
-                if len(buffer) == 0: break  # reached end of the stream
-                frames.append(buffer)
+                print("Phase.1")
+                while True:
+                    buffer = source.stream.read(source.CHUNK)
+                    if len(buffer) == 0: break
 
-            # read audio input until the phrase ends
-            pause_count, phrase_count = 0, 0
-            phrase_start_time = elapsed_time
-            while True:
-                # handle phrase being too long by cutting off the audio
-                elapsed_time += seconds_per_buffer
-                if phrase_time_limit and elapsed_time - phrase_start_time > phrase_time_limit:
-                    break
 
-                buffer = source.stream.read(source.CHUNK)
-                if len(buffer) == 0: break  # reached end of the stream
-                buffer = self.filter(buffer)
-                energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # unit energy of the audio signal within the buffer
-                frames.append((buffer, energy))
-                phrase_count += 1
+                    if self.filter_vad.check(buffer):
+                        buffer = self.filter(buffer)
+                        energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # unit energy of the audio signal within the buffer
+                        if self.energy_threshold < energy:
+                            frames.append((buffer, energy))
+                            break
+                    time.sleep(0.1)
+                print("Phase.2")
+                while True:
+                    buffer = source.stream.read(source.CHUNK)
+                    if len(buffer) == 0: break
 
-                # check if speaking has stopped for longer than the pause threshold on the audio input
-                if energy > self.energy_threshold:
-                    pause_count = 0
-                else:
-                    pause_count += 1
-                if pause_count > pause_buffer_count:  # end of the phrase
-                    break
-                time.sleep(0.01)
+                    buffer = self.filter(buffer)
+                    energy = audioop.rms(buffer, source.SAMPLE_WIDTH)  # unit energy of the audio signal within the buffer
+                    frames.append((buffer, energy))
+                    if not self.filter_vad.check(buffer):
+                        break
 
-            # check how long the detected phrase is, and retry listening if the phrase is too short
-            phrase_count -= pause_count  # exclude the buffers for the pause before the phrase
-            if phrase_count >= phrase_buffer_count or len(buffer) == 0: break  # phrase is long enough or we've reached the end of the stream, so stop listening
+                    time.sleep(0.1)
+                print("done.")
+                break
 
         def eng(buf:Deque[tuple[bytes, float]], threshold:float) -> ListenEnergy:
             top = None
             last = None
             b = list(buf)
-            for i in range(len(b)):
-                if not top is None and not last is None:
-                    break
-                if top is None:
-                    if threshold < (b[i])[1]:
-                        top = i
-                li = len(buf) - 1 - i
-                if last is None:
-                    if threshold < (b[li])[1]:
-                        last = li
-            assert not top is None
-            assert not last is None
-            assert top < last
-            b = b[top:last]
+            if 2 < len(b):
+                for i in range(len(b)):
+                    if not top is None and not last is None:
+                        break
+                    if top is None:
+                        if threshold < (b[i])[1]:
+                            top = i
+                    li = len(buf) - 1 - i
+                    if last is None:
+                        if threshold < (b[li])[1]:
+                            last = li
+                assert not top is None
+                assert not last is None
+                assert top < last
+                b = b[top:last]
 
             return ListenEnergy(
                 sum(map(lambda x: x[1], b)) / len(b),
@@ -185,14 +216,13 @@ class Recognizer(sr.Recognizer):
                     b.append(i >> 16 & 0xff)
                 return b
             raise ex.ProgramError()
-
-        if not self.is_tail_cut:
+        if not self.is_tail_cut and self.filter_vad is None:
             for _ in range(pause_count - non_speaking_buffer_count): frames.pop()  # remove extra non-speaking frames at the end
-        engy_p = eng(frames, self.energy_threshold)
-        if 0 < self.delay_duration:
-            frames.append((gen_fade(buffer, self.delay_duration), 0))
+        #engy_p = eng(frames, self.energy_threshold)
+        #if 0 < self.delay_duration:
+        #    frames.append((gen_fade(buffer, self.delay_duration), 0))
         frame_data = b"".join(map(lambda x: x[0], frames))        
-        return AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH, engy_p)
+        return AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH, ListenEnergy(0, 0, 0))
     
     @property
     def end_insert_sec(self) -> float:
@@ -246,6 +276,7 @@ class Mic:
         listen_interval:float,
         recoginize_config:recognition.RecognizeMicrophoneConfig,
         filter_highPass:filter.NoiseFilter|None,
+        filter_vad:filter.VoiceActivityDetectorFilter|None,
         mic_index:int | None) -> None:
 
         def check_mic(audio, mic_index:int, sample_rate:int):
@@ -304,6 +335,7 @@ class Mic:
         self.__listen_timeout = listen_interval
         self.__recoginize_config = recoginize_config
         self.__filter_highPass = filter_highPass
+        self.__filter_vad = filter_vad
 
         self.__sample_rate = sample_rate
         self.__audio_queue = queue.Queue()
@@ -318,7 +350,8 @@ class Mic:
             phrase,
             non_speaking,
             recoginize_config,
-            filter_highPass)
+            filter_highPass,
+            filter_vad)
 
         if ambient_noise_to_energy:
             with self.__source as mic:
@@ -331,7 +364,8 @@ class Mic:
     def __create_mic(sample_rate:int, mic_index:int | None) -> sr.Microphone:
         return sr.Microphone(
             sample_rate = sample_rate,
-            device_index = mic_index)
+            device_index = mic_index,
+            chunk_size=int(sample_rate * 0.5))
 
     @staticmethod
     def __create_recognizer(
@@ -344,7 +378,8 @@ class Mic:
         phrase:float | None,
         non_speaking:float | None,
         recoginize_config:recognition.RecognizeMicrophoneConfig,
-        filter_highPass:filter.NoiseFilter|None) -> Recognizer:
+        filter_highPass:filter.NoiseFilter|None,
+        filter_vad:filter.VoiceActivityDetectorFilter|None) -> Recognizer:
 
         r = Recognizer()
         r.energy_threshold = energy
@@ -364,6 +399,7 @@ class Mic:
         r.dynamic_energy_min = dynamic_energy_min
         r.delay_duration = recoginize_config.delay_duration
         r.filter_highPass = filter_highPass
+        r.filter_vad = filter_vad
         return r
 
     @staticmethod

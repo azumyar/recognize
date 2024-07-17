@@ -244,6 +244,14 @@ def main(
             if mp_mic is None:
                 ilm_logger.info(f"マイク[{mic_name}]を検索しましたが見つかりませんでした", console=val.Console.Red, reset_console=True)
                 ilm_logger.log("choice_mic() not found")
+
+        # VADフィルタの準備
+        filter_vad_inst:VoiceActivityDetectorFilter|None = None
+        if not filter_vad is None:
+            vad_sampring_rate = sampling_rate
+            filter_vad_inst = VoiceActivityDetectorFilter(vad_sampring_rate, int(filter_vad))
+            filters.append(filter_vad_inst)
+
         mc = src.mic.Mic(
             sampling_rate,
             mp_ambient_noise_to_energy,
@@ -258,6 +266,7 @@ def main(
             mic_listen_interval,
             mp_recog_conf,
             filter_highPass,
+            filter_vad_inst,
             mp_mic)
         ilm_logger.print(f"マイクは{mc.device_name}を使用します")
         ilm_logger.debug(f"#指定音圧閾値　 : {rms2db(mp_energy):.2f}", reset_console=True)
@@ -328,16 +337,6 @@ def main(
                 val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}", lambda x: ilm_logger.info(x)),
             }[out]()
             ilm_logger.debug(f"#出力は{type(outputer)}を使用", reset_console=True)
-     
-
-            # VADフィルタの準備
-            filter_vad_inst:VoiceActivityDetectorFilter|None = None
-            if not filter_vad is None:
-                vad_sampring_rate = recognition_model.required_sample_rate
-                if vad_sampring_rate is None:
-                    vad_sampring_rate = mc.initilaze_param.sample_rate
-                filter_vad_inst = VoiceActivityDetectorFilter(vad_sampring_rate, int(filter_vad))
-                filters.append(filter_vad_inst)
 
             ilm_logger.debug(f"#使用音声フィルタ({len(filters)}):", reset_console=True)
             for f in filters:
@@ -385,7 +384,7 @@ def main(
                 recognition_model,
                 outputer,
                 rec,
-                filter_vad_inst,
+                None,
                 ilm_enviroment,
                 cancel,
                 test == val.TEST_VALUE_RECOGNITION,
