@@ -10,9 +10,10 @@ from typing import Any, Callable, Iterable, Optional, NamedTuple
 from src import Logger, Enviroment, db2rms, rms2db, ilm_logger, mm_atach, mm_is_capture_device
 import src.main_run as main_run
 import src.main_test as main_test
-import src.mic
+import src.microphone
 import src.recognition as recognition
 import src.output as output
+import src.microphone as microphone
 import src.val as val
 import src.google_recognizers as google
 import src.exception
@@ -45,6 +46,10 @@ def print_mics(ctx, param, value):
 
     if not value or ctx.resilient_parsing:
         return
+    for mic in microphone.Microphone.query_devices():
+         ilm_logger.print(mic)
+    ctx.exit()
+    return
 
     audio = speech_recognition.Microphone.get_pyaudio().PyAudio()
     try:
@@ -96,38 +101,20 @@ def __whiper_help(s:str) -> str:
 @click.option("--google_tcp", default=None, help="-", type=click.Choice(["urllib", "requests"]), callback=select_google_tcp, expose_value=False, is_eager=True)
 
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
-@click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
-@click.option("--mic_api", default=val.MIC_API_VALUE_MME, help="--mic_nameで検索するマイクのAPIを指定します", type=click.Choice(val.ARG_CHOICE_MIC_API))
+#@click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
+#@click.option("--mic_api", default=val.MIC_API_VALUE_MME, help="--mic_nameで検索するマイクのAPIを指定します", type=click.Choice(val.ARG_CHOICE_MIC_API))
 
 @click.option("--mic_energy", default=None, help="互換性のため残されています", type=float)
-@click.option("--mic_ambient_noise_to_energy", default=None, help="互換性のため残されています", is_flag=True, type=bool)
-@click.option("--mic_dynamic_energy", default=None, is_flag=True, help="互換性のため残されています", type=bool)
-@click.option("--mic_dynamic_energy_ratio", default=None, help="互換性のため残されています", type=float)
-@click.option("--mic_dynamic_energy_adjustment_damping", default=None, help="互換性のため残されています", type=float)
-@click.option("--mic_dynamic_energy_min", default=None, help="互換性のため残されています", type=float)
-
 @click.option("--mic_db_threshold", default=rms2db(300), help="設定した値より小さい音を無言として扱う閾値", type=float)
-@click.option("--mic_ambient_noise_to_db", default=False, help="起動時の場合環境音から--mic_db_thresholdを変更します", is_flag=True, type=bool)
-@click.option("--mic_dynamic_db", default=False, is_flag=True, help="環境音に基づいて無音閾値を動的に変更します", type=bool)
-@click.option("--mic_dynamic_db_ratio", default=None, help="-", type=float)
-@click.option("--mic_dynamic_db_adjustment_damping", default=None, help="-", type=float)
-@click.option("--mic_dynamic_db_min", default=rms2db(100), help="環境音から無音閾値を変更する場合この値より下がることはありません", type=float)
-
-@click.option("--mic_pause", default=0.8, help="無音として認識される秒数を指定します", type=float)
-@click.option("--mic_phrase", default=None, help="発話音声として認識される最小秒数", type=float)
-@click.option("--mic_non_speaking", default=None, help="-", type=float)
-@click.option("--mic_sampling_rate", default=16000, help="-", type=int)
-@click.option("--mic_listen_interval", default=0.25, help="マイク監視ループで1回あたりのマイクデバイス監視間隔(秒)", type=float)
-@click.option("--mic_delay_duration", default=None, help="-", type=float)
+#@click.option("--mic_sampling_rate", default=16000, help="-", type=int)
 
 @click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice(val.ARG_CHOICE_OUT))
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
 @click.option("--out_yukacone",default=None, help="ゆかコネNEOの外部連携ポートを指定", type=int)
 @click.option("--out_illuminate",default=495134, help="-",type=int)
 
-@click.option("--filter_lpf", default=None, help="動作しません", type=int)
 @click.option("--filter_hpf", default=None, help="ハイパスフィルタのカットオフ周波数を設定、ハイパスフィルタを有効化", type=int)
-@click.option("--filter_vad", default=None, help="VADの強度、VADを有効化", type=click.Choice([None, "0", "1", "2", "3"]))
+@click.option("--filter_vad", default="0", help="VADの強度、VADを有効化", type=click.Choice(["0", "1", "2", "3"]))
 
 @click.option("--print_mics", help="マイクデバイスの一覧をプリント", is_flag=True, callback=print_mics, expose_value=False, is_eager=True)
 
@@ -159,32 +146,15 @@ def main(
     mic_api:str,
 
     mic_energy:Optional[float],
-    mic_ambient_noise_to_energy:Optional[bool],
-    mic_dynamic_energy:Optional[bool],
-    mic_dynamic_energy_ratio:Optional[float],
-    mic_dynamic_energy_adjustment_damping:Optional[float],
-    mic_dynamic_energy_min:Optional[float],
-    
     mic_db_threshold:float,
-    mic_ambient_noise_to_db:bool,
-    mic_dynamic_db:bool,
-    mic_dynamic_db_ratio:Optional[float],
-    mic_dynamic_db_adjustment_damping:Optional[float],
-    mic_dynamic_db_min:float,
 
-    mic_pause:float,
-    mic_phrase:Optional[float],
-    mic_non_speaking:Optional[float],
-    mic_sampling_rate:int,
-    mic_listen_interval:float,
     mic_delay_duration:Optional[float],
     out:str,
     out_yukarinette:int,
     out_yukacone:Optional[int],
     out_illuminate:int,
-    filter_lpf:Optional[int],
     filter_hpf:Optional[int],
-    filter_vad:Optional[str],
+    filter_vad:str,
     verbose:str,
     log_file:str,
     log_directory:Optional[str],
@@ -202,7 +172,8 @@ def main(
             record_directory = ilm_enviroment.root
         else:
             os.makedirs(record_directory, exist_ok=True)
-        sampling_rate = src.mic.Mic.update_sample_rate(mic, mic_sampling_rate) #16000
+        #sampling_rate = src.mic.Mic.update_sample_rate(mic, mic_sampling_rate) #16000
+        sampling_rate = 16000
         rec = Record(record, record_file, record_directory)
 
         # マイクにフィルタを渡すので先に用意
@@ -233,58 +204,40 @@ def main(
 
         def mp_value(db, en): return db if en is None else en
         mp_energy = mp_value(db2rms(mic_db_threshold), mic_energy)
-        mp_ambient_noise_to_energy = mp_value(mic_ambient_noise_to_db, mic_ambient_noise_to_energy)
-        mp_dynamic_energy = mp_value(mic_dynamic_db, mic_dynamic_energy)
-        mp_dynamic_energy_ratio = mp_value(mic_dynamic_db_ratio, mic_dynamic_energy_ratio)
-        mp_dynamic_energy_adjustment = mp_value(mic_dynamic_db_adjustment_damping, mic_dynamic_energy_adjustment_damping)
-        mp_dynamic_energy_min = mp_value(db2rms(mic_dynamic_db_min), mic_dynamic_energy_min)
         mp_mic = mic
-        if mp_mic is None and (not mic_name is None) and mic_name != "":
-            mp_mic = src.mic.Mic.choice_mic(mic_name, mic_api)
-            if mp_mic is None:
-                ilm_logger.info(f"マイク[{mic_name}]を検索しましたが見つかりませんでした", console=val.Console.Red, reset_console=True)
-                ilm_logger.log("choice_mic() not found")
+        #if mp_mic is None and (not mic_name is None) and mic_name != "":
+        #    mp_mic = src.mic.Mic.choice_mic(mic_name, mic_api)
+        #    if mp_mic is None:
+        #       ilm_logger.info(f"マイク[{mic_name}]を検索しましたが見つかりませんでした", console=val.Console.Red, reset_console=True)
+        #        ilm_logger.log("choice_mic() not found")
 
         # VADフィルタの準備
-        filter_vad_inst:VoiceActivityDetectorFilter|None = None
-        if not filter_vad is None:
-            vad_sampring_rate = sampling_rate
-            filter_vad_inst = VoiceActivityDetectorFilter(vad_sampring_rate, int(filter_vad))
-            filters.append(filter_vad_inst)
+        filter_vad_inst = VoiceActivityDetectorFilter(16000, int(filter_vad))
+        filters.append(filter_vad_inst)
 
-        mc = src.mic.Mic(
-            sampling_rate,
-            mp_ambient_noise_to_energy,
+        mc = microphone.Microphone(
             mp_energy,
-            mic_pause,
-            mp_dynamic_energy,
-            mp_dynamic_energy_ratio,
-            mp_dynamic_energy_adjustment,
-            mp_dynamic_energy_min,
-            mic_phrase,
-            mic_non_speaking,
-            mic_listen_interval,
-            mp_recog_conf,
-            filter_highPass,
             filter_vad_inst,
             mp_mic)
-        ilm_logger.print(f"マイクは{mc.device_name}を使用します")
-        ilm_logger.debug(f"#指定音圧閾値　 : {rms2db(mp_energy):.2f}", reset_console=True)
-        ilm_logger.debug(f"#現在の音圧閾値 : {rms2db(mc.current_param.energy_threshold):.2f}", reset_console=True)
+        #ilm_logger.print(f"マイクは{mc.device_name}を使用します")
+        #ilm_logger.debug(f"#指定音圧閾値　 : {rms2db(mp_energy):.2f}", reset_console=True)
+        #ilm_logger.debug(f"#現在の音圧閾値 : {rms2db(mc.current_param.energy_threshold):.2f}", reset_console=True)
 
-        if test == val.TEST_VALUE_MIC:
-            main_test.run_mic(
-                mc,
-                rec,
-                ilm_logger,
-                cancel,
-                feature)
-        elif test == val.TEST_VALUE_AMBIENT:
-            main_test.run_ambient(
-                mc,
-                3.0,
-                ilm_logger,
-                feature)
+        #if test == val.TEST_VALUE_MIC:
+        #    main_test.run_mic(
+        #        mc,
+        #        rec,
+        #        ilm_logger,
+        #        cancel,
+        #        feature)
+        #elif test == val.TEST_VALUE_AMBIENT:
+        #    main_test.run_ambient(
+        #        mc,
+        #        3.0,
+        #        ilm_logger,
+        #        feature)
+        if False:
+            pass
         else:
             ilm_logger.print("認識モデルの初期化")
             recognition_model:recognition.RecognitionModel = {
@@ -342,41 +295,41 @@ def main(
             for f in filters:
                ilm_logger.debug(f"#{type(f)}", reset_console=True)
 
-            mic_ip = mc.initilaze_param
-            mic_cp = mc.current_param
+            #mic_ip = mc.initilaze_param
+            #mic_cp = mc.current_param
             # 構文警告避けassert
-            assert not mic_cp.phrase_threshold is None
-            assert not mic_cp.non_speaking_duration is None
-            log_mic_info = os.linesep.join([
-                f"initial-info",
-                f"device : {mic_ip.index}",
-                f"energy_threshold : {round(mic_ip.energy_threshold, 2)}",
-                f"ambient_noise_to_energy : {mic_ip.ambient_noise_to_energy}",
-                f"dynamic_energy : {mic_ip.dynamic_energy}",
-                f"dynamic_energy_ratio : {mic_ip.dynamic_energy_ratio}",
-                f"dynamic_energy_adjustment_damping : {mic_ip.dynamic_energy_ratio}",
-                f"dynamic_energy_min : {mic_ip.dynamic_energy_min}",
-                f"pause : {round(mic_ip.pause_threshold, 2)}",
-                f"phrase : {mic_ip.phrase_threshold if mic_ip.phrase_threshold is None else round(mic_ip.phrase_threshold, 2)}",
-                f"non_speaking : {mic_ip.non_speaking_duration if mic_ip.non_speaking_duration is None else round(mic_ip.non_speaking_duration, 2)}",
-                "",
-                "current-info",
-                f"device : {mic_cp.device_name}",
-                f"energy_threshold : {round(mic_cp.energy_threshold,2)}",
-                f"dynamic_energy : {mic_cp.dynamic_energy}",
-                f"dynamic_energy_ratio : {mic_cp.dynamic_energy_ratio}",
-                f"dynamic_energy_adjustment_damping : {mic_cp.dynamic_energy_adjustment_damping}",
-                f"pause : {round(mic_cp.pause_threshold, 2)}",
-                f"phrase : {round(mic_cp.phrase_threshold, 2)}",
-                f"non_speaking : {round(mic_cp.non_speaking_duration, 2)}",
-            ])
-            ilm_logger.log([
-                f"マイク: {mc.device_name}",
-                log_mic_info,
-                f"認識モデル: {type(recognition_model)}",
-                f"出力 = {type(outputer)}",
-                f"フィルタ = {','.join(list(map(lambda x: f'{type(x)}', filters)))}"
-            ])
+            #assert not mic_cp.phrase_threshold is None
+            #assert not mic_cp.non_speaking_duration is None
+            #log_mic_info = os.linesep.join([
+            #    f"initial-info",
+            #    f"device : {mic_ip.index}",
+            #    f"energy_threshold : {round(mic_ip.energy_threshold, 2)}",
+            #    f"ambient_noise_to_energy : {mic_ip.ambient_noise_to_energy}",
+            #    f"dynamic_energy : {mic_ip.dynamic_energy}",
+            #    f"dynamic_energy_ratio : {mic_ip.dynamic_energy_ratio}",
+            #    f"dynamic_energy_adjustment_damping : {mic_ip.dynamic_energy_ratio}",
+            #    f"dynamic_energy_min : {mic_ip.dynamic_energy_min}",
+            #    f"pause : {round(mic_ip.pause_threshold, 2)}",
+            #    f"phrase : {mic_ip.phrase_threshold if mic_ip.phrase_threshold is None else round(mic_ip.phrase_threshold, 2)}",
+            #    f"non_speaking : {mic_ip.non_speaking_duration if mic_ip.non_speaking_duration is None else round(mic_ip.non_speaking_duration, 2)}",
+            #    "",
+            #    "current-info",
+            #    f"device : {mic_cp.device_name}",
+            #    f"energy_threshold : {round(mic_cp.energy_threshold,2)}",
+            #    f"dynamic_energy : {mic_cp.dynamic_energy}",
+            #    f"dynamic_energy_ratio : {mic_cp.dynamic_energy_ratio}",
+            #    f"dynamic_energy_adjustment_damping : {mic_cp.dynamic_energy_adjustment_damping}",
+            #    f"pause : {round(mic_cp.pause_threshold, 2)}",
+            #    f"phrase : {round(mic_cp.phrase_threshold, 2)}",
+            #    f"non_speaking : {round(mic_cp.non_speaking_duration, 2)}",
+            #])
+            #ilm_logger.log([
+            #    f"マイク: {mc.device_name}",
+            #    log_mic_info,
+            #    f"認識モデル: {type(recognition_model)}",
+            #    f"出力 = {type(outputer)}",
+            #    f"フィルタ = {','.join(list(map(lambda x: f'{type(x)}', filters)))}"
+            #])
 
             ilm_logger.print("認識中…")
             main_run.run(
@@ -390,9 +343,9 @@ def main(
                 test == val.TEST_VALUE_RECOGNITION,
                 ilm_logger,
                 feature)
-    except src.mic.MicInitializeExeception as e:
-        ilm_logger.print(e.message)
-        ilm_logger.print(f"{type(e.inner)}{e.inner}")
+    #except src.mic.MicInitializeExeception as e:
+    #    ilm_logger.print(e.message)
+    #    ilm_logger.print(f"{type(e.inner)}{e.inner}")
     except KeyboardInterrupt:
         cancel.cancel()
         ilm_logger.print("ctrl+c")

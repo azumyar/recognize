@@ -27,6 +27,7 @@ faster-whisper = "*"
 transformers = "*"
 accelerate = "*"
 webrtcvad = "*"
+sounddevice = "*"
 
 [dev-packages]
 pyinstaller = "*"

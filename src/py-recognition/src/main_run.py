@@ -15,6 +15,7 @@ from typing import Any, Callable, Iterable, Optional, NamedTuple
 
 from src import Logger, Enviroment, db2rms, rms2db
 import src.mic
+import src.microphone
 import src.recognition as recognition
 import src.output as output
 import src.val as val
@@ -28,7 +29,7 @@ class VadException(Exception):
     pass
 
 def run(
-    mic:src.mic.Mic,
+    mic:src.microphone.Microphone,
     recognition_model:recognition.RecognitionModel,
     outputer:output.RecognitionOutputer,
     record:Record,
@@ -60,17 +61,19 @@ def run(
             r = func()
             return PerformanceResult(r, time.perf_counter()-start)
 
-        log_mic_info = mic.current_param
-        log_info_mic = f"current energy_threshold = {log_mic_info.energy_threshold}"
+        #log_mic_info = mic.current_param
+        #log_info_mic = f"current energy_threshold = {log_mic_info.energy_threshold}"
         log_info_recognition = recognition_model.get_log_info()
 
         insert:str
-        if 0 < mic.end_insert_sec:
-            insert = f", {round(mic.end_insert_sec, 2)}s挿入"
+        #if 0 < mic.end_insert_sec:
+        #    insert = f", {round(mic.end_insert_sec, 2)}s挿入"
+        if False:
+            pass
         else:
             insert = ""
-        if not param.energy is None:
-            insert = f"{insert}, dB={rms2db(param.energy.value):.2f}"
+        #if not param.energy is None:
+        #    insert = f"{insert}, dB={rms2db(param.energy.value):.2f}"
         data = param.pcm
         pcm_sec = len(data) / 2 / mic.sample_rate
         logger.debug(
@@ -170,8 +173,8 @@ def run(
                     log_exception_s = f"{log_exception}:{log_exception}"
                 if isinstance(log_exception, recognition.TranscribeException):
                     log_transcribe = " -失敗- "
-            if 0 < mic.end_insert_sec:
-                log_insert = f"({round(mic.end_insert_sec, 2)}s挿入)"
+            #if 0 < mic.end_insert_sec:
+            #    log_insert = f"({round(mic.end_insert_sec, 2)}s挿入)"
             else:
                 log_insert = ""
             log_en_info = " - "
@@ -186,7 +189,7 @@ def run(
                 f"認識結果　　　　 : {log_transcribe}",
                 f"認識時間　　　　 : {log_time}",
                 f"例外情報　　　　 : {log_exception_s}",
-                f"マイク情報　　　 : {log_info_mic}",
+                #f"マイク情報　　　 : {log_info_mic}",
                 f"認識モデル情報　 : {log_info_recognition}",
             ])
         except Exception as e_: # eにするとPylanceの動きがおかしくなるので名前かえとく
@@ -203,9 +206,10 @@ def run(
         thread_pool.submit(onrecord, index, data)
 
     try:
-        if is_test:
-            mic.listen(onrecord)
-        else:
-            mic.listen_loop(onrecord_async, cancel)
+        #if is_test:
+        #    mic.listen(onrecord)
+        #else:
+        #    mic.listen_loop(onrecord_async, cancel)
+        mic.listen(onrecord_async, cancel)
     finally:
         thread_pool.shutdown()
