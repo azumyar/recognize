@@ -28,6 +28,7 @@ transformers = "*"
 accelerate = "*"
 webrtcvad = "*"
 sounddevice = "*"
+pyinstaller-hooks-contrib = "*"
 
 [dev-packages]
 pyinstaller = "*"
