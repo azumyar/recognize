@@ -25,15 +25,11 @@ from src.cancellation import CancellationObject
 from src.main_common import Record, save_wav
 from src.filter import VoiceActivityDetectorFilter
 
-class VadException(Exception):
-    pass
-
 def run(
     mic:src.microphone.Microphone,
     recognition_model:recognition.RecognitionModel,
     outputer:output.RecognitionOutputer,
     record:Record,
-    vad_filter:VoiceActivityDetectorFilter | None,
     env:Enviroment,
     cancel:CancellationObject,
     is_test:bool,
@@ -61,15 +57,12 @@ def run(
             r = func()
             return PerformanceResult(r, time.perf_counter()-start)
 
-        #log_mic_info = mic.current_param
-        #log_info_mic = f"current energy_threshold = {log_mic_info.energy_threshold}"
+        log_info_mic = f"current energy_threshold = {mic.energy_threshold}"
         log_info_recognition = recognition_model.get_log_info()
 
         insert:str
-        #if 0 < mic.end_insert_sec:
-        #    insert = f", {round(mic.end_insert_sec, 2)}s挿入"
-        if False:
-            pass
+        if 0 < mic.end_insert_sec:
+            insert = f", {round(mic.end_insert_sec, 2)}s挿入"
         else:
             insert = ""
         #if not param.energy is None:
@@ -93,10 +86,7 @@ def run(
                     1,
                     mic.sample_rate,
                     recognition_model.required_sample_rate,
-                    None)                
-
-            if not vad_filter is None and not vad_filter.check(d):
-                raise(VadException())
+                    None)
 
             r = performance(lambda: recognition_model.transcribe(np.frombuffer(d, np.int16).flatten()))
             assert(isinstance(r.result, recognition.TranscribeResult)) # ジェネリクス使った型定義の方法がわかってないのでassert置いて型を確定させる
@@ -112,9 +102,6 @@ def run(
                 outputer.output(r.result.transcribe)
             if not r.result.extend_data is None:
                 logger.trace(f"${r.result.extend_data}")
-        except VadException as e:
-            logger.notice(f"#{index} {val.Console.Yellow.value}声未検出", reset_console=True)
-            log_exception = e
         except recognition.TranscribeException as e:
             if env.verbose == val.VERBOSE_INFO:
                 logger.notice(f"#{index}", end=" ")
@@ -173,8 +160,8 @@ def run(
                     log_exception_s = f"{log_exception}:{log_exception}"
                 if isinstance(log_exception, recognition.TranscribeException):
                     log_transcribe = " -失敗- "
-            #if 0 < mic.end_insert_sec:
-            #    log_insert = f"({round(mic.end_insert_sec, 2)}s挿入)"
+            if 0 < mic.end_insert_sec:
+                log_insert = f"({round(mic.end_insert_sec, 2)}s挿入)"
             else:
                 log_insert = ""
             log_en_info = " - "
@@ -189,7 +176,7 @@ def run(
                 f"認識結果　　　　 : {log_transcribe}",
                 f"認識時間　　　　 : {log_time}",
                 f"例外情報　　　　 : {log_exception_s}",
-                #f"マイク情報　　　 : {log_info_mic}",
+                f"マイク情報　　　 : {log_info_mic}",
                 f"認識モデル情報　 : {log_info_recognition}",
             ])
         except Exception as e_: # eにするとPylanceの動きがおかしくなるので名前かえとく

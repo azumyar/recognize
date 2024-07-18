@@ -51,24 +51,6 @@ def print_mics(ctx, param, value):
     ctx.exit()
     return
 
-    audio = speech_recognition.Microphone.get_pyaudio().PyAudio()
-    try:
-        for i in range(audio.get_device_count()):
-            device_info = audio.get_device_info_by_index(i)
-            index = device_info.get("index")
-            host_api = device_info.get("hostApi")
-            name = device_info.get("name")
-            input = device_info.get("maxInputChannels")
-            host_api_name = "-"
-            rate = device_info.get("defaultSampleRate")
-            if isinstance(host_api, int):
-                host_api_name = audio.get_host_api_info_by_index(host_api).get("name")
-            if isinstance(input, int) and 0 < input:
-                ilm_logger.print(f"{index} : [{host_api_name}]{name} sample_rate={rate}")            
-    finally:
-        audio.terminate()
-        ctx.exit()
-
 def __available_cuda() -> str:
     try:
         import torch # type: ignore
@@ -101,12 +83,13 @@ def __whiper_help(s:str) -> str:
 @click.option("--google_tcp", default=None, help="-", type=click.Choice(["urllib", "requests"]), callback=select_google_tcp, expose_value=False, is_eager=True)
 
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
-#@click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
+@click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
 #@click.option("--mic_api", default=val.MIC_API_VALUE_MME, help="--mic_nameで検索するマイクのAPIを指定します", type=click.Choice(val.ARG_CHOICE_MIC_API))
 
 @click.option("--mic_energy", default=None, help="互換性のため残されています", type=float)
 @click.option("--mic_db_threshold", default=rms2db(100), help="設定した値より小さい音を無言として扱う閾値", type=float)
 #@click.option("--mic_sampling_rate", default=16000, help="-", type=int)
+@click.option("--mic_delay_duration", default=None, help="-", type=float)
 
 @click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice(val.ARG_CHOICE_OUT))
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
@@ -143,7 +126,7 @@ def main(
     google_duplex_parallel_reduce_count:Optional[int],
     mic:Optional[int],
     mic_name:Optional[str],
-    mic_api:str,
+    #mic_api:str,
 
     mic_energy:Optional[float],
     mic_db_threshold:float,
@@ -179,18 +162,14 @@ def main(
         # マイクにフィルタを渡すので先に用意
         filter_highPass:NoiseFilter | None = None
         filters = []
-        # LPFは動いてないので加えない
-        #if not disable_lpf:
-        #    filters.append(
-        #        LowPassFilter(
-        #            sampling_rate,
-        #            filter_lpf_cutoff,
-        #            filter_lpf_cutoff_upper))
         if not filter_hpf is None:
             filter_highPass = HighPassFilter(
                 sampling_rate,
                 filter_hpf)
             filters.append(filter_highPass)
+        # VADフィルタの準備
+        filter_vad_inst = VoiceActivityDetectorFilter(val.MIC_SAMPLE_RATE, int(filter_vad))
+        filters.append(filter_vad_inst)
 
         ilm_logger.print("マイクの初期化")
         mp_recog_conf:recognition.RecognizeMicrophoneConfig = {
@@ -205,22 +184,22 @@ def main(
         def mp_value(db, en): return db if en is None else en
         mp_energy = mp_value(db2rms(mic_db_threshold), mic_energy)
         mp_mic = mic
-        #if mp_mic is None and (not mic_name is None) and mic_name != "":
-        #    mp_mic = src.mic.Mic.choice_mic(mic_name, mic_api)
-        #    if mp_mic is None:
-        #       ilm_logger.info(f"マイク[{mic_name}]を検索しましたが見つかりませんでした", console=val.Console.Red, reset_console=True)
-        #        ilm_logger.log("choice_mic() not found")
-
-        # VADフィルタの準備
-        filter_vad_inst = VoiceActivityDetectorFilter(16000, int(filter_vad))
-        filters.append(filter_vad_inst)
+        if mp_mic is None and (not mic_name is None) and mic_name != "":
+            for d in src.microphone.Microphone.query_devices():
+                if(mic_name.lower() in d.name.lower()):
+                    mp_mic = d.index
+                    break
+            if mp_mic is None:
+                ilm_logger.info(f"マイク[{mic_name}]を検索しましたが見つかりませんでした", console=val.Console.Red, reset_console=True)
+                ilm_logger.log("choice_mic() not found")
 
         mc = microphone.Microphone(
             mp_energy,
+            mp_recog_conf,
             filter_vad_inst,
             filter_highPass,
             mp_mic)
-        #ilm_logger.print(f"マイクは{mc.device_name}を使用します")
+        ilm_logger.print(f"マイクは{mc.device_name}を使用します")
         #ilm_logger.debug(f"#指定音圧閾値　 : {rms2db(mp_energy):.2f}", reset_console=True)
         #ilm_logger.debug(f"#現在の音圧閾値 : {rms2db(mc.current_param.energy_threshold):.2f}", reset_console=True)
 
@@ -338,7 +317,6 @@ def main(
                 recognition_model,
                 outputer,
                 rec,
-                None,
                 ilm_enviroment,
                 cancel,
                 test == val.TEST_VALUE_RECOGNITION,
