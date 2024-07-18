@@ -41,6 +41,7 @@ def _root_path() -> tuple[str, str]:
         return (__root, proj_root)
 # kotoba-whisperのダウンロード設定をする
 os.environ["HUGGINGFACE_HUB_CACHE"] = f"{_root_path()[0]}{os.sep}.cache"
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 from typing import Any, Callable, Iterable, Optional, NamedTuple, Literal
 import src.val as val

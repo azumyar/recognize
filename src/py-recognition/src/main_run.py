@@ -15,6 +15,7 @@ from typing import Any, Callable, Iterable, Optional, NamedTuple
 
 from src import Logger, Enviroment, db2rms, rms2db
 import src.mic
+import src.microphone
 import src.recognition as recognition
 import src.output as output
 import src.val as val
@@ -24,15 +25,11 @@ from src.cancellation import CancellationObject
 from src.main_common import Record, save_wav
 from src.filter import VoiceActivityDetectorFilter
 
-class VadException(Exception):
-    pass
-
 def run(
-    mic:src.mic.Mic,
+    mic:src.microphone.Microphone,
     recognition_model:recognition.RecognitionModel,
     outputer:output.RecognitionOutputer,
     record:Record,
-    vad_filter:VoiceActivityDetectorFilter | None,
     env:Enviroment,
     cancel:CancellationObject,
     is_test:bool,
@@ -60,8 +57,7 @@ def run(
             r = func()
             return PerformanceResult(r, time.perf_counter()-start)
 
-        log_mic_info = mic.current_param
-        log_info_mic = f"current energy_threshold = {log_mic_info.energy_threshold}"
+        log_info_mic = f"current energy_threshold = {mic.energy_threshold}"
         log_info_recognition = recognition_model.get_log_info()
 
         insert:str
@@ -69,8 +65,8 @@ def run(
             insert = f", {round(mic.end_insert_sec, 2)}s挿入"
         else:
             insert = ""
-        if not param.energy is None:
-            insert = f"{insert}, dB={rms2db(param.energy.value):.2f}"
+        #if not param.energy is None:
+        #    insert = f"{insert}, dB={rms2db(param.energy.value):.2f}"
         data = param.pcm
         pcm_sec = len(data) / 2 / mic.sample_rate
         logger.debug(
@@ -90,10 +86,7 @@ def run(
                     1,
                     mic.sample_rate,
                     recognition_model.required_sample_rate,
-                    None)                
-
-            if not vad_filter is None and not vad_filter.check(d):
-                raise(VadException())
+                    None)
 
             r = performance(lambda: recognition_model.transcribe(np.frombuffer(d, np.int16).flatten()))
             assert(isinstance(r.result, recognition.TranscribeResult)) # ジェネリクス使った型定義の方法がわかってないのでassert置いて型を確定させる
@@ -109,9 +102,6 @@ def run(
                 outputer.output(r.result.transcribe)
             if not r.result.extend_data is None:
                 logger.trace(f"${r.result.extend_data}")
-        except VadException as e:
-            logger.notice(f"#{index} {val.Console.Yellow.value}声未検出", reset_console=True)
-            log_exception = e
         except recognition.TranscribeException as e:
             if env.verbose == val.VERBOSE_INFO:
                 logger.notice(f"#{index}", end=" ")
@@ -203,9 +193,10 @@ def run(
         thread_pool.submit(onrecord, index, data)
 
     try:
-        if is_test:
-            mic.listen(onrecord)
-        else:
-            mic.listen_loop(onrecord_async, cancel)
+        #if is_test:
+        #    mic.listen(onrecord)
+        #else:
+        #    mic.listen_loop(onrecord_async, cancel)
+        mic.listen(onrecord_async, cancel)
     finally:
         thread_pool.shutdown()

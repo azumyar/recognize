@@ -278,3 +278,5 @@ LANGUAGE_CODES = [
     "yo",
     "zh",
 ]
+
+MIC_SAMPLE_RATE = 16000
