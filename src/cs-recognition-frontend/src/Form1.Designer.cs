@@ -95,35 +95,37 @@ namespace Haru.Kei {
 			// batToolStripMenuItem
 			// 
 			this.batToolStripMenuItem.Name = "batToolStripMenuItem";
-			this.batToolStripMenuItem.Size = new System.Drawing.Size(168, 22);
+			this.batToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
 			this.batToolStripMenuItem.Text = "バッチファイルを作成";
 			// 
 			// toolStripMenuItem3
 			// 
 			this.toolStripMenuItem3.Name = "toolStripMenuItem3";
-			this.toolStripMenuItem3.Size = new System.Drawing.Size(165, 6);
+			this.toolStripMenuItem3.Size = new System.Drawing.Size(177, 6);
 			// 
 			// testmicToolStripMenuItem
 			// 
+			this.testmicToolStripMenuItem.Enabled = false;
 			this.testmicToolStripMenuItem.Name = "testmicToolStripMenuItem";
-			this.testmicToolStripMenuItem.Size = new System.Drawing.Size(168, 22);
+			this.testmicToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
 			this.testmicToolStripMenuItem.Text = "マイクテスト";
 			// 
 			// testambientToolStripMenuItem
 			// 
+			this.testambientToolStripMenuItem.Enabled = false;
 			this.testambientToolStripMenuItem.Name = "testambientToolStripMenuItem";
-			this.testambientToolStripMenuItem.Size = new System.Drawing.Size(168, 22);
+			this.testambientToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
 			this.testambientToolStripMenuItem.Text = "環境音測定";
 			// 
 			// toolStripMenuItem1
 			// 
 			this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-			this.toolStripMenuItem1.Size = new System.Drawing.Size(165, 6);
+			this.toolStripMenuItem1.Size = new System.Drawing.Size(177, 6);
 			// 
 			// exitToolStripMenuItem
 			// 
 			this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-			this.exitToolStripMenuItem.Size = new System.Drawing.Size(168, 22);
+			this.exitToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
 			this.exitToolStripMenuItem.Text = "終了(&E)";
 			// 
 			// plisetToolStripMenuItem
@@ -176,6 +178,7 @@ namespace Haru.Kei {
 			// 
 			// micToolStripMenuItem
 			// 
+			this.micToolStripMenuItem.Enabled = false;
 			this.micToolStripMenuItem.Name = "micToolStripMenuItem";
 			this.micToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
 			this.micToolStripMenuItem.Text = "マイクの初期値";
@@ -189,7 +192,7 @@ namespace Haru.Kei {
 			this.Controls.Add(this.propertyGrid);
 			this.Controls.Add(this.menuStrip1);
 			this.Name = "Form1";
-			this.Text = "音声認識ランチャー";
+			this.Text = "ゆーかねすぴれこランチャー";
 			this.menuStrip1.ResumeLayout(false);
 			this.menuStrip1.PerformLayout();
 			this.ResumeLayout(false);

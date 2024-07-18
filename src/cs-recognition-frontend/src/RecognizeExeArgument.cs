@@ -148,7 +148,6 @@ namespace Haru.Kei {
 		protected const string categoryModel = "01.認識モデル";
 		protected const string categoryMic = "02.マイク";
 		protected const string categoryOut = "03.出力";
-		protected const string categoryFilter = "04.フィルタ";
 
 		[Browsable(false)]
 		[Save(IsRestore = false)]
@@ -204,13 +203,6 @@ namespace Haru.Kei {
 		public float? ArgGoogleTimeout { get; set; }
 
 		[Category(categoryModel)]
-		[DisplayName("サンプル周波数16k変換(google)")]
-		[Description("trueにすると16kに変換してgoogleサーバに送信します。データサイズの減量を狙います。")]
-		[DefaultValue(null)]
-		[ArgAttribute("--google_convert_sampling_rate", IsFlag = true, TargetProperty = "ArgMethod", TargetValue = "google;google_duplex")]
-		public bool? ArgGoogleConvertSamplingRate { get; set; }
-
-		[Category(categoryModel)]
 		[DisplayName("500エラーリトライ(google)")]
 		[Description("500エラーでエラーを返さず認識処理を指定した回数実行します")]
 		[DefaultValue(null)]
@@ -244,120 +236,29 @@ namespace Haru.Kei {
 		}
 
 		[Category(categoryMic)]
-		[DisplayName("無音レベルの閾値自動設定")]
-		[Description("互換性")]
-		[DefaultValue(null)]
-		//[ArgAttribute("--mic_ambient_noise_to_energy", IsFlag = true)]
-		[Browsable(false)]
-		[Save(IsSave = false)]
-		public bool? ArgMicAmbientNoiseToEnergy {
-			get { return this.ArgMicAmbientNoiseToDB; }
-			set { this.ArgMicAmbientNoiseToDB = value; }
-		}
-
-		[Category(categoryMic)]
-		[DisplayName("動的マイク感度の変更")]
-		[Description("互換性")]
-		[DefaultValue(null)]
-		//[ArgAttribute("--mic_dynamic_energy", IsFlag = true)]
-		[Browsable(false)]
-		[Save(IsSave = false)]
-		public bool? ArgMicDynamicEnergy {
-			get { return this.ArgMicDynamicDB; }
-			set { this.ArgMicDynamicDB = value; }
-		}
-
-		[Category(categoryMic)]
-		[DisplayName("動的マイク感度変更係数1_仮称")]
-		[Description("互換性")]
-		[DefaultValue(null)]
-		//[ArgAttribute("--mic_dynamic_energy_ratio")]
-		[Browsable(false)]
-		[Save(IsSave = false)]
-		public float? ArgMicDynamicEnergyRate {
-			get { return this.ArgMicDynamicDBRate; }
-			set { this.ArgMicDynamicDBRate = value; }
-		}
-
-		[Category(categoryMic)]
-		[DisplayName("動的マイク感度変更係数2_仮称")]
-		[Description("互換性")]
-		[DefaultValue(null)]
-		//[ArgAttribute("--mic_dynamic_energy_adjustment_damping")]
-		[Browsable(false)]
-		[Save(IsSave = false)]
-		public float? ArgMicDynamicEnergyAdjustmentDamping {
-			get { return this.ArgMicDynamicDBAdjustmentDamping; }
-			set { this.ArgMicDynamicDBAdjustmentDamping = value; }
-		}
-
-		[Category(categoryMic)]
-		[DisplayName("動的マイク感度最低値")]
-		[Description("互換性")]
-		[DefaultValue(null)]
-		//[ArgAttribute("--mic_dynamic_energy_min")]
-		[Browsable(false)]
-		[Save(IsSave = false)]
-		public float? ArgMicDynamicEnergyMin {
-			get { return DB2Rms(this.ArgMicDynamicDBMin);  }
-			set { this.ArgMicDynamicDBMin = Rms2dB(value); }
-		}
-
-		[Category(categoryMic)]
 		[DisplayName("無音閾値[dB]")]
-		[Description("無音ではないと判断する音圧の閾値。デフォルトでは49.54が設定されています。お使いのマイクによって感度は異なります。")]
+		[Description("無音ではないと判断する音圧の閾値。デフォルトでは40が設定されています。お使いのマイクによって感度は異なります。")]
 		[DefaultValue(null)]
 		[ArgAttribute("--mic_db_threshold")]
 		public float? ArgMicDbThreshold { get; set; }
 
-		[Category(categoryMic)]
-		[DisplayName("起動時に無音閾値の自動調整")]
-		[Description("起動時に環境音を収集し無音閾値を調整します。無音閾値は上書きされます。")]
-		[DefaultValue(null)]
-		[ArgAttribute("--mic_ambient_noise_to_db", IsFlag = true)]
-		public bool? ArgMicAmbientNoiseToDB { get; set; }
 
 		[Category(categoryMic)]
-		[DisplayName("常時無音閾値の自動調整")]
-		[Description("trueの場合常時環境音に応じて無音閾値を調整します")]
-		[DefaultValue(null)]
-		[ArgAttribute("--mic_dynamic_db", IsFlag = true)]
-		public bool? ArgMicDynamicDB { get; set; }
+		[DisplayName("雑音判定の積極性")]
+		[Description("VADフィルタの強度を設定します。数値が大きくなるほど積極的に雑音判定します")]
+		[DefaultValue("")]
+		[TypeConverter(typeof(ArgVadConverter))]
+		[ArgAttribute("--filter_vad")]
+		public string ArgVadParamater { get; set; }
 
 		[Category(categoryMic)]
-		[DisplayName("常時無音閾値の変更係数1_仮称")]
-		[Description("無音閾値を調整する際に使用する係数1")]
-		[DefaultValue(null)]
-		[ArgAttribute("--mic_dynamic_db_ratio")]
-		public float? ArgMicDynamicDBRate { get; set; }
+		[DefaultValue("")]
+		[DisplayName("HPFの強さ")]
+		[Description("HPFフィルタの強度を設定します。google音声認識を使用する場合無効を推奨します")]
+		[ArgAttribute("", IsFlag = true, Generater = typeof(HpfArgGenerater))]
+		[TypeConverter(typeof(ArgHpfConverter))]
+		public string ArgHpfParamater { get; set; }
 
-		[Category(categoryMic)]
-		[DisplayName("常時無音閾値の変更係数2_仮称")]
-		[Description("無音閾値を調整する際に使用する係数2")]
-		[DefaultValue(null)]
-		[ArgAttribute("--mic_dynamic_db_adjustment_damping")]
-		public float? ArgMicDynamicDBAdjustmentDamping { get; set; }
-
-		[Category(categoryMic)]
-		[DisplayName("自動調整による無音閾値の最小値[dB]")]
-		[Description("無音閾値を調整する際この値より閾値は落ちません。標準では40.0が設定されています。")]
-		[DefaultValue(null)]
-		[ArgAttribute("--mic_dynamic_db_min")]
-		public float? ArgMicDynamicDBMin { get; set; }
-
-		[Category(categoryMic)]
-		[DisplayName("発声時間閾値[秒]")]
-		[Description("この時間発声していると有効な認識とします")]
-		[DefaultValue(null)]
-		[ArgAttribute("--mic_phrase")]
-		public float? ArgMicPharse { get; set; }
-
-		[Category(categoryMic)]
-		[DisplayName("無音時間閾値[秒]")]
-		[Description("発声したのちこの時間無音である場合認識を終了します")]
-		[DefaultValue(null)]
-		[ArgAttribute("--mic_pause")]
-		public float? ArgMicPause { get; set; }
 
 		[Category(categoryOut)]
 		[DisplayName("認識結果出力先")]
@@ -378,42 +279,6 @@ namespace Haru.Kei {
 		[Description("ゆかコネNEOのウェブソケットポートを指定します。\r\n通常自動的に取得するため必要ありません")]
 		[ArgAttribute("--out_yukacone", TargetProperty = "ArgOut", TargetValue = "yukacone")]
 		public int? ArgOutYukacone { get; set; }
-
-		[Category(categoryFilter)]
-		[DefaultValue(null)]
-		[DisplayName("HPFを無効化")]
-		[Description("HPFフィルタを無効にする場合trueにします。google音声認識を使用する場合trueを推奨します")]
-		//[ArgAttribute("--disable_hpf", IsFlag = true)]
-		[Browsable(false)]
-		[Save(IsSave = false)]
-		public bool? ArgDisableHpf {
-			get {
-				return null;
-			}
-			set {
-				if(value.HasValue) {
-					if(value.Value) {
-						this.ArgHpfParamater = HpfArgGenerater.HpfParamater.無効.ToString();
-					}
-				}
-			}
-		}
-
-		[Category(categoryFilter)]
-		[DefaultValue("")]
-		[DisplayName("HPFの強度")]
-		[Description("HPFフィルタの強度を設定します。google音声認識を使用する場合無効を推奨します")]
-		[ArgAttribute("", IsFlag = true, Generater = typeof(HpfArgGenerater))]
-		[TypeConverter(typeof(ArgHpfConverter))]
-		public string ArgHpfParamater { get; set; }
-
-		[Category(categoryFilter)]
-		[DisplayName("VADの強度")]
-		[Description("VADフィルタの強度を設定します。数値が大きくなるほど積極的にノイズ判定します")]
-		[DefaultValue("")]
-		[TypeConverter(typeof(ArgVadConverter))]
-		[ArgAttribute("--filter_vad")]
-		public string ArgVadParamater { get; set; }
 
 		[DisplayName("ログレベル")]
 		[Description("コンソールに出すログ出力レベルを設定します")]

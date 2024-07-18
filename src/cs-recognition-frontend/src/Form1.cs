@@ -60,7 +60,6 @@ namespace Haru.Kei {
 			};
 			this.googleToolStripMenuItem.Click += (_, __) => {
 				this.arg.ArgMethod = "google_mix";
-				this.arg.ArgGoogleConvertSamplingRate = true;
 				this.arg.ArgHpfParamater = HpfArgGenerater.HpfParamater.無効.ToString();
 				this.arg.ArgVadParamater = "";
 				this.propertyGrid.Refresh();
@@ -77,12 +76,7 @@ namespace Haru.Kei {
 				this.propertyGrid.Refresh();
 			};
 			this.micToolStripMenuItem.Click += (_, __) => {
-				this.arg.ArgMicDbThreshold = 49.54f;
-				this.arg.ArgMicAmbientNoiseToDB = true;
-				this.arg.ArgMicDynamicDB = true;
-				this.arg.ArgMicDynamicDBMin = 40.0f;
-				this.arg.ArgMicPharse = 0.3f;
-				this.arg.ArgMicPause = 0.4f;
+				this.arg.ArgMicDbThreshold = 40f;
 				this.propertyGrid.Refresh();
 			};
 
