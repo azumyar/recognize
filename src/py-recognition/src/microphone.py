@@ -14,10 +14,11 @@ class Microphone:
             self,
             energy_threshold,
             filter_vad:filter.VoiceActivityDetectorFilter,
+            filter_highPass:filter.HighPassFilter,
             device:int|None) -> None:
         self.__energy_threshold = energy_threshold
         self.__filter_vad = filter_vad
-        self.filter_highPass  = None
+        self.filter_highPass  = filter_highPass
         self.__device = device
 
         self.sample_rate = 16000
