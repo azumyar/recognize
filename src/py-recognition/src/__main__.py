@@ -105,7 +105,7 @@ def __whiper_help(s:str) -> str:
 #@click.option("--mic_api", default=val.MIC_API_VALUE_MME, help="--mic_nameで検索するマイクのAPIを指定します", type=click.Choice(val.ARG_CHOICE_MIC_API))
 
 @click.option("--mic_energy", default=None, help="互換性のため残されています", type=float)
-@click.option("--mic_db_threshold", default=rms2db(300), help="設定した値より小さい音を無言として扱う閾値", type=float)
+@click.option("--mic_db_threshold", default=rms2db(100), help="設定した値より小さい音を無言として扱う閾値", type=float)
 #@click.option("--mic_sampling_rate", default=16000, help="-", type=int)
 
 @click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice(val.ARG_CHOICE_OUT))
