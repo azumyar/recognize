@@ -7,7 +7,7 @@ import click
 import speech_recognition
 from typing import Any, Callable, Iterable, Optional, NamedTuple
 
-from src import Logger, Enviroment, db2rms, rms2db, ilm_logger
+from src import Logger, Enviroment, db2rms, rms2db, ilm_logger, mm_atach, mm_is_capture_device
 import src.main_run as main_run
 import src.main_test as main_test
 import src.mic
@@ -401,7 +401,34 @@ def main(
         pass
     sys.exit()
 
+def mm_callback1(flow, role, id, name) -> None:
+    pass
 
+def mm_callback_add(id, name) -> None:
+    ilm_logger.print(f"デバイス追加:{name}({id})", console=val.Console.Blue, reset_console=True)
+    ilm_logger.log(f"デバイス追加:{name}({id})")
+
+def mm_callback_remove(id, name) -> None:
+    ilm_logger.print(f"デバイス削除:{name}({id})", console=val.Console.Blue, reset_console=True)
+    ilm_logger.log(f"デバイス削除:{name}({id})")
+
+def mm_callback_state(id, state, name) -> None:
+    DEVICE_STATE_ACTIVE = 1
+    DEVICE_STATE_DISABLED = 2
+    DEVICE_STATE_NOTPRESENT = 4
+    DEVICE_STATE_UNPLUGGED = 8
+    state_str = "-不明-"
+    if state == DEVICE_STATE_ACTIVE:
+        state_str = "ACTIVE"
+    elif state == DEVICE_STATE_DISABLED:
+        state_str = "DISABLED"
+    elif state == DEVICE_STATE_NOTPRESENT:
+        state_str = "NOTPRESENT"
+    elif state == DEVICE_STATE_UNPLUGGED:
+        state_str = DEVICE_STATE_UNPLUGGED
+    ilm_logger.print(f"{name}の構成が変更されました({state_str})", console=val.Console.Blue, reset_console=True)
+    ilm_logger.log(f"デバイスの構成変更:{name}({id})->{state_str}({state})")
+ 
 if __name__ == "__main__":
     from src import ilm_logger
 
@@ -411,5 +438,6 @@ if __name__ == "__main__":
         f"python = {sys.version}",
         f"arg = {sys.argv}",
     ])
+    mm_atach(mm_callback1, mm_callback_add, mm_callback_remove, mm_callback_state)
 
     main() # type: ignore

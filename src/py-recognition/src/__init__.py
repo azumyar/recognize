@@ -25,22 +25,22 @@ def is_prod_or_debug() -> bool:
     import sys
     return sys.argv[0] == "-m" or sys.argv[0].endswith(".exe")
 
-def _root_path() -> str:
+def _root_path() -> tuple[str, str]:
     import sys
     __is_exe = sys.argv[0].endswith(".exe")
     if __is_exe:
         proj_root = os.path.dirname(os.path.abspath(sys.argv[0]))
         __root = proj_root
-        return __root
+        return (__root, proj_root)
     else:
         proj_root = f"{os.path.dirname(os.path.abspath(__file__))}{os.sep}.."
         __root = f"{proj_root}{os.sep}.debug"
         if is_prod_or_debug():
             os.makedirs(__root, exist_ok=True)
             os.chdir(__root)
-        return __root
+        return (__root, proj_root)
 # kotoba-whisperのダウンロード設定をする
-os.environ["HUGGINGFACE_HUB_CACHE"] = f"{_root_path()}{os.sep}.cache"
+os.environ["HUGGINGFACE_HUB_CACHE"] = f"{_root_path()[0]}{os.sep}.cache"
 
 from typing import Any, Callable, Iterable, Optional, NamedTuple, Literal
 import src.val as val
@@ -89,7 +89,9 @@ class Enviroment:
         import os
         self.__verbose = verbose
         self.__is_exe = sys.argv[0].endswith(".exe")
-        self.__root = _root_path()
+        p = _root_path()
+        self.__root = p[0]
+        self.__proj_root =  p[1]
 
     @property
     def is_exe(self):
@@ -111,6 +113,14 @@ class Enviroment:
         スクリプト実行環境の作業用rootディレクトリ
         """
         return self.__root
+
+    @property
+    def project_root(self) -> str:
+        """
+        スクリプト実行ディレクトリ
+        """
+        return self.__proj_root
+
 
 
 class Logger:
@@ -267,6 +277,42 @@ def db2rms(db:float, p0:float=1.) -> float:
     '''
     return (10 ** (db / 20)) * p0
 
+
+
 ilm_enviroment:Enviroment = Enviroment.init_system()
 ilm_logger:Logger = Logger.init_system(ilm_enviroment.verbose, ilm_enviroment.root)
 
+import ctypes
+if ilm_enviroment.is_exe:
+    import os
+    os.add_dll_directory(ilm_enviroment.project_root)
+else:
+    import os
+    os.add_dll_directory(f"{ilm_enviroment.project_root}{os.sep}c")
+
+_mm_attach_callback1_t = ctypes.WINFUNCTYPE(None, ctypes.c_int32, ctypes.c_int32, ctypes.c_wchar_p, ctypes.c_wchar_p)
+_mm_attach_callback2_t = ctypes.WINFUNCTYPE(None, ctypes.c_wchar_p, ctypes.c_wchar_p)
+_mm_attach_callback3_t = ctypes.WINFUNCTYPE(None, ctypes.c_wchar_p, ctypes.c_int64, ctypes.c_wchar_p, )
+
+_mm_interop = ctypes.WinDLL("mm-interop.dll")
+_mm_interop.Attach.restype = ctypes.c_bool
+_mm_interop.Attach.argtypes = (_mm_attach_callback1_t,_mm_attach_callback2_t,_mm_attach_callback2_t,_mm_attach_callback3_t)
+_mm_interop.IsCaptureDevice.restype = ctypes.c_bool
+_mm_interop.IsCaptureDevice.argtypes = (ctypes.c_wchar_p,)
+
+_callback_cache:list = [ None, None, None, None ]
+
+def mm_atach(callback_default, callback_add, callback_remove, callback_state) -> None:
+    #if __callback_default_cache is None:
+        _callback_cache[0] = _mm_attach_callback1_t(callback_default)
+        _callback_cache[1] = _mm_attach_callback2_t(callback_add)
+        _callback_cache[2] = _mm_attach_callback2_t(callback_remove)
+        _callback_cache[3] = _mm_attach_callback3_t(callback_state)
+        _mm_interop.Attach(
+            _callback_cache[0],
+            _callback_cache[1],
+            _callback_cache[2],
+            _callback_cache[3])
+
+def mm_is_capture_device(id:ctypes.c_wchar_p):
+    return _mm_interop.IsCaptureDevice(id)
