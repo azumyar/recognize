@@ -17,14 +17,25 @@ if exist "bin\tee.exe" (
 if %r% neq 0 goto error
 
 pushd src\py-recognition
-powershell "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process ; .\build.ps1" 2>&1  | ..\..\bin\tee.exe --mask ..\..\build.log
-set r=%errorlevel% 
+(powershell "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process ; .\build.ps1" 2>&1 & call echo %%^^errorlevel%% ^> ..\..\build.dat)  | ..\..\bin\tee.exe --mask ..\..\build.log
 popd
+(
+    set /P r=
+)< build.dat
 if %r% neq 0 goto error
 
-call src\cs-recognition-frontend\build.bat 2>&1 | bin\tee.exe --mask build.log
-if %errorlevel% neq 0 goto error
-copy src\cs-recognition-frontend\recognize-gui.exe .\ 2>&1  | bin\tee.exe --mask build.log
+(call src\cs-recognition-frontend\build.bat 2>&1 & call echo %%^^errorlevel%% ^> build.dat) | bin\tee.exe --mask build.log
+popd
+(
+    set /P r=
+)< build.dat
+if %r% neq 0 goto error
+(copy src\cs-recognition-frontend\recognize-gui.exe .\ 2>&1 & call echo %%^^errorlevel%% ^> build.dat) | bin\tee.exe --mask build.log
+popd
+(
+    set /P r=
+)< build.dat
+if %r% neq 0 goto error
 
 echo build sucess >> build.log
 echo ######################################################
