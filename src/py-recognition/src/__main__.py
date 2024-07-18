@@ -218,6 +218,7 @@ def main(
         mc = microphone.Microphone(
             mp_energy,
             filter_vad_inst,
+            filter_highPass,
             mp_mic)
         #ilm_logger.print(f"マイクは{mc.device_name}を使用します")
         #ilm_logger.debug(f"#指定音圧閾値　 : {rms2db(mp_energy):.2f}", reset_console=True)
