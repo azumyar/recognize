@@ -33,9 +33,10 @@ class Microphone:
         self.__energy_threshold = energy_threshold
         self.__recog_conf = mp_recog_conf
         self.__filter_vad = filter_vad
-        self.filter_highPass = filter_highPass
+        self.__filter_highPass = filter_highPass
         self.__device = device
-
+        self.__chunk_size = 1024
+        self.__vad_min_sec = 0.5
         self.sample_rate = val.MIC_SAMPLE_RATE
 
         d = sounddevice.query_devices(
@@ -74,34 +75,49 @@ class Microphone:
         def callback(indata, frames, time, status):
            q.put(bytes(indata))
            pass
-        
+
         with sounddevice.RawInputStream(
             samplerate=self.sample_rate,
-            blocksize=int(self.sample_rate / 2),
+            blocksize=self.__chunk_size,
             channels=1,
             callback=callback,
             dtype="int16",
             device=self.__device):
+
+            vad_size = int(self.sample_rate * self.__vad_min_sec)
             while cancel.alive:
+                temp = collections.deque()
                 frames = collections.deque()
+                # chunk_sizeが小さい場合VADが認識しないのでvad_secバッファをためてVADにかける
                 print("Phase.1")
                 while True:
                     buffer = q.get()
                     buffer = self.filter(buffer)
-                    energy = audioop.rms(buffer, 2)
-                    if self.__energy_threshold < energy and self.__filter_vad.check(buffer):
-                        frames.append((buffer, energy))
-                        break
+                    temp.append(buffer)
+                    if vad_size < len(temp) * self.__chunk_size:
+                        b = b"".join(temp)
+                        energy = audioop.rms(b, val.MIC_SAMPLE_WIDTH)
+                        if self.__energy_threshold < energy and self.__filter_vad.check(b):
+                            frames.append((b, energy))
+                            break
+                        else:
+                            temp.popleft()
+                # 毎回vad_secバッファをためて声が含まれなくなるまでVADにかける
                 print("Phase.2")
                 while True:
-                    buffer = q.get()
-                    buffer = self.filter(buffer)
-                    energy = audioop.rms(buffer, 2)
-                    frames.append((buffer, energy))
-                    if not self.__filter_vad.check(buffer):
+                    temp.clear()
+                    for _ in range(int(vad_size / self.__chunk_size) + 1):
+                        buffer = q.get()
+                        buffer = self.filter(buffer)
+                        temp.append(buffer)
+                    b = b"".join(temp)
+                    energy = audioop.rms(b, val.MIC_SAMPLE_WIDTH)
+                    frames.append((b, energy))
+                    if not self.__filter_vad.check(b):
                        break
                 print("done.")
 
+                # 末尾無音追加処理
                 if 0 < self.__recog_conf.delay_duration:
                     mx = math.ceil(self.sample_rate * self.__recog_conf.delay_duration)
                     frames.append((b"".join(map(lambda _: b"0", range(mx))), 0))
@@ -109,12 +125,10 @@ class Microphone:
                 index += 1
                 onrecord(index, src.mic.ListenResultParam(frame_data, src.mic.ListenEnergy(0, 0, 0)))
 
-
-
     def filter(self, buffer:bytes) -> bytes:
-        if self.filter_highPass is None:
+        if self.__filter_highPass is None:
             return buffer
         else:
             fft = np.fft.fft(np.frombuffer(buffer, np.int16).flatten())
-            self.filter_highPass.filter(fft)
+            self.__filter_highPass.filter(fft)
             return np.real(np.fft.ifft(fft)).astype(np.uint16, order="C").tobytes()
