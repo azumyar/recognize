@@ -48,6 +48,21 @@ def __choice_method() -> list[str]:
 
     return r + [METHOD_VALUE_GOOGLE, METHOD_VALUE_GOOGLE_DUPLEX, METHOD_VALUE_GOOGLE_MIX]
 
+def __support_silero_vad() -> bool:
+    try:
+        import torch # type: ignore
+    except:
+        return False
+    else:
+        return torch.cuda.is_available()
+
+def __choice_vad() -> list[str]:
+    r = [ VAD_VALUE_GOOGLE ]
+    if __support_silero_vad():
+        r.append(VAD_VALUE_SILERO)
+
+    return r
+
 class Console(Enum):
     Bold = "\033[1m"
     """太字"""
@@ -139,12 +154,10 @@ ARG_CHOICE_VERBOSE = list(map(lambda x: str(x), [
     VERBOSE_TRACE
     ]))
 
-TEST_VALUE_RECOGNITION = "recognition"
 TEST_VALUE_MIC = "mic"
 TEST_VALUE_AMBIENT= "mic_ambient"
 ARG_CHOICE_TEST = [
     "",
-    TEST_VALUE_RECOGNITION,
     TEST_VALUE_MIC,
     TEST_VALUE_AMBIENT
 ]
@@ -164,6 +177,12 @@ ARG_CHOICE_MIC_API = [
     MIC_API_VALUE_MME,
     MIC_API_VALUE_WASAPI,
 ]
+MIC_SAMPLE_RATE = 16000
+MIC_SAMPLE_WIDTH = 2
+
+VAD_VALUE_GOOGLE = "google"
+VAD_VALUE_SILERO = "silero"
+ARG_CHOICE_VAD = __choice_vad()
 
 OUT_VALUE_PRINT = "print"
 OUT_VALUE_YUKARINETTE = "yukarinette"
@@ -278,6 +297,3 @@ LANGUAGE_CODES = [
     "yo",
     "zh",
 ]
-
-MIC_SAMPLE_RATE = 16000
-MIC_SAMPLE_WIDTH = 2

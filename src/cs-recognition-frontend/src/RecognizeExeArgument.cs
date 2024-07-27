@@ -248,7 +248,7 @@ namespace Haru.Kei {
 		[Description("VADフィルタの強度を設定します。数値が大きくなるほど積極的に雑音判定します")]
 		[DefaultValue("")]
 		[TypeConverter(typeof(ArgVadConverter))]
-		[ArgAttribute("--filter_vad")]
+		[ArgAttribute("--vad_google_mode")]
 		public string ArgVadParamater { get; set; }
 
 		[Category(categoryMic)]

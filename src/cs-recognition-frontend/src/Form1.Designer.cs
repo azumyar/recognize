@@ -105,14 +105,12 @@ namespace Haru.Kei {
 			// 
 			// testmicToolStripMenuItem
 			// 
-			this.testmicToolStripMenuItem.Enabled = false;
 			this.testmicToolStripMenuItem.Name = "testmicToolStripMenuItem";
 			this.testmicToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
 			this.testmicToolStripMenuItem.Text = "マイクテスト";
 			// 
 			// testambientToolStripMenuItem
 			// 
-			this.testambientToolStripMenuItem.Enabled = false;
 			this.testambientToolStripMenuItem.Name = "testambientToolStripMenuItem";
 			this.testambientToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
 			this.testambientToolStripMenuItem.Text = "環境音測定";
