@@ -14,7 +14,6 @@ from typing import Any, Callable, Iterable, Optional, NamedTuple
 
 
 from src import Logger, Enviroment, db2rms, rms2db
-import src.mic
 import src.microphone
 import src.recognition as recognition
 import src.output as output
@@ -23,7 +22,6 @@ import src.google_recognizers as google
 import src.exception
 from src.cancellation import CancellationObject
 from src.main_common import Record, save_wav
-from src.filter import VoiceActivityDetectorFilter
 
 def run(
     mic:src.microphone.Microphone,
@@ -32,7 +30,6 @@ def run(
     record:Record,
     env:Enviroment,
     cancel:CancellationObject,
-    is_test:bool,
     logger:Logger,
     _:str) -> None:
     """
@@ -40,7 +37,7 @@ def run(
     """
 
     thread_pool = ThreadPoolExecutor(max_workers=1)
-    def onrecord(index:int, param:src.mic.ListenResultParam) -> None:
+    def onrecord(index:int, param:src.microphone.ListenResultParam) -> None:
         """
         マイク認識データが返るコールバック関数
         """
@@ -95,17 +92,18 @@ def run(
                     return f"{val.Console.Green.value}{o}{dg}{val.Console.Reset.value}"
                 if env.verbose == val.VERBOSE_INFO:
                     logger.notice(f"#{index}", end=" ")
-                logger.notice(
-                    f"認識時間[{green(round(r.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(r.time/pcm_sec, 2), 'tps')}",
-                    end=": ",
-                    console=val.Console.DefaultColor)
-                outputer.output(r.result.transcribe)
+                text = f"認識時間[{green(round(r.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(r.time/pcm_sec, 2), 'tps')}: {outputer.output(r.result.transcribe)}"
+                import re
+                l = sum(map(lambda x: 1 if ord(x) < 256 else 2, re.sub("\033\\[[^m]+m", "", text)))
+                if l < 80:
+                    text = text + "".join(map(lambda _: " ", range(80 - l)))
+                logger.notice(text, console=val.Console.DefaultColor)
             if not r.result.extend_data is None:
                 logger.trace(f"${r.result.extend_data}")
         except recognition.TranscribeException as e:
             if env.verbose == val.VERBOSE_INFO:
                 logger.notice(f"#{index}", end=" ")
-            logger.notice("認識失敗", console=val.Console.Yellow, reset_console=True)
+            logger.notice("認識失敗".ljust(40, "　"), console=val.Console.Yellow, reset_console=True)
             log_exception = e
             if e.inner is None:
                 logger.info(e.message)
@@ -134,10 +132,8 @@ def run(
                 f"{type(e)}:{e}",
                 traceback.format_exc()
             ])
-        #for it in [("", mic.get_verbose(env.verbose)), ("", recognition_model.get_verbose(env.verbose))]:
-        #    pass
         logger.print(val.Console.Reset.value, end="") # まとめてコンソールの設定を解除する
-        logger.debug(f"#認理終了(#{index}, time={dt.datetime.now()})", console=val.Console.DefaultColor, reset_console=True)
+        logger.debug(f"#認識終了(#{index}, time={dt.datetime.now()})", console=val.Console.DefaultColor, reset_console=True)
 
         # ログ出力
         try:
@@ -186,17 +182,13 @@ def run(
                 traceback.format_exc()
              ])
 
-    def onrecord_async(index:int, data:src.mic.ListenResultParam) -> None:
+    def onrecord_async(index:int, data:src.microphone.ListenResultParam) -> None:
         """
         マイク認識データが返るコールバック関数の非同期版
         """
         thread_pool.submit(onrecord, index, data)
 
     try:
-        #if is_test:
-        #    mic.listen(onrecord)
-        #else:
-        #    mic.listen_loop(onrecord_async, cancel)
         mic.listen(onrecord_async, cancel)
     finally:
         thread_pool.shutdown()

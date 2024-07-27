@@ -6,12 +6,24 @@ import math
 import numpy as np
 from typing import Any, Callable, Deque, NamedTuple
 
-import src.mic
+from src import Logger, rms2db
 import src.recognition as recognition
 import src.filter as filter
 import src.val as val
 from src.cancellation import CancellationObject
 
+class ListenEnergy(NamedTuple):
+    value:float
+    max:float
+    min:float
+
+
+class ListenResultParam(NamedTuple):
+    '''listenのコールバックパラメータ'''
+    pcm:bytes
+    '''PCMバイナリデータ'''
+    energy:ListenEnergy | None
+    '''pcmのRMS値(src.mic.AudioDataのみに格納)'''
 
 class Device(NamedTuple):
     index:int
@@ -21,7 +33,6 @@ class Device(NamedTuple):
     def __str__(self) -> str:
         return f"{self.index} : {self.name}"
 
-
 class Microphone:
     def __init__(
             self,
@@ -29,15 +40,20 @@ class Microphone:
             mp_recog_conf:recognition.RecognizeMicrophoneConfig,
             filter_vad:filter.VoiceActivityDetectorFilter,
             filter_highPass:filter.HighPassFilter | None,
-            device:int|None) -> None:
+            phase2_sec:float,
+            device:int|None,
+            logger:Logger) -> None:
         self.__energy_threshold = energy_threshold
         self.__recog_conf = mp_recog_conf
         self.__filter_vad = filter_vad
         self.__filter_highPass = filter_highPass
         self.__device = device
+        self.__vad_sec = 0.5
+        self.__vad_phase2_sec = phase2_sec
+        self.__sample_rate = val.MIC_SAMPLE_RATE
+        self.__sample_width = val.MIC_SAMPLE_WIDTH
         self.__chunk_size = 1024
-        self.__vad_min_sec = 0.5
-        self.sample_rate = val.MIC_SAMPLE_RATE
+        self.__logger = logger
 
         d = sounddevice.query_devices(
             device=device) if not device is None else sounddevice.query_devices(
@@ -57,6 +73,13 @@ class Microphone:
     @property
     def end_insert_sec(self) -> float: return self.__recog_conf.delay_duration
 
+    @property
+    def sample_rate(self) -> int: return self.__sample_rate
+    @property
+    def sample_width(self) -> int: return self.__sample_width
+    @property
+    def chunk_size(self) -> int: return self.__chunk_size
+
     @staticmethod
     def query_devices() -> list[Device]:
         r:list[Device] = []
@@ -68,62 +91,136 @@ class Microphone:
                         r.append(Device(device_numbar, hostapi["name"], device["name"])) #type: ignore
         return r
 
-    def listen(self, onrecord:Callable[[int, src.mic.ListenResultParam], None], cancel:CancellationObject):
-        q = queue.Queue()
+    def listen(
+        self,
+        onrecord:Callable[[int, ListenResultParam], None],
+        cancel:CancellationObject,
+        opt_enable_energy_threshold:bool = True,
+        opt_enable_indicator:bool|None = None):
         index = 0
 
-        def callback(indata, frames, time, status):
-           q.put(bytes(indata))
-           pass
+        if opt_enable_energy_threshold:
+            energy_threshold = self.energy_threshold
+        else:
+            energy_threshold = 0
+        if not opt_enable_indicator is None and opt_enable_indicator:
+            _print = print
+        else:
+            _print = self.__logger.notice
 
         with sounddevice.RawInputStream(
-            samplerate=self.sample_rate,
+            samplerate=self.__sample_rate,
             blocksize=self.__chunk_size,
             channels=1,
-            callback=callback,
             dtype="int16",
-            device=self.__device):
+            device=self.__device) as stream:
 
-            vad_size = int(self.sample_rate * self.__vad_min_sec)
+            dB = 0.0
+            vad_list_len = math.ceil(self.sample_rate * self.__vad_sec / self.__chunk_size)
+            vad_phase2_len = max(1, math.ceil(self.sample_rate * self.__vad_phase2_sec / self.__chunk_size))
             while cancel.alive:
-                temp = collections.deque()
                 frames = collections.deque()
+                is_overflowed = False
+
                 # chunk_sizeが小さい場合VADが認識しないのでvad_secバッファをためてVADにかける
-                print("Phase.1")
+                #print("Phase.0")
+                for _ in range(vad_list_len):
+                    self.__indicate(dB, _print)
+
+                    _buffer, overflowed = stream.read(self.__chunk_size)
+                    if(overflowed):
+                        self.__logger.error("overflowed")
+                        is_overflowed = True
+                        break
+                    buffer = self.filter(bytes(_buffer)) # type: ignore
+                    en = audioop.rms(buffer, val.MIC_SAMPLE_WIDTH)
+                    dB = rms2db(en)
+                    frames.append((buffer, en))
+
+                # 開始音検索位置
+                #print("Phase.1")
+                if is_overflowed:
+                    continue
                 while True:
-                    buffer = q.get()
-                    buffer = self.filter(buffer)
-                    temp.append(buffer)
-                    if vad_size < len(temp) * self.__chunk_size:
-                        b = b"".join(temp)
-                        energy = audioop.rms(b, val.MIC_SAMPLE_WIDTH)
-                        if self.__energy_threshold < energy and self.__filter_vad.check(b):
-                            frames.append((b, energy))
-                            break
-                        else:
-                            temp.popleft()
-                # 毎回vad_secバッファをためて声が含まれなくなるまでVADにかける
-                print("Phase.2")
-                while True:
-                    temp.clear()
-                    for _ in range(int(vad_size / self.__chunk_size) + 1):
-                        buffer = q.get()
-                        buffer = self.filter(buffer)
-                        temp.append(buffer)
-                    b = b"".join(temp)
+                    self.__indicate(dB, _print)
+
+                    b = b"".join(map(lambda x:x[0], frames))
                     energy = audioop.rms(b, val.MIC_SAMPLE_WIDTH)
-                    frames.append((b, energy))
-                    if not self.__filter_vad.check(b):
+                    if energy_threshold < energy and self.__filter_vad.check(b):
+                        break
+                    else:
+                        frames.popleft()
+
+                    _buffer, overflowed = stream.read(self.__chunk_size)
+                    if(overflowed):
+                        self.__logger.error("overflowed")
+                        break
+                    buffer = self.filter(bytes(_buffer)) # type: ignore
+                    en = audioop.rms(buffer, val.MIC_SAMPLE_WIDTH)
+                    dB = rms2db(en)
+                    frames.append((buffer, en))
+
+                # 声が含まれなくなるまでVADにかける
+                #print("Phase.2")
+                if is_overflowed:
+                    continue
+                while True:
+                    temp = []
+                    for _ in range(vad_phase2_len):
+                        _buffer, overflowed = stream.read(self.__chunk_size)
+                        if(overflowed):
+                            self.__logger.error("overflowed")
+                            break
+                        buffer = self.filter(bytes(_buffer)) # type: ignore
+                        temp.append(buffer)
+                        db = rms2db(audioop.rms(buffer, val.MIC_SAMPLE_WIDTH))
+                        self.__indicate_pahse2(db, _print)
+
+
+                    buffer = b"".join(temp)
+                    frames.append((buffer, audioop.rms(buffer, val.MIC_SAMPLE_WIDTH)))
+                    b = b"".join(map(lambda x: x[0], frames))
+                    if not self.__filter_vad.check(b[-(vad_list_len * self.__chunk_size * 2):]):
                        break
-                print("done.")
+                if is_overflowed:
+                    continue
+                print("\033[1G\033[0K", end="", flush=True)
+                #print("done.")
 
                 # 末尾無音追加処理
                 if 0 < self.__recog_conf.delay_duration:
-                    mx = math.ceil(self.sample_rate * self.__recog_conf.delay_duration)
+                    mx = math.ceil(self.__sample_rate * self.__recog_conf.delay_duration)
                     frames.append((b"".join(map(lambda _: b"0", range(mx))), 0))
                 frame_data = b"".join(map(lambda x: x[0], frames))
                 index += 1
-                onrecord(index, src.mic.ListenResultParam(frame_data, src.mic.ListenEnergy(0, 0, 0)))
+                onrecord(index, ListenResultParam(
+                    frame_data,
+                    ListenEnergy(
+                        sum(map(lambda x: x[1], frames)) / len(frames),
+                        max(map(lambda x: x[1], frames)),
+                        min(map(lambda x: x[1], frames)))))
+
+    def listen_ambient(self, record_sec:float) -> ListenEnergy:
+        with sounddevice.RawInputStream(
+            samplerate=self.__sample_rate,
+            blocksize=self.__chunk_size,
+            channels=1,
+            dtype="int16",
+            device=self.__device) as stream:
+
+            c = []
+            loop = math.ceil(self.__sample_rate * record_sec / self.__chunk_size)
+            for _ in range(loop):
+                _buffer, overflowed = stream.read(self.__chunk_size)
+                buffer = bytes(_buffer) #type: ignore
+                en = audioop.rms(buffer, val.MIC_SAMPLE_WIDTH)
+                c.append(en)
+                self.__indicate(rms2db(en), print)
+
+            return ListenEnergy(
+                sum(map(lambda x: x, c)) / len(c),
+                max(map(lambda x: x, c)),
+                min(map(lambda x: x, c)))
 
     def filter(self, buffer:bytes) -> bytes:
         if self.__filter_highPass is None:
@@ -132,3 +229,24 @@ class Microphone:
             fft = np.fft.fft(np.frombuffer(buffer, np.int16).flatten())
             self.__filter_highPass.filter(fft)
             return np.real(np.fft.ifft(fft)).astype(np.uint16, order="C").tobytes()
+
+    def __indicate(self, dB, print:Any):
+        if rms2db(self.energy_threshold) < dB:
+            color = val.Console.background_index(43)
+        else:
+            color = val.Console.background_index(7)
+        self.__print_dB("！", dB, color, print)
+
+    def __indicate_pahse2(self, dB, print:Any):
+        self.__print_dB("＃", dB, val.Console.background_index(45), print)
+
+    def __print_dB(self, str, dB, color:str, print:Any):
+        MAX = 78
+#4,12
+# 255,248
+        dB = min(dB, 80)
+        len = int(dB / 80 * MAX)
+        a = "".join(map(lambda _: " ", range(len)))
+        b = "".join(map(lambda _: " ", range(MAX - len)))
+        #print("\033[1G", end="", flush=True)
+        print(f"{str}{color}{a}{val.Console.background_index(237)}{b}{val.Console.Reset.value}\r", end="")

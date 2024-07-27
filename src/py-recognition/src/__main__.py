@@ -19,7 +19,7 @@ import src.google_recognizers as google
 import src.exception
 from src.main_common import Record
 from src.cancellation import CancellationObject
-from src.filter import *
+import src.filter as filter
 
 def select_google_tcp(ctx, param, value):
     import src.google_recognizers as google
@@ -88,8 +88,10 @@ def __whiper_help(s:str) -> str:
 
 @click.option("--mic_energy", default=None, help="互換性のため残されています", type=float)
 @click.option("--mic_db_threshold", default=rms2db(100), help="設定した値より小さい音を無言として扱う閾値", type=float)
+@click.option("--mic_pause_duration", default=0.5, help="声認識後追加でVADにかけていいく塊の秒数", type=float)
 #@click.option("--mic_sampling_rate", default=16000, help="-", type=int)
 @click.option("--mic_delay_duration", default=None, help="-", type=float)
+
 
 @click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice(val.ARG_CHOICE_OUT))
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
@@ -97,7 +99,11 @@ def __whiper_help(s:str) -> str:
 @click.option("--out_illuminate",default=495134, help="-",type=int)
 
 @click.option("--filter_hpf", default=None, help="ハイパスフィルタのカットオフ周波数を設定、ハイパスフィルタを有効化", type=int)
-@click.option("--filter_vad", default="0", help="VADの強度、VADを有効化", type=click.Choice(["0", "1", "2", "3"]))
+
+@click.option("--vad", default=val.VAD_VALUE_GOOGLE, help="VADエンジンの選択", type=click.Choice(val.ARG_CHOICE_VAD))
+@click.option("--vad_google_mode", default="0", help="VADの強度",type=click.Choice(["0", "1", "2", "3"]))
+@click.option("--vad_silero_threshold", default=0.5, help="-",type=float)
+@click.option("--vad_silero_min_speech_duration", default=0.25, help="-",type=float)
 
 @click.option("--print_mics", help="マイクデバイスの一覧をプリント", is_flag=True, callback=print_mics, expose_value=False, is_eager=True)
 
@@ -132,12 +138,16 @@ def main(
     mic_db_threshold:float,
 
     mic_delay_duration:Optional[float],
+    mic_pause_duration:float,
     out:str,
     out_yukarinette:int,
     out_yukacone:Optional[int],
     out_illuminate:int,
     filter_hpf:Optional[int],
-    filter_vad:str,
+    vad:str,
+    vad_google_mode:str,
+    vad_silero_threshold:float,
+    vad_silero_min_speech_duration:float,
     verbose:str,
     log_file:str,
     log_directory:Optional[str],
@@ -150,6 +160,7 @@ def main(
     from src import ilm_logger, ilm_enviroment
 
     cancel = CancellationObject()
+    print("\033[?25l", end="") # カーソルを消す
     try:
         if record_directory is None:
             record_directory = ilm_enviroment.root
@@ -160,15 +171,23 @@ def main(
         rec = Record(record, record_file, record_directory)
 
         # マイクにフィルタを渡すので先に用意
-        filter_highPass:NoiseFilter | None = None
+        filter_highPass:filter.NoiseFilter | None = None
         filters = []
         if not filter_hpf is None:
-            filter_highPass = HighPassFilter(
+            filter_highPass = filter.HighPassFilter(
                 sampling_rate,
                 filter_hpf)
             filters.append(filter_highPass)
         # VADフィルタの準備
-        filter_vad_inst = VoiceActivityDetectorFilter(val.MIC_SAMPLE_RATE, int(filter_vad))
+        filter_vad_inst:filter.VoiceActivityDetectorFilter = {
+            val.VAD_VALUE_GOOGLE: lambda: filter.GoogleVadFilter(
+                val.MIC_SAMPLE_RATE,
+                int(vad_google_mode)),
+            val.VAD_VALUE_SILERO: lambda: filter.SileroVadFilter(
+                val.MIC_SAMPLE_RATE,
+                vad_silero_threshold,
+                vad_silero_min_speech_duration),
+        }[vad]()
         filters.append(filter_vad_inst)
 
         ilm_logger.print("マイクの初期化")
@@ -198,26 +217,24 @@ def main(
             mp_recog_conf,
             filter_vad_inst,
             filter_highPass,
-            mp_mic)
+            mic_pause_duration,
+            mp_mic,
+            ilm_logger)
         ilm_logger.print(f"マイクは{mc.device_name}を使用します")
-        #ilm_logger.debug(f"#指定音圧閾値　 : {rms2db(mp_energy):.2f}", reset_console=True)
-        #ilm_logger.debug(f"#現在の音圧閾値 : {rms2db(mc.current_param.energy_threshold):.2f}", reset_console=True)
 
-        #if test == val.TEST_VALUE_MIC:
-        #    main_test.run_mic(
-        #        mc,
-        #        rec,
-        #        ilm_logger,
-        #        cancel,
-        #        feature)
-        #elif test == val.TEST_VALUE_AMBIENT:
-        #    main_test.run_ambient(
-        #        mc,
-        #        3.0,
-        #        ilm_logger,
-        #        feature)
-        if False:
-            pass
+        if test == val.TEST_VALUE_MIC:
+            main_test.run_mic(
+                mc,
+                rec,
+                ilm_logger,
+                cancel,
+                feature)
+        elif test == val.TEST_VALUE_AMBIENT:
+            main_test.run_ambient(
+                mc,
+                3.0,
+                ilm_logger,
+                feature)
         else:
             ilm_logger.print("認識モデルの初期化")
             recognition_model:recognition.RecognitionModel = {
@@ -265,9 +282,9 @@ def main(
 
             outputer:output.RecognitionOutputer = {
                 val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
-                val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}", lambda x: ilm_logger.info(x)),
-                val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}", lambda x: ilm_logger.info(x)),
-                val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}", lambda x: ilm_logger.info(x)),
+                val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}"),
+                val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}"),
+                val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}"),
             }[out]()
             ilm_logger.debug(f"#出力は{type(outputer)}を使用", reset_console=True)
 
@@ -275,41 +292,12 @@ def main(
             for f in filters:
                ilm_logger.debug(f"#{type(f)}", reset_console=True)
 
-            #mic_ip = mc.initilaze_param
-            #mic_cp = mc.current_param
-            # 構文警告避けassert
-            #assert not mic_cp.phrase_threshold is None
-            #assert not mic_cp.non_speaking_duration is None
-            #log_mic_info = os.linesep.join([
-            #    f"initial-info",
-            #    f"device : {mic_ip.index}",
-            #    f"energy_threshold : {round(mic_ip.energy_threshold, 2)}",
-            #    f"ambient_noise_to_energy : {mic_ip.ambient_noise_to_energy}",
-            #    f"dynamic_energy : {mic_ip.dynamic_energy}",
-            #    f"dynamic_energy_ratio : {mic_ip.dynamic_energy_ratio}",
-            #    f"dynamic_energy_adjustment_damping : {mic_ip.dynamic_energy_ratio}",
-            #    f"dynamic_energy_min : {mic_ip.dynamic_energy_min}",
-            #    f"pause : {round(mic_ip.pause_threshold, 2)}",
-            #    f"phrase : {mic_ip.phrase_threshold if mic_ip.phrase_threshold is None else round(mic_ip.phrase_threshold, 2)}",
-            #    f"non_speaking : {mic_ip.non_speaking_duration if mic_ip.non_speaking_duration is None else round(mic_ip.non_speaking_duration, 2)}",
-            #    "",
-            #    "current-info",
-            #    f"device : {mic_cp.device_name}",
-            #    f"energy_threshold : {round(mic_cp.energy_threshold,2)}",
-            #    f"dynamic_energy : {mic_cp.dynamic_energy}",
-            #    f"dynamic_energy_ratio : {mic_cp.dynamic_energy_ratio}",
-            #    f"dynamic_energy_adjustment_damping : {mic_cp.dynamic_energy_adjustment_damping}",
-            #    f"pause : {round(mic_cp.pause_threshold, 2)}",
-            #    f"phrase : {round(mic_cp.phrase_threshold, 2)}",
-            #    f"non_speaking : {round(mic_cp.non_speaking_duration, 2)}",
-            #])
-            #ilm_logger.log([
-            #    f"マイク: {mc.device_name}",
-            #    log_mic_info,
-            #    f"認識モデル: {type(recognition_model)}",
-            #    f"出力 = {type(outputer)}",
-            #    f"フィルタ = {','.join(list(map(lambda x: f'{type(x)}', filters)))}"
-            #])
+            ilm_logger.log([
+                f"マイク: {mc.device_name}",
+                f"認識モデル: {type(recognition_model)}",
+                f"出力 = {type(outputer)}",
+                f"フィルタ = {','.join(list(map(lambda x: f'{type(x)}', filters)))}"
+            ])
 
             ilm_logger.print("認識中…")
             main_run.run(
@@ -319,7 +307,6 @@ def main(
                 rec,
                 ilm_enviroment,
                 cancel,
-                test == val.TEST_VALUE_RECOGNITION,
                 ilm_logger,
                 feature)
     #except src.mic.MicInitializeExeception as e:
@@ -329,7 +316,7 @@ def main(
         cancel.cancel()
         ilm_logger.print("ctrl+c")
     finally:
-        pass
+        print("\033[?25h", end="") # カーソルを出す
     sys.exit()
 
 def mm_callback1(flow, role, id, name) -> None:

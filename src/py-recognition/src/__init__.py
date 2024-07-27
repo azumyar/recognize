@@ -39,6 +39,7 @@ def _root_path() -> tuple[str, str]:
             os.makedirs(__root, exist_ok=True)
             os.chdir(__root)
         return (__root, proj_root)
+os.environ["TORCH_HOME"] = f"{_root_path()[0]}{os.sep}.cache"
 # kotoba-whisperのダウンロード設定をする
 os.environ["HUGGINGFACE_HUB_CACHE"] = f"{_root_path()[0]}{os.sep}.cache"
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"

@@ -209,7 +209,9 @@ else:
                 model = model_id,
                 torch_dtype = torch_dtype,
                 device = device,
-                model_kwargs = model_kwargs
+                model_kwargs = model_kwargs,
+                chunk_length_s=15,
+                batch_size=16
             )
 
         @property
