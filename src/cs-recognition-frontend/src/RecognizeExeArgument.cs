@@ -67,6 +67,8 @@ namespace Haru.Kei {
 					"large-v3",
 				};
 			}
+			// 自由に編集して
+			public override bool GetStandardValuesExclusive(ITypeDescriptorContext context) { return false; }
 		}
 		/// <summary>--whisper_languageの選択一覧</summary>
 		class ArgWhisperLangConverter : SelectableConverter<string> {
