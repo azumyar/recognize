@@ -34,6 +34,11 @@ class Device(NamedTuple):
         return f"{self.index} : {self.name}"
 
 class Microphone:
+    __BAR_COLOR_NONE = val.Console.background_index(240)
+    __BAR_COLOR_ENAGY_OK = val.Console.background_index(35)
+    __BAR_COLOR_VAD_OK = val.Console.background_index(39)
+    __BAR_COLOR_BACKGROUND = val.Console.background_index(234)
+
     def __init__(
             self,
             energy_threshold:float,
@@ -71,7 +76,10 @@ class Microphone:
     def energy_threshold(self) -> float: return self.__energy_threshold
 
     @property
-    def end_insert_sec(self) -> float: return self.__recog_conf.delay_duration
+    def start_insert_sec(self) -> float: return self.__recog_conf.head_insert_duration
+
+    @property
+    def end_insert_sec(self) -> float: return self.__recog_conf.tail_insert_duration
 
     @property
     def sample_rate(self) -> int: return self.__sample_rate
@@ -185,13 +193,17 @@ class Microphone:
                 if is_overflowed:
                     continue
                 print("\033[1G\033[0K", end="", flush=True)
-                #print("done.")
 
-                # 末尾無音追加処理
-                if 0 < self.__recog_conf.delay_duration:
-                    mx = math.ceil(self.__sample_rate * self.__recog_conf.delay_duration)
-                    frames.append((b"".join(map(lambda _: b"0", range(mx))), 0))
-                frame_data = b"".join(map(lambda x: x[0], frames))
+                # 先頭末尾無音追加処理
+                head = b""
+                tail = b""
+                if 0 < self.__recog_conf.head_insert_duration:
+                    mx = math.ceil(self.__sample_rate * self.__recog_conf.head_insert_duration)
+                    head = b"".join(map(lambda _: b"00", range(mx)))
+                if 0 < self.__recog_conf.tail_insert_duration:
+                    mx = math.ceil(self.__sample_rate * self.__recog_conf.tail_insert_duration)
+                    tail = b"".join(map(lambda _: b"00", range(mx)))
+                frame_data = head + b"".join(map(lambda x: x[0], frames)) + tail
                 index += 1
                 onrecord(index, ListenResultParam(
                     frame_data,
@@ -232,21 +244,20 @@ class Microphone:
 
     def __indicate(self, dB, print:Any):
         if rms2db(self.energy_threshold) < dB:
-            color = val.Console.background_index(43)
+            color = Microphone.__BAR_COLOR_ENAGY_OK
         else:
-            color = val.Console.background_index(7)
+            color = Microphone.__BAR_COLOR_NONE
         self.__print_dB("！", dB, color, print)
 
     def __indicate_pahse2(self, dB, print:Any):
-        self.__print_dB("＃", dB, val.Console.background_index(45), print)
+        self.__print_dB("＃", dB, Microphone.__BAR_COLOR_VAD_OK, print)
 
     def __print_dB(self, str, dB, color:str, print:Any):
         MAX = 78
-#4,12
-# 255,248
+
         dB = min(dB, 80)
         len = int(dB / 80 * MAX)
         a = "".join(map(lambda _: " ", range(len)))
         b = "".join(map(lambda _: " ", range(MAX - len)))
         #print("\033[1G", end="", flush=True)
-        print(f"{str}{color}{a}{val.Console.background_index(237)}{b}{val.Console.Reset.value}\r", end="")
+        print(f"{str}{color}{a}{Microphone.__BAR_COLOR_BACKGROUND}{b}{val.Console.Reset.value}\r", end="")

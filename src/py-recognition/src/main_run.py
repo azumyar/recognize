@@ -58,10 +58,11 @@ def run(
         log_info_recognition = recognition_model.get_log_info()
 
         insert:str
-        if 0 < mic.end_insert_sec:
-            insert = f", {round(mic.end_insert_sec, 2)}s挿入"
+        if 0 < mic.start_insert_sec or 0 < mic.end_insert_sec:
+            insert = f", {round(mic.start_insert_sec, 2)}s+{round(mic.end_insert_sec, 2)}s挿入"
         else:
             insert = ""
+
         #if not param.energy is None:
         #    insert = f"{insert}, dB={rms2db(param.energy.value):.2f}"
         data = param.pcm
