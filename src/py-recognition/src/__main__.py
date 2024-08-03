@@ -90,7 +90,8 @@ def __whiper_help(s:str) -> str:
 @click.option("--mic_db_threshold", default=rms2db(100), help="設定した値より小さい音を無言として扱う閾値", type=float)
 @click.option("--mic_pause_duration", default=0.5, help="声認識後追加でVADにかけていいく塊の秒数", type=float)
 #@click.option("--mic_sampling_rate", default=16000, help="-", type=int)
-@click.option("--mic_delay_duration", default=None, help="-", type=float)
+@click.option("--mic_head_insert_duration", default=None, help="-", type=float)
+@click.option("--mic_tail_insert_duration", default=None, help="-", type=float)
 
 
 @click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice(val.ARG_CHOICE_OUT))
@@ -136,9 +137,10 @@ def main(
 
     mic_energy:Optional[float],
     mic_db_threshold:float,
-
-    mic_delay_duration:Optional[float],
     mic_pause_duration:float,
+    mic_head_insert_duration:Optional[float],
+    mic_tail_insert_duration:Optional[float],
+
     out:str,
     out_yukarinette:int,
     out_yukacone:Optional[int],
@@ -192,12 +194,12 @@ def main(
 
         ilm_logger.print("マイクの初期化")
         mp_recog_conf:recognition.RecognizeMicrophoneConfig = {
-            val.METHOD_VALUE_WHISPER: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
-            val.METHOD_VALUE_WHISPER_FASTER: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
-            val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.WhisperMicrophoneConfig(mic_delay_duration),
-            val.METHOD_VALUE_GOOGLE: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
-            val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
-            val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.GoogleMicrophoneConfig(mic_delay_duration),
+            val.METHOD_VALUE_WHISPER: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
+            val.METHOD_VALUE_WHISPER_FASTER: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
+            val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
+            val.METHOD_VALUE_GOOGLE: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
+            val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
+            val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
         }[method]()
 
         def mp_value(db, en): return db if en is None else en
