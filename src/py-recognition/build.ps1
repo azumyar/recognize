@@ -28,8 +28,15 @@ if (-not($?)) {
         echo インストールが失敗またはキャンセルされました
         exit 1
     }
-    echo pythonがインストールされました。一度閉じてもう一度ビルドしてください
-    exit 1
+
+
+    echo 環境変数を再読み込みします
+    $RegenerateUserEnvironment = Add-Type 'A' -PassThru -MemberDefinition '
+    [DllImport("shell32.dll")]
+    public static extern bool RegenerateUserEnvironment(ref IntPtr a, bool b);
+    '
+    $a = [System.IntPtr]::Zero
+    $null = $RegenerateUserEnvironment::RegenerateUserEnvironment([ref]$a, $True)
 }
 echo ok
 echo ""
