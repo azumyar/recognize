@@ -14,7 +14,7 @@ from typing import Any, Callable, Iterable, Optional, NamedTuple
 
 
 from src import Logger, Enviroment, db2rms, rms2db
-import src.mic
+import src.microphone
 import src.recognition as recognition
 import src.output as output
 import src.val as val
@@ -22,20 +22,14 @@ import src.google_recognizers as google
 import src.exception
 from src.cancellation import CancellationObject
 from src.main_common import Record, save_wav
-from src.filter import VoiceActivityDetectorFilter
-
-class VadException(Exception):
-    pass
 
 def run(
-    mic:src.mic.Mic,
+    mic:src.microphone.Microphone,
     recognition_model:recognition.RecognitionModel,
     outputer:output.RecognitionOutputer,
     record:Record,
-    vad_filter:VoiceActivityDetectorFilter | None,
     env:Enviroment,
     cancel:CancellationObject,
-    is_test:bool,
     logger:Logger,
     _:str) -> None:
     """
@@ -43,7 +37,7 @@ def run(
     """
 
     thread_pool = ThreadPoolExecutor(max_workers=1)
-    def onrecord(index:int, param:src.mic.ListenResultParam) -> None:
+    def onrecord(index:int, param:src.microphone.ListenResultParam) -> None:
         """
         マイク認識データが返るコールバック関数
         """
@@ -60,17 +54,17 @@ def run(
             r = func()
             return PerformanceResult(r, time.perf_counter()-start)
 
-        log_mic_info = mic.current_param
-        log_info_mic = f"current energy_threshold = {log_mic_info.energy_threshold}"
+        log_info_mic = f"current energy_threshold = {mic.energy_threshold}"
         log_info_recognition = recognition_model.get_log_info()
 
         insert:str
-        if 0 < mic.end_insert_sec:
-            insert = f", {round(mic.end_insert_sec, 2)}s挿入"
+        if 0 < mic.start_insert_sec or 0 < mic.end_insert_sec:
+            insert = f", {round(mic.start_insert_sec, 2)}s+{round(mic.end_insert_sec, 2)}s挿入"
         else:
             insert = ""
-        if not param.energy is None:
-            insert = f"{insert}, dB={rms2db(param.energy.value):.2f}"
+
+        #if not param.energy is None:
+        #    insert = f"{insert}, dB={rms2db(param.energy.value):.2f}"
         data = param.pcm
         pcm_sec = len(data) / 2 / mic.sample_rate
         logger.debug(
@@ -90,10 +84,7 @@ def run(
                     1,
                     mic.sample_rate,
                     recognition_model.required_sample_rate,
-                    None)                
-
-            if not vad_filter is None and not vad_filter.check(d):
-                raise(VadException())
+                    None)
 
             r = performance(lambda: recognition_model.transcribe(np.frombuffer(d, np.int16).flatten()))
             assert(isinstance(r.result, recognition.TranscribeResult)) # ジェネリクス使った型定義の方法がわかってないのでassert置いて型を確定させる
@@ -102,20 +93,18 @@ def run(
                     return f"{val.Console.Green.value}{o}{dg}{val.Console.Reset.value}"
                 if env.verbose == val.VERBOSE_INFO:
                     logger.notice(f"#{index}", end=" ")
-                logger.notice(
-                    f"認識時間[{green(round(r.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(r.time/pcm_sec, 2), 'tps')}",
-                    end=": ",
-                    console=val.Console.DefaultColor)
-                outputer.output(r.result.transcribe)
+                text = f"認識時間[{green(round(r.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(r.time/pcm_sec, 2), 'tps')}: {outputer.output(r.result.transcribe)}"
+                import re
+                l = sum(map(lambda x: 1 if ord(x) < 256 else 2, re.sub("\033\\[[^m]+m", "", text)))
+                if l < 80:
+                    text = text + "".join(map(lambda _: " ", range(80 - l)))
+                logger.notice(text, console=val.Console.DefaultColor)
             if not r.result.extend_data is None:
                 logger.trace(f"${r.result.extend_data}")
-        except VadException as e:
-            logger.notice(f"#{index} {val.Console.Yellow.value}声未検出", reset_console=True)
-            log_exception = e
         except recognition.TranscribeException as e:
             if env.verbose == val.VERBOSE_INFO:
                 logger.notice(f"#{index}", end=" ")
-            logger.notice("認識失敗", console=val.Console.Yellow, reset_console=True)
+            logger.notice("認識失敗".ljust(40, "　"), console=val.Console.Yellow, reset_console=True)
             log_exception = e
             if e.inner is None:
                 logger.info(e.message)
@@ -144,10 +133,8 @@ def run(
                 f"{type(e)}:{e}",
                 traceback.format_exc()
             ])
-        #for it in [("", mic.get_verbose(env.verbose)), ("", recognition_model.get_verbose(env.verbose))]:
-        #    pass
         logger.print(val.Console.Reset.value, end="") # まとめてコンソールの設定を解除する
-        logger.debug(f"#認理終了(#{index}, time={dt.datetime.now()})", console=val.Console.DefaultColor, reset_console=True)
+        logger.debug(f"#認識終了(#{index}, time={dt.datetime.now()})", console=val.Console.DefaultColor, reset_console=True)
 
         # ログ出力
         try:
@@ -196,16 +183,13 @@ def run(
                 traceback.format_exc()
              ])
 
-    def onrecord_async(index:int, data:src.mic.ListenResultParam) -> None:
+    def onrecord_async(index:int, data:src.microphone.ListenResultParam) -> None:
         """
         マイク認識データが返るコールバック関数の非同期版
         """
         thread_pool.submit(onrecord, index, data)
 
     try:
-        if is_test:
-            mic.listen(onrecord)
-        else:
-            mic.listen_loop(onrecord_async, cancel)
+        mic.listen(onrecord_async, cancel)
     finally:
         thread_pool.shutdown()

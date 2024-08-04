@@ -1,4 +1,4 @@
-import numpy as np
+import numpy 
 import webrtcvad
 
 class NoiseFilter:
@@ -8,7 +8,7 @@ class NoiseFilter:
     def __init__(self, sampling_rate:int) -> None:
         self.sampling_rate = sampling_rate
 
-    def filter(self, data:np.ndarray): # np.ndarray[np.complex128]
+    def filter(self, data:numpy.ndarray): # np.ndarray[np.complex128]
         """
         ノイズフィルターをdataに対して行います。dataの内容は変更されます。
         """
@@ -27,7 +27,7 @@ class LowPassFilter(NoiseFilter):
         self.__cutoff = cutoff
         self.__cutoff_upper = sampling_rate - cutoff_upper
 
-    def filter(self, data:np.ndarray):
+    def filter(self, data:numpy.ndarray):
         pass
         #freq = np.fft.fftfreq(data.size, 1.0 / self.sampling_rate)
         #cutoff = self.__cutoff
@@ -47,8 +47,8 @@ class HighPassFilter(NoiseFilter):
         self.__cutoff = cutoff
         self.__cutoff_upper = cutoff_upper
 
-    def filter(self, data:np.ndarray):
-        freq = np.fft.fftfreq(data.size, 1.0 / self.sampling_rate)
+    def filter(self, data:numpy.ndarray):
+        freq = numpy.fft.fftfreq(data.size, 1.0 / self.sampling_rate)
         cutoff = self.__cutoff
         cutoff_upper = self.__cutoff_upper
         #cutoff_upper = (1 / self.sampling_rate) - cutoff
@@ -61,7 +61,13 @@ class VadFrame(object):
         self.timestamp = timestamp
         self.duration = duration
 
+
 class VoiceActivityDetectorFilter:
+    def check(self, data:bytes) -> bool:
+        ...
+
+
+class GoogleVadFilter(VoiceActivityDetectorFilter):
     """
     VADフィルタ
     """
@@ -74,11 +80,11 @@ class VoiceActivityDetectorFilter:
 
     def check(self, data:bytes) -> bool:
         frame_duration_ms = 30
-        return VoiceActivityDetectorFilter._check(
+        return GoogleVadFilter._check(
             self.__sampling_rate,
             frame_duration_ms, frame_duration_ms * 10,
             self.__vad,
-            list(VoiceActivityDetectorFilter._frame_generator(frame_duration_ms, data, self.__sampling_rate)))
+            list(GoogleVadFilter._frame_generator(frame_duration_ms, data, self.__sampling_rate)))
 
 
     @staticmethod
@@ -215,4 +221,53 @@ class VoiceActivityDetectorFilter:
             if num_voiced > voice_trigger_on_thres * num_padding_frames:
                 return True
         return False
-    
+
+try:
+    import torch
+except:
+    pass
+else:
+    class SileroVadFilter(VoiceActivityDetectorFilter):
+        def __init__(
+                self,
+                sample_rate:int,
+                threshold:float = 0.5,
+                min_speech_duration:float = 0.25,
+                min_silence_duration:float = 0.1):
+            torch.set_num_threads(1)
+            model, utils = torch.hub.load(
+                repo_or_dir="snakers4/silero-vad",
+                model="silero_vad",
+                trust_repo=True)
+
+            (get_speech_timestamps, _, _, _, _) = utils
+            self.__sample_rate = sample_rate
+            self.__model = model
+            self.__get_speech_timestamps = get_speech_timestamps
+            self.__threshold = threshold
+            self.__min_speech_duration_ms = int(min_speech_duration * 1000)
+            self.__min_silence_duration_ms = int(min_silence_duration * 1000)
+
+        def check(self, data:bytes) -> bool:
+            wav = torch.from_numpy(numpy.frombuffer(data, dtype=numpy.int16).astype(numpy.float32)).clone()
+            speech_timestamps = self.__get_speech_timestamps(
+                wav,
+                self.__model,
+                sampling_rate = self.__sample_rate,
+                threshold = self.__threshold,
+                min_speech_duration_ms = self.__min_speech_duration_ms,
+                min_silence_duration_ms = self.__min_silence_duration_ms)
+            #def get_speech_timestamps(audio: torch.Tensor,
+            #              model,
+            #              threshold: float = 0.5,
+            #              sampling_rate: int = 16000,
+            #              min_speech_duration_ms: int = 250,
+            #              max_speech_duration_s: float = float('inf'),
+            #              min_silence_duration_ms: int = 100,
+            #              speech_pad_ms: int = 30,
+            #              return_seconds: bool = False,
+            #              visualize_probs: bool = False,
+            #              progress_tracking_callback: Callable[[float], None] = None,
+            #              window_size_samples: int = 512,):
+
+            return 0 < len(speech_timestamps)

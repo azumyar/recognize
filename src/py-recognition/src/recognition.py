@@ -34,34 +34,36 @@ class GoogleTranscribeExtend(NamedTuple):
             return str(self.raw_data)
 
 class RecognizeMicrophoneConfig:
-    def __init__(self, is_tail_cut:bool, delay_duration:float) -> None:
-        self.__is_tail_cut = is_tail_cut
-        self.__delay_duration = delay_duration
+    def __init__(self, head_insert_duration:float, tail_insert_duration:float) -> None:
+        self.__head_insert_duration = head_insert_duration
+        self.__tail_insert_duration = tail_insert_duration
 
     @property
-    def is_tail_cut(self) -> bool:
-        return self.__is_tail_cut
+    def head_insert_duration(self) -> float:
+        return self.__head_insert_duration
 
     @property
-    def delay_duration(self) -> float:
-        return self.__delay_duration
+    def tail_insert_duration(self) -> float:
+        return self.__tail_insert_duration
 
 
 class WhisperMicrophoneConfig(RecognizeMicrophoneConfig):
-    __DEFAULT_DELAY_DULATION = 0.
+    __DEFAULT_HEAD_DULATION = 0.
+    __DEFAULT_TAIL_DULATION = 0.
 
-    def __init__(self, delay_duration:float | None = None) -> None:
+    def __init__(self, head_insert_duration:float | None = None, tail_insert_duration:float | None = None) -> None:
         super().__init__(
-            True if (not delay_duration is None) and (0 < delay_duration) else False,
-            delay_duration if not delay_duration is None else WhisperMicrophoneConfig.__DEFAULT_DELAY_DULATION)
+            head_insert_duration if not head_insert_duration is None else WhisperMicrophoneConfig.__DEFAULT_HEAD_DULATION,
+            tail_insert_duration if not tail_insert_duration is None else WhisperMicrophoneConfig.__DEFAULT_TAIL_DULATION)
 
 class GoogleMicrophoneConfig(RecognizeMicrophoneConfig):
-    __DEFAULT_DELAY_DULATION = 0.25
+    __DEFAULT_HEAD_DULATION = 0.2
+    __DEFAULT_TAIL_DULATION = 0.25
 
-    def __init__(self, delay_duration:float | None = None) -> None:
+    def __init__(self, head_insert_duration:float | None = None, tail_insert_duration:float | None = None) -> None:
         super().__init__(
-            True if (not delay_duration is None) and (0 < delay_duration) else False,
-            delay_duration if not delay_duration is None else GoogleMicrophoneConfig.__DEFAULT_DELAY_DULATION)
+            head_insert_duration if not head_insert_duration is None else GoogleMicrophoneConfig.__DEFAULT_HEAD_DULATION,
+            tail_insert_duration if not tail_insert_duration is None else GoogleMicrophoneConfig.__DEFAULT_TAIL_DULATION)
 
 
 class RecognitionModel:
