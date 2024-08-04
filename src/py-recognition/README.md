@@ -15,7 +15,6 @@ build.batをダブルクリックで自動的に必要コンポーネントをwi
 テストモードで起動します
 | オプション     |-|
 |:--------------|:------------|
-| recognition   |一度だけ音声認識して終了します|
 | mic           |マイクテストモードで起動します|
 | mic_ambient   |環境音測定モードで起動します|
 
@@ -26,6 +25,7 @@ build.batをダブルクリックで自動的に必要コンポーネントをwi
 |:--------------|:------------|
 | ~~whisper~~   |~~wisperモデルを使用してローカルでAI音声認識を行います~~|
 | faster_whisper|wisperを軽量化したfaster_whisperを使用してローカルでAI音声認識を行います|
+| kotoba_whisper|日本語に特化したkotoba_whisperを使用してローカルでAI音声認識を行います|
 | google        |googleの音声認識API(v2)を使用してインターネット経由で音声認識を行います|
 | google_duplex |googleの音声認識API(全二重)を使用してインターネット経由で音声認識を行います|
 | google_mix    |googleの音声認識API(v2)とgoogleの音声認識API(全二重)を併用してインターネット経由で音声認識を行います|
@@ -34,7 +34,7 @@ whisperはopenai-whisperを含めてビルドした場合有効になります�
 
 
 ### --whisper_model string
-whisper系で有効  
+whisper系で有効(kotoba_whisper除く)  
 使用する推論モデル(tiny|base|small|medium|large|large-v2|large-v3)などを指定します。指定がない場合mediumが設定されます。推論モデルは初回の使用時にダウンロードされます。
 
 ### --whisper_device string
@@ -46,7 +46,7 @@ faster_whisperのみで有効
 推論を行うGPU indexを指定します。指定がない場合0が設定されます。
 
 ### --whisper_language string
-whisper系で有効  
+whisper系で有効(kotoba_whisper除く)  
 推論言語を限定したい場合(en|ja|...)を指定します。指定がない場合全言語を対象に推移されます。指定しておくことを推奨します。
 
 ### --google_language string
@@ -56,10 +56,6 @@ google系で有効
 ### --google_timeout float
 google系で有効  
 googleサーバからのタイムアウト時間(秒)を指定します。標準で5.0が設定されています。0を指定するとタイムアウト時間が無限と解釈されます。
-
-### --google_convert_sampling_rate
-google系で有効  
-マイク入力を16kに変換して送信します。WASAPIデバイスはデバイスの周波数で録音するためデータの肥大化を抑えます。
 
 ### --google_error_retry int
 google系で有効  
@@ -81,33 +77,42 @@ google_duplex,google_mixで有効
 ### --mic int
 使用するマイクの番号を指定します。指定がない場合標準のマイクが使用されます。実行環境マイクデバイスの一覧を取得するには一度--print_micsオプションを指定してexeを実行してください。
 
-### --mic_energy float
-指定した音量より小さい値を無音として扱います。標準では300.0が指定されていますがこの適切な値は使用されているマイクにより異なります。なにもしゃべってなくても音声認識処理が走る場合はこの値を大きくしてください。
+### --mic_energy_threshold float
+指定した音量より小さい値を無音として扱います。標準ではNoneが指定されています。この引数が指定された場合--mic_db_thresholdは無視されます。
 
-### --mic_ambient_noise_to_energy
-このオプションを指定すると起動時に環境音を収拾して--mic_energyの値を変更します。また--mic_dynamic_energy_minよりさがることはありません。
+### --mic_db_threshold float
+指定した音量より小さい値を無音として扱います。標準では0が指定されています。この適切な値は使用されているマイクにより異なります。環境音テストを実行して適切な値を見極めてください。
 
-### --mic_dynamic_energy
-このオプションを指定すると環境音に応じてマイクの収音レベルを動的に変更します。使用しているライブラリは一般的な環境では有効にすることを推奨しています。
+### --mic_pause_duration float
+VADをかけていく塊の秒数を指定します。標準では0.5秒が指定されています。この値を小さくとるとレスポンスはよくなりますが、文節区切りがタイトになります。0.5より大きくすることは想定されていません。未検証です。
 
-### --mic_dynamic_energy_ratio float
-指定がない場合1.5が設定されます。
+### --mic_head_insert_duration float
+認識音声の前側に挿入する秒数を指定します。認識モデルによって初期値は異なりgoogleでは2秒挿入されます。
 
-### --mic_dynamic_energy_adjustment_damping float
-指定がない場合0.15が設定されます。
+### --mic_tail_insert_duration float
+認識音声の後ろ側に挿入する秒数を指定します。認識モデルによって初期値は異なりgoogleでは2.5秒挿入されます。
 
-### --mic_dynamic_energy_min float
-しゃべっていないと補正により--mic_energyが減衰していくためこの値よりは下がらない値を指定します。指定がない場合100が設定されます。
+### --filter_hpf int
+ハイパスフィルタのカットオフ周波数を設定します。標準はNoneでハイパスフィルタは無効化されています。
 
-### --mic_pause float
-無音として認識される秒数を指定します。指定がない場合0.8秒が設定されます。
+### --vad string
+VADエンジンの選択の選択をします
 
-### --mic_phrase float
-この時間発声すると有効な音声によにして認識される秒数を指定します。指定がない場合0.3秒が設定されます。
+| オプション     |-|
+|:--------------|:------------|
+| google        |webrtcを使用します|
+| silero        |stable-tsで使われているsileroを使用します|
 
-### --mic_listen_interval float
-マイク監視ループにおいて1回あたりの監視秒数を指定します。指定がいない場合0.25秒数が設定されます。  
-監視秒数はこの間に発声されるかの監視であり、この時間内に発声が確認された場合--mic_listen_intervalを超えていてもマイクからの録音は継続します。
+※sileroはNVIDIAのGPUが必要です
+
+### --vad_google_mode 0|1|2|3
+webrtcのVAD強度を指定します。強度が高くなるほど積極的にノイズ判定します。
+
+### --vad_silero_threshold float
+sileroのオプション。初期値は0.5
+
+### --vad_silero_min_speech_duration float
+sileroのオプション。初期値は0.25
 
 ### --out string
 認識結果出力方法を指定(print|yukarinette|yukacone)します。指定がない場合printが設定されます。
@@ -116,21 +121,13 @@ google_duplex,google_mixで有効
 | print      |標準出力に認識結果を出力します|
 | yukarinette|ゆかりねっとにWebsocketで送信します|
 | yukacone   |ゆかコネNEOにWebsocketで送信します|
+|illuminate|-|
 
 ### --out_yukarinette int
 ゆかりねっとに送信する外部連携ポートを指定します。指定がない場合49513が設定されます。
 
 ### --out_yukacone int
 ゆかコネNEOに送信する外部連携ポートを指定します。指定がない場合レジストリから取得されます。
-
-### --filter_lpf int
-ローパスフィルタのカットオフ周波数を指定します。現バージョンでは動作しません。
-
-### --filter_hpf int
-ハイパスフィルタのカットオフ周波数を指定します。指定することでハイパスフィルタが有効になります。
-
-### --filter_vad int
-VAD(Voice Activity Detector)を有効にします。0-3を指定できます。3になるほど非音声への強度が高くなります。
 
 ###  --print_mics
 このオプションを指定するとマイクデバイスの一覧を出力して終了します。一部デバイスが文字化けするのは仕様です。

@@ -86,8 +86,8 @@ def __whiper_help(s:str) -> str:
 @click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
 #@click.option("--mic_api", default=val.MIC_API_VALUE_MME, help="--mic_nameで検索するマイクのAPIを指定します", type=click.Choice(val.ARG_CHOICE_MIC_API))
 
-@click.option("--mic_energy", default=None, help="互換性のため残されています", type=float)
-@click.option("--mic_db_threshold", default=rms2db(100), help="設定した値より小さい音を無言として扱う閾値", type=float)
+@click.option("--mic_energy_threshold", default=None, help="互換性のため残されています", type=float)
+@click.option("--mic_db_threshold", default=0, help="設定した値より小さい音を無言として扱う閾値", type=float)
 @click.option("--mic_pause_duration", default=0.5, help="声認識後追加でVADにかけていいく塊の秒数", type=float)
 #@click.option("--mic_sampling_rate", default=16000, help="-", type=int)
 @click.option("--mic_head_insert_duration", default=None, help="-", type=float)
@@ -135,7 +135,7 @@ def main(
     mic_name:Optional[str],
     #mic_api:str,
 
-    mic_energy:Optional[float],
+    mic_energy_threshold:Optional[float],
     mic_db_threshold:float,
     mic_pause_duration:float,
     mic_head_insert_duration:Optional[float],
@@ -203,7 +203,7 @@ def main(
         }[method]()
 
         def mp_value(db, en): return db if en is None else en
-        mp_energy = mp_value(db2rms(mic_db_threshold), mic_energy)
+        mp_energy = mp_value(db2rms(mic_db_threshold), mic_energy_threshold)
         mp_mic = mic
         if mp_mic is None and (not mic_name is None) and mic_name != "":
             for d in src.microphone.Microphone.query_devices():
@@ -212,7 +212,7 @@ def main(
                     break
             if mp_mic is None:
                 ilm_logger.info(f"マイク[{mic_name}]を検索しましたが見つかりませんでした", console=val.Console.Red, reset_console=True)
-                ilm_logger.log("choice_mic() not found")
+                ilm_logger.log("query_devices() microphone not found")
 
         mc = microphone.Microphone(
             mp_energy,
