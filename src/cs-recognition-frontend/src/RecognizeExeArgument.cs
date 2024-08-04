@@ -17,7 +17,7 @@ namespace Haru.Kei {
 	/// </summary>
 	[TypeConverter(typeof(DefinitionOrderTypeConverter))]
 	internal class RecognizeExeArgument {
-		public static readonly int FormatVersion = 2023021800;
+		public static readonly int FormatVersion = 2024080400;
 
 		/// <summary>プロパティグリッドのソート順番を宣言順に行う</summary>
 		class DefinitionOrderTypeConverter : TypeConverter {
@@ -223,26 +223,15 @@ namespace Haru.Kei {
 		[Description("マイクのデバイスIndex\r\nマイクのデバイスリストを見るには--print_micsで実行してください")]
 		[DefaultValue(null)]
 		[ArgAttribute("--mic")]
-		public virtual int? ArgMic { get; set; }
+		public virtual int? ArgMicV2 { get; set; }
 
-		[Category(categoryMic)]
-		[DisplayName("無音レベルの閾値")]
-		[Description("互換性")]
-		[DefaultValue(null)]
-		//[ArgAttribute("--mic_energy")]
-		[Browsable(false)]
-		[Save(IsSave = false)]
-		public float? ArgMicEnergy {
-			get { return DB2Rms(this.ArgMicDbThreshold); }
-			set { this.ArgMicDbThreshold = Rms2dB(value); }
-		}
 
 		[Category(categoryMic)]
 		[DisplayName("無音閾値[dB]")]
-		[Description("無音ではないと判断する音圧の閾値。デフォルトでは40が設定されています。お使いのマイクによって感度は異なります。")]
+		[Description("無音ではないと判断する音圧の閾値。デフォルトでは0が設定されています。お使いのマイクによって感度は異なります。")]
 		[DefaultValue(null)]
 		[ArgAttribute("--mic_db_threshold")]
-		public float? ArgMicDbThreshold { get; set; }
+		public float? ArgMicDbThresholdV2 { get; set; }
 
 
 		[Category(categoryMic)]
@@ -251,7 +240,7 @@ namespace Haru.Kei {
 		[DefaultValue("")]
 		[TypeConverter(typeof(ArgVadConverter))]
 		[ArgAttribute("--vad_google_mode")]
-		public string ArgVadParamater { get; set; }
+		public string ArgVadParamaterV2 { get; set; }
 
 		[Category(categoryMic)]
 		[DefaultValue("")]
@@ -259,7 +248,7 @@ namespace Haru.Kei {
 		[Description("HPFフィルタの強度を設定します。google音声認識を使用する場合無効を推奨します")]
 		[ArgAttribute("", IsFlag = true, Generater = typeof(HpfArgGenerater))]
 		[TypeConverter(typeof(ArgHpfConverter))]
-		public string ArgHpfParamater { get; set; }
+		public string ArgHpfParamaterV2 { get; set; }
 
 
 		[Category(categoryOut)]
@@ -367,9 +356,9 @@ namespace Haru.Kei {
 
 		// MicDeviceで置き換えるので非表示する
 		[Browsable(false)]
-		public override int? ArgMic {
-			get { return base.ArgMic; }
-			set { base.ArgMic = value; }
+		public override int? ArgMicV2 {
+			get { return base.ArgMicV2; }
+			set { base.ArgMicV2 = value; }
 		}
 
 		/// <summary>デバイス名から選べるプロパティ</summary>
@@ -378,7 +367,7 @@ namespace Haru.Kei {
 		[Description("")]
 		[TypeConverter(typeof(MicDeviceConverter))]
 		[DefaultValue("")]
-		public string MicDevice {
+		public string MicDeviceV2 {
 			get { return micDevice; }
 			set {
 				// ArgMicに設定する
@@ -386,10 +375,10 @@ namespace Haru.Kei {
 				if(!string.IsNullOrEmpty(micDevice)) {
 					int r;
 					if(int.TryParse(micDevice.Split(' ')[0], out r)) {
-						this.ArgMic = r;
+						this.ArgMicV2 = r;
 					}
 				} else {
-					this.ArgMic = null;
+					this.ArgMicV2 = null;
 				}
 			}
 		}
