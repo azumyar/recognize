@@ -1,3 +1,4 @@
+![_](docs/assets/icon48.png)  
 # ゆーかねすぴれこ(Yukarinette Speech Recognition)
 
 ## 概要

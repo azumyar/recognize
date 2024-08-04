@@ -37,14 +37,12 @@ namespace Haru.Kei {
 			this.testambientToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
 			this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.plisetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.whisperToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.googleToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripSeparator();
 			this.yukarinetteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.yukaconeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripMenuItem4 = new System.Windows.Forms.ToolStripSeparator();
-			this.micToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.plisetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.menuStrip1.SuspendLayout();
 			this.SuspendLayout();
 			// 
@@ -95,50 +93,36 @@ namespace Haru.Kei {
 			// batToolStripMenuItem
 			// 
 			this.batToolStripMenuItem.Name = "batToolStripMenuItem";
-			this.batToolStripMenuItem.Size = new System.Drawing.Size(168, 22);
+			this.batToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
 			this.batToolStripMenuItem.Text = "バッチファイルを作成";
 			// 
 			// toolStripMenuItem3
 			// 
 			this.toolStripMenuItem3.Name = "toolStripMenuItem3";
-			this.toolStripMenuItem3.Size = new System.Drawing.Size(165, 6);
+			this.toolStripMenuItem3.Size = new System.Drawing.Size(177, 6);
 			// 
 			// testmicToolStripMenuItem
 			// 
 			this.testmicToolStripMenuItem.Name = "testmicToolStripMenuItem";
-			this.testmicToolStripMenuItem.Size = new System.Drawing.Size(168, 22);
+			this.testmicToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
 			this.testmicToolStripMenuItem.Text = "マイクテスト";
 			// 
 			// testambientToolStripMenuItem
 			// 
 			this.testambientToolStripMenuItem.Name = "testambientToolStripMenuItem";
-			this.testambientToolStripMenuItem.Size = new System.Drawing.Size(168, 22);
+			this.testambientToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
 			this.testambientToolStripMenuItem.Text = "環境音測定";
 			// 
 			// toolStripMenuItem1
 			// 
 			this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-			this.toolStripMenuItem1.Size = new System.Drawing.Size(165, 6);
+			this.toolStripMenuItem1.Size = new System.Drawing.Size(177, 6);
 			// 
 			// exitToolStripMenuItem
 			// 
 			this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-			this.exitToolStripMenuItem.Size = new System.Drawing.Size(168, 22);
+			this.exitToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
 			this.exitToolStripMenuItem.Text = "終了(&E)";
-			// 
-			// plisetToolStripMenuItem
-			// 
-			this.plisetToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.whisperToolStripMenuItem,
-            this.googleToolStripMenuItem,
-            this.toolStripMenuItem2,
-            this.yukarinetteToolStripMenuItem,
-            this.yukaconeToolStripMenuItem,
-            this.toolStripMenuItem4,
-            this.micToolStripMenuItem});
-			this.plisetToolStripMenuItem.Name = "plisetToolStripMenuItem";
-			this.plisetToolStripMenuItem.Size = new System.Drawing.Size(77, 20);
-			this.plisetToolStripMenuItem.Text = "プリセット(&P)";
 			// 
 			// whisperToolStripMenuItem
 			// 
@@ -169,16 +153,17 @@ namespace Haru.Kei {
 			this.yukaconeToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
 			this.yukaconeToolStripMenuItem.Text = "ゆかコネNEOと連携";
 			// 
-			// toolStripMenuItem4
+			// plisetToolStripMenuItem
 			// 
-			this.toolStripMenuItem4.Name = "toolStripMenuItem4";
-			this.toolStripMenuItem4.Size = new System.Drawing.Size(202, 6);
-			// 
-			// micToolStripMenuItem
-			// 
-			this.micToolStripMenuItem.Name = "micToolStripMenuItem";
-			this.micToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
-			this.micToolStripMenuItem.Text = "マイクの初期値";
+			this.plisetToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.whisperToolStripMenuItem,
+            this.googleToolStripMenuItem,
+            this.toolStripMenuItem2,
+            this.yukarinetteToolStripMenuItem,
+            this.yukaconeToolStripMenuItem});
+			this.plisetToolStripMenuItem.Name = "plisetToolStripMenuItem";
+			this.plisetToolStripMenuItem.Size = new System.Drawing.Size(77, 20);
+			this.plisetToolStripMenuItem.Text = "プリセット(&P)";
 			// 
 			// Form1
 			// 
@@ -189,7 +174,7 @@ namespace Haru.Kei {
 			this.Controls.Add(this.propertyGrid);
 			this.Controls.Add(this.menuStrip1);
 			this.Name = "Form1";
-			this.Text = "音声認識ランチャー";
+			this.Text = "ゆーかねすぴれこランチャー";
 			this.menuStrip1.ResumeLayout(false);
 			this.menuStrip1.PerformLayout();
 			this.ResumeLayout(false);
@@ -206,16 +191,14 @@ namespace Haru.Kei {
 		private ToolStripMenuItem batToolStripMenuItem;
 		private ToolStripSeparator toolStripMenuItem1;
 		private ToolStripMenuItem exitToolStripMenuItem;
+		private ToolStripMenuItem testmicToolStripMenuItem;
+		private ToolStripMenuItem testambientToolStripMenuItem;
+		private ToolStripSeparator toolStripMenuItem3;
 		private ToolStripMenuItem plisetToolStripMenuItem;
 		private ToolStripMenuItem whisperToolStripMenuItem;
 		private ToolStripMenuItem googleToolStripMenuItem;
 		private ToolStripSeparator toolStripMenuItem2;
 		private ToolStripMenuItem yukarinetteToolStripMenuItem;
 		private ToolStripMenuItem yukaconeToolStripMenuItem;
-		private ToolStripMenuItem testmicToolStripMenuItem;
-		private ToolStripMenuItem testambientToolStripMenuItem;
-		private ToolStripSeparator toolStripMenuItem3;
-		private ToolStripSeparator toolStripMenuItem4;
-		private ToolStripMenuItem micToolStripMenuItem;
 	}
 }

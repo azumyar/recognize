@@ -16,7 +16,6 @@ namespace Haru.Kei {
 
 		private RecognizeExeArgument arg;
 
-	
 		public Form1() {
 			InitializeComponent();
 			this.batToolStripMenuItem.Click += (_, __) => {
@@ -54,15 +53,14 @@ namespace Haru.Kei {
 
 			this.whisperToolStripMenuItem.Click+= (_, __) => {
 				this.arg.ArgMethod = "kotoba_whisper";
-				this.arg.ArgHpfParamater = HpfArgGenerater.HpfParamater.強め.ToString();
-				this.arg.ArgVadParamater = "0";
+				this.arg.ArgHpfParamaterV2 = HpfArgGenerater.HpfParamater.強め.ToString();
+				this.arg.ArgVadParamaterV2 = "0";
 				this.propertyGrid.Refresh();
 			};
 			this.googleToolStripMenuItem.Click += (_, __) => {
 				this.arg.ArgMethod = "google_mix";
-				this.arg.ArgGoogleConvertSamplingRate = true;
-				this.arg.ArgHpfParamater = HpfArgGenerater.HpfParamater.無効.ToString();
-				this.arg.ArgVadParamater = "";
+				this.arg.ArgHpfParamaterV2 = HpfArgGenerater.HpfParamater.無効.ToString();
+				this.arg.ArgVadParamaterV2 = "0";
 				this.propertyGrid.Refresh();
 			};
 			this.yukarinetteToolStripMenuItem.Click += (_, __) => {
@@ -76,19 +74,9 @@ namespace Haru.Kei {
 				this.arg.ArgOut = "yukacone";
 				this.propertyGrid.Refresh();
 			};
-			this.micToolStripMenuItem.Click += (_, __) => {
-				this.arg.ArgMicDbThreshold = 49.54f;
-				this.arg.ArgMicAmbientNoiseToDB = true;
-				this.arg.ArgMicDynamicDB = true;
-				this.arg.ArgMicDynamicDBMin = 40.0f;
-				this.arg.ArgMicPharse = 0.3f;
-				this.arg.ArgMicPause = 0.4f;
-				this.propertyGrid.Refresh();
-			};
 
 			this.button.Click += (_, __) => {
 				this.SaveConfig(this.arg);
-
 
 				var bat = new StringBuilder()
 					.AppendLine("@echo off")
@@ -137,13 +125,23 @@ namespace Haru.Kei {
 				return float.TryParse(x, out v) ? (object)v : null;
 			});
 
+			var isVesionUp = false;
 			var list = new List<Tuple<string, string>>();
 			try {
 				var save = File.ReadAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.CONFIG_FILE));
 				foreach(var line in save.Replace("\r\n", "\n").Split('\n')) {
 					var c = line.IndexOf(':');
 					if(0 < c) {
-						list.Add(new Tuple<string, string>(line.Substring(0, c), line.Substring(c + 1)));
+						var tp = new Tuple<string, string>(line.Substring(0, c), line.Substring(c + 1));
+						list.Add(tp);
+
+
+						if(tp.Item1.ToLower() == "version") {
+							int ver;
+							if(int.TryParse(tp.Item2, out ver) && ver < RecognizeExeArgument.FormatVersion) {
+								isVesionUp = true;
+							}
+						}
 					}
 				}
 			}
@@ -171,6 +169,14 @@ namespace Haru.Kei {
 				}
 			}
 			this.propertyGrid.SelectedObject = this.arg;
+			if(isVesionUp) {
+				MessageBox.Show(
+					this,
+					"設定が更新されています。内容を確認してね",
+					"ゆーかねすぴれこ",
+					MessageBoxButtons.OK,
+					MessageBoxIcon.Information);
+			}
 		}
 
 		protected override void OnFormClosed(FormClosedEventArgs e) {
