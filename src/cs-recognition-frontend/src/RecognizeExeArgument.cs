@@ -194,22 +194,29 @@ namespace Haru.Kei {
 		[Description("グーグルの音声認識言語")]
 		[DefaultValue("")]
 		[TypeConverter(typeof(ArgGoogleLangConverter))]
-		[ArgAttribute("--google_language", TargetProperty = "ArgMethod", TargetValue = "google;google_duplex")]
+		[ArgAttribute("--google_language", TargetProperty = "ArgMethod", TargetValue = "google;google_duplex;google_mix")]
 		public string ArgGoogleLanguage { get; set; }
 
 		[Category(categoryModel)]
 		[DisplayName("タイムアウト時間[秒](google)")]
 		[Description("グーグルサーバからのタイムアウト時間")]
 		[DefaultValue(null)]
-		[ArgAttribute("--google_timeout", TargetProperty = "ArgMethod", TargetValue = "google;google_duplex")]
+		[ArgAttribute("--google_timeout", TargetProperty = "ArgMethod", TargetValue = "google;google_duplex;google_mix")]
 		public float? ArgGoogleTimeout { get; set; }
 
 		[Category(categoryModel)]
 		[DisplayName("500エラーリトライ(google)")]
 		[Description("500エラーでエラーを返さず認識処理を指定した回数実行します")]
 		[DefaultValue(null)]
-		[ArgAttribute("--google_error_retry", TargetProperty = "ArgMethod", TargetValue = "google;google_duplex")]
+		[ArgAttribute("--google_error_retry", TargetProperty = "ArgMethod", TargetValue = "google;google_duplex;google_mix")]
 		public int? ArgGoogleErrorRetry { get; set; }
+
+		[Category(categoryModel)]
+		[DisplayName("冒とくフィルタ(google)")]
+		[Description("trueにするとgoogleで冒とく的な単語を伏字にします")]
+		[DefaultValue(null)]
+		[ArgAttribute("--google_profanity_filter", IsFlag = true, TargetProperty = "ArgMethod", TargetValue = "google;google_duplex;google_mix")]
+		public bool? ArgGoogleProfanityFilter { get; set; }
 
 		[Category(categoryModel)]
 		[DisplayName("並列認識呼び出し(google_duplex)")]
