@@ -323,9 +323,21 @@ class RecognitionModelGoogle(RecognitionModelGoogleApi):
     """
     認識モデルのgoogle音声認識API v2実装
     """
-    def __init__(self, sample_rate: int, sample_width: int, convert_sample_rete: bool=False, language: str = "ja-JP", key: str | None = None, timeout: float | None = None, challenge: int = 1):
+    def __init__(
+        self,
+        sample_rate: int,
+        sample_width: int,
+        convert_sample_rete: bool=False,
+        language: str = "ja-JP",
+        profanity_filter:bool = False,        
+        key: str | None = None,
+        timeout: float | None = None,
+        challenge: int = 1):
         super().__init__(sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
-
+        if profanity_filter:
+            self.__profanity_filter = 1
+        else:
+            self.__profanity_filter = 0
 
     def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
         r = google.recognize_google(
@@ -333,7 +345,7 @@ class RecognitionModelGoogle(RecognitionModelGoogleApi):
             self._operation_timeout,
             self._key,
             self._language,
-            0)
+            self.__profanity_filter)
         return TranscribeResult(r.transcript, r.raw_data)
 
 
@@ -355,6 +367,7 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
         sample_width:int,
         convert_sample_rete:bool=False,
         language:str = "ja-JP",
+        profanity_filter:bool = False,
         key:str|None = None,
         timeout:float|None = None,
         challenge:int = 1,
@@ -363,6 +376,10 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
         parallel_reduce_count:int|None = None):
 
         super().__init__(sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
+        if profanity_filter:
+            self.__profanity_filter = 1
+        else:
+            self.__profanity_filter = 0
         self.__is_parallel_run = is_parallel_run
         self.__parallel = 3
         '''平行実行のスレッド数'''
@@ -408,7 +425,7 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
                 self._operation_timeout,
                 self._key,
                 self._language,
-                0)
+                self.__profanity_filter)
             return TranscribeResult(r.transcript, r.raw_data)
 
         if self.__is_parallel_run:
@@ -461,6 +478,7 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
         sample_width:int,
         convert_sample_rete:bool=False,
         language:str = "ja-JP",
+        profanity_filter:bool = False,
         key:str|None = None,
         timeout:float|None = None,
         challenge:int = 1,
@@ -468,9 +486,12 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
         parallel_reduce_count_duplex:int|None = None):
 
         super().__init__(sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
+        if profanity_filter:
+            self.__profanity_filter = 1
+        else:
+            self.__profanity_filter = 0        
         self.__parallel_recognize = 1
         '''平行実行のスレッド数(recognize)'''
-
 
         self.__parallel__duplex = 3
         '''平行実行のスレッド数(duplex)'''
@@ -521,7 +542,7 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
                 self._operation_timeout,
                 self._key,
                 self._language,
-                0)
+                self.__profanity_filter)
             return FutureResult(RecognitionModelGoogleMix.API_RECOGNIZE, TranscribeResult(r.transcript, r.raw_data))
 
         def func_duplex(index:int = 0, delay_ratio=0.1) -> FutureResult:
@@ -535,7 +556,7 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
                 self._operation_timeout,
                 self._key,
                 self._language,
-                0)
+                self.__profanity_filter)
             return FutureResult(RecognitionModelGoogleMix.API_DUPLEX, TranscribeResult(r.transcript, r.raw_data))
 
 

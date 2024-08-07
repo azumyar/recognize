@@ -77,11 +77,11 @@ def __whiper_help(s:str) -> str:
 @click.option("--google_timeout", default=5.0, help="(google)最大認識待ち時間", type=float)
 @click.option("--google_convert_sampling_rate", default=False, help="(google)マイク入力を16kに変換します", is_flag=True, type=bool)
 @click.option("--google_error_retry", default=1, help="(google)500エラー時にリトライ試行する回数", type=int)
+@click.option("--google_profanity_filter", default=False, help="(google)冒とくフィルタを有効にします", is_flag=True, type=bool)
 @click.option("--google_duplex_parallel", default=False, help="(google_duplexのみ)複数並列リクエストを投げエラーの抑制を図ります", is_flag=True, type=bool)
 @click.option("--google_duplex_parallel_max", default=None, help="(google_duplexのみ)複数並列リクエスト数増減時の最大並列数", type=int)
 @click.option("--google_duplex_parallel_reduce_count", default=None, help="(google_duplexのみ)増加した並列数を減少するために必要な成功数", type=int)
 @click.option("--google_tcp", default=None, help="-", type=click.Choice(["urllib", "requests"]), callback=select_google_tcp, expose_value=False, is_eager=True)
-
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
 @click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
 #@click.option("--mic_api", default=val.MIC_API_VALUE_MME, help="--mic_nameで検索するマイクのAPIを指定します", type=click.Choice(val.ARG_CHOICE_MIC_API))
@@ -128,6 +128,7 @@ def main(
     google_timeout:float,
     google_convert_sampling_rate:bool,
     google_error_retry:int,
+    google_profanity_filter:bool,
     google_duplex_parallel:bool,
     google_duplex_parallel_max:Optional[int],
     google_duplex_parallel_reduce_count:Optional[int],
@@ -258,6 +259,7 @@ def main(
                     sample_width=2,
                     convert_sample_rete=google_convert_sampling_rate,
                     language=google_language,
+                    profanity_filter=google_profanity_filter,
                     timeout=google_timeout if 0 < google_timeout else None,
                     challenge=google_error_retry),
                 val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.RecognitionModelGoogleDuplex(
@@ -265,6 +267,7 @@ def main(
                     sample_width=2,
                     convert_sample_rete=google_convert_sampling_rate,
                     language=google_language,
+                    profanity_filter=google_profanity_filter,
                     timeout=google_timeout if 0 < google_timeout else None,
                     challenge=google_error_retry,
                     is_parallel_run=google_duplex_parallel,
@@ -275,6 +278,7 @@ def main(
                     sample_width=2,
                     convert_sample_rete=google_convert_sampling_rate,
                     language=google_language,
+                    profanity_filter=google_profanity_filter,
                     timeout=google_timeout if 0 < google_timeout else None,
                     challenge=google_error_retry,
                     parallel_max_duplex=google_duplex_parallel_max,
