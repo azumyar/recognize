@@ -253,11 +253,16 @@ class Microphone:
         self.__print_dB("＃", dB, Microphone.__BAR_COLOR_VAD_OK, print)
 
     def __print_dB(self, str, dB, color:str, print:Any):
-        MAX = 78
+        MAX = 73
+
+        if 80 < dB:
+            db_text = "8+dB"
+        else:
+            db_text = f"{int(dB)}dB"
 
         dB = min(dB, 80)
         len = int(dB / 80 * MAX)
         a = "".join(map(lambda _: " ", range(len)))
         b = "".join(map(lambda _: " ", range(MAX - len)))
         #print("\033[1G", end="", flush=True)
-        print(f"{str}{color}{a}{Microphone.__BAR_COLOR_BACKGROUND}{b}{val.Console.Reset.value}\r", end="")
+        print(f"{str}{db_text}|{color}{a}{Microphone.__BAR_COLOR_BACKGROUND}{b}{val.Console.Reset.value}\r", end="")
