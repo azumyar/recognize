@@ -17,6 +17,38 @@ class ListenEnergy(NamedTuple):
     max:float
     min:float
 
+class _Indicator:
+    def __init__(self) -> None:
+        import datetime
+        pass
+        self.__now = 0
+        self.__db_str = ""
+        self.__UPDATE_SEC = 0.33
+
+    def update(self, str, dB, color_foreground:str, color_background:str, print:Any) -> None:
+        import time
+        def __round(number, ndigits=0) -> float:
+            """
+            四捨五入
+            """
+            p = 10 ** ndigits
+            return (number * p * 2 + 1) // 2 / p
+        MAX = 71
+        now = time.time()
+        if self.__UPDATE_SEC < (now - self.__now):
+            self.__now = now
+            if 80 < dB:
+                self.__db_str = "8+.0dB"
+            else:
+                self.__db_str = f"{__round(dB, 1):.1f}dB"
+
+        dB = min(dB, 80)
+        len = int(dB / 80 * MAX)
+        a = "".join(map(lambda _: " ", range(len)))
+        b = "".join(map(lambda _: " ", range(MAX - len)))
+        #print("\033[1G", end="", flush=True)
+        print(f"{str}{self.__db_str}|{color_foreground}{a}{color_background}{b}{val.Console.Reset.value}\r", end="")
+
 
 class ListenResultParam(NamedTuple):
     '''listenのコールバックパラメータ'''
@@ -59,6 +91,7 @@ class Microphone:
         self.__sample_width = val.MIC_SAMPLE_WIDTH
         self.__chunk_size = 1024
         self.__logger = logger
+        self.__indicator = _Indicator()
 
         d = sounddevice.query_devices(
             device=device) if not device is None else sounddevice.query_devices(
@@ -253,16 +286,4 @@ class Microphone:
         self.__print_dB("＃", dB, Microphone.__BAR_COLOR_VAD_OK, print)
 
     def __print_dB(self, str, dB, color:str, print:Any):
-        MAX = 73
-
-        if 80 < dB:
-            db_text = "8+dB"
-        else:
-            db_text = f"{int(dB)}dB"
-
-        dB = min(dB, 80)
-        len = int(dB / 80 * MAX)
-        a = "".join(map(lambda _: " ", range(len)))
-        b = "".join(map(lambda _: " ", range(MAX - len)))
-        #print("\033[1G", end="", flush=True)
-        print(f"{str}{db_text}|{color}{a}{Microphone.__BAR_COLOR_BACKGROUND}{b}{val.Console.Reset.value}\r", end="")
+        self.__indicator.update(str, dB, color, Microphone.__BAR_COLOR_BACKGROUND, print)
