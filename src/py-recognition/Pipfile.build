@@ -4,7 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [dev-packages]
-pyinstaller = "*"
+pyinstaller = "==6.9.0"
+pyinstaller-hooks-contrib = "*"
 
 [scripts]
 archive1 = "pyinstaller -n recognize --noconfirm src/__main__.py"
