@@ -275,9 +275,9 @@ else:
                     raise TranscribeException(f"ノイズ判定:{reslut}") 
             r = reslut["text"] #type: ignore
             if isinstance(r, str):
-                return TranscribeResult(r, None)
+                return TranscribeResult(r, reslut)
             if isinstance(r, list):
-                return TranscribeResult("".join(r), None)
+                return TranscribeResult("".join(r), reslut)
             raise ex.ProgramError(f"pipelineから意図しない戻り値型:{type(r)}")
 
 
