@@ -2,7 +2,9 @@ src/**/**/bin
 src/**/**/obj
 
 .vs/
+.cache/
 packages/
+Record/*
 bin/tee.exe
 src/py-recognition/.venv
 *.csproj.user
@@ -11,6 +13,5 @@ recognize-gui.exe
 frontend.conf
 recognize.log
 custom-recognize.bat
-Record/*
 
 build.dat
