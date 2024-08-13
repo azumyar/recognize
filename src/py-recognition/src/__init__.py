@@ -244,9 +244,9 @@ class Logger:
         if not out_file is None and out_file:
             self.log(obj)
 
-    def print(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|str|None=None, reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, True, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
-    def info(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|str|None=val.Console.Cyan, reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_min, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
-    def notice(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|str|None=None, reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_info, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
+    def print(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|list[val.Console]|str|None=None, reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, True, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
+    def info(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|list[val.Console]|str|None=val.Console.Cyan, reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_min, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
+    def notice(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|list[val.Console]|str|None=None, reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_info, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
     def debug(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|list[val.Console]|str|None=[val.Console.Yellow, val.Console.BackgroundBlack], reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_debug, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
     def trace(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|list[val.Console]|str|None=[val.Console.Yellow, val.Console.BackgroundBlack, val.Console.UnderLine], reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_trace, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
 
