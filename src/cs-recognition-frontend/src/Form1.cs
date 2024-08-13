@@ -59,6 +59,7 @@ namespace Haru.Kei {
 			};
 			this.googleToolStripMenuItem.Click += (_, __) => {
 				this.arg.ArgMethod = "google_mix";
+				this.arg.ArgGoogleProfanityFilter = true;
 				this.arg.ArgHpfParamaterV2 = HpfArgGenerater.HpfParamater.無効.ToString();
 				this.arg.ArgVadParamaterV2 = "0";
 				this.propertyGrid.Refresh();
