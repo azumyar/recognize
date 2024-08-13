@@ -33,7 +33,8 @@ stable-ts = "2.16.0"
 punctuators = "0.0.5"
 
 [dev-packages]
-pyinstaller = "*"
+pyinstaller = "==6.9.0"
+pyinstaller-hooks-contrib = "==2024.7"
 nuitka = "*"
 #[requires]
 #python_version = "3.10"
