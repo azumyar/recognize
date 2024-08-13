@@ -39,9 +39,25 @@ def _root_path() -> tuple[str, str]:
             os.makedirs(__root, exist_ok=True)
             os.chdir(__root)
         return (__root, proj_root)
-os.environ["TORCH_HOME"] = f"{_root_path()[0]}{os.sep}.cache"
-# kotoba-whisperのダウンロード設定をする
-os.environ["HUGGINGFACE_HUB_CACHE"] = f"{_root_path()[0]}{os.sep}.cache"
+
+def __cache(default_path:str) -> str:
+    import sys
+    pth = default_path
+    is_cache = False
+    for arg in sys.argv:
+        if is_cache:
+            is_cache = False
+            pth = f"{arg}{os.sep}.cache"
+            break
+        if arg == "--torch_cache":
+            is_cache = True
+            continue
+    return pth
+
+# torch/kotoba-whisperのダウンロード設定をする
+os.environ["TORCH_HOME"] = \
+    os.environ["HUGGINGFACE_HUB_CACHE"] = \
+    __cache(f"{_root_path()[0]}{os.sep}.cache")
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 from typing import Any, Callable, Iterable, Optional, NamedTuple, Literal

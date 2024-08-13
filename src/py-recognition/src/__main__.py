@@ -116,6 +116,7 @@ def __whiper_help(s:str) -> str:
 @click.option("--record_file", default="record", help="録音データの出力ファイル名を指定します", type=str)
 @click.option("--record_directory", default=None, help="録音データの出力先ディレクトリを指定します", type=str)
 
+@click.option("--torch_cache", default="", help="torchがダウンロードするキャッシュの場所を指定します", type=str)
 @click.option("--feature", default="", help="-", type=str)
 def main(
     test:str,
@@ -158,6 +159,8 @@ def main(
     record:bool,
     record_file:str,
     record_directory:Optional[str],
+
+    torch_cache:str,
     feature:str
     ) -> None:
     from src import ilm_logger, ilm_enviroment
