@@ -107,10 +107,11 @@ def run(
             logger.notice("認識失敗".ljust(40, "　"), console=val.Console.Yellow, reset_console=True)
             log_exception = e
             if e.inner is None:
-                logger.info(e.message)
+                logger.info(e.message, console=[val.Console.Yellow, val.Console.BackgroundBlack, val.Console.UnderLine], reset_console=True)
             else:
                 if isinstance(e.inner, urlerr.HTTPError) or isinstance(e.inner, urlerr.URLError):
-                    logger.notice(e.message)
+                    logger.notice(e.message, console=[val.Console.Yellow, val.Console.BackgroundBlack, val.Console.UnderLine], reset_console=True)
+
                 elif isinstance(e.inner, google.UnknownValueError):
                     raw = e.inner.raw_data
                     if raw is None:

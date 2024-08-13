@@ -39,9 +39,25 @@ def _root_path() -> tuple[str, str]:
             os.makedirs(__root, exist_ok=True)
             os.chdir(__root)
         return (__root, proj_root)
-os.environ["TORCH_HOME"] = f"{_root_path()[0]}{os.sep}.cache"
-# kotoba-whisperのダウンロード設定をする
-os.environ["HUGGINGFACE_HUB_CACHE"] = f"{_root_path()[0]}{os.sep}.cache"
+
+def __cache(default_path:str) -> str:
+    import sys
+    pth = default_path
+    is_cache = False
+    for arg in sys.argv:
+        if is_cache:
+            is_cache = False
+            pth = f"{arg}{os.sep}.cache"
+            break
+        if arg == "--torch_cache":
+            is_cache = True
+            continue
+    return pth
+
+# torch/kotoba-whisperのダウンロード設定をする
+os.environ["TORCH_HOME"] = \
+    os.environ["HUGGINGFACE_HUB_CACHE"] = \
+    __cache(f"{_root_path()[0]}{os.sep}.cache")
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 from typing import Any, Callable, Iterable, Optional, NamedTuple, Literal
@@ -228,9 +244,9 @@ class Logger:
         if not out_file is None and out_file:
             self.log(obj)
 
-    def print(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|str|None=None, reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, True, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
-    def info(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|str|None=val.Console.Cyan, reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_min, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
-    def notice(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|str|None=None, reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_info, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
+    def print(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|list[val.Console]|str|None=None, reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, True, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
+    def info(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|list[val.Console]|str|None=val.Console.Cyan, reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_min, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
+    def notice(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|list[val.Console]|str|None=None, reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_info, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
     def debug(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|list[val.Console]|str|None=[val.Console.Yellow, val.Console.BackgroundBlack], reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_debug, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
     def trace(self, obj:Any, sep:str|None=" ", end:str|None="\n", console:val.Console|list[val.Console]|str|None=[val.Console.Yellow, val.Console.BackgroundBlack, val.Console.UnderLine], reset_console:bool=False, out_file:bool|None=None) -> None: self.__print(obj, self.is_trace, sep=sep, end=end, console=console, reset_console=reset_console, out_file=out_file)
 

@@ -194,24 +194,67 @@ else:
 
 
 try:
-    from transformers import pipeline # type: ignore
+    from transformers import pipeline  # type: ignore
+    import stable_whisper # type: ignore
     import torch # type: ignore
+    from typing import Optional
 except:
     pass
 else:
+    # kotoba-tech/kotoba-whisper-v1.1 がプログレス強制的に出すので入れ替える
+    __adjust_by_silence = stable_whisper.WhisperResult.adjust_by_silence
+    def __adjust_by_silence_mod(
+            self,
+            audio: torch.Tensor | np.ndarray | str | bytes,
+            vad: bool = False,
+            *k,
+            verbose: bool | None = False,
+            sample_rate: int | None = None,
+            vad_onnx: bool = False,
+            vad_threshold: float = 0.35,
+            q_levels: int = 20,
+            k_size: int = 5,
+            min_word_dur: Optional[float] = None,
+            word_level: bool = True,
+            nonspeech_error: float = 0.3,
+            use_word_position: bool = True) -> stable_whisper.WhisperResult:
+            return __adjust_by_silence(
+                self,
+                audio= audio,
+                vad= vad,
+                *k,
+                verbose= False,
+                sample_rate= sample_rate, #type: ignore
+                vad_onnx= vad_onnx,
+                vad_threshold= vad_threshold,
+                q_levels= q_levels,
+                k_size= k_size,
+                min_word_dur= min_word_dur,
+                word_level= word_level,
+                nonspeech_error= nonspeech_error,
+                use_word_position= use_word_position)
+    stable_whisper.WhisperResult.adjust_by_silence = __adjust_by_silence_mod
+
     class RecognitionModelWhisperKotoba(RecognitionModel):
         def __init__(self, device:str) -> None:
-            model_id = "kotoba-tech/kotoba-whisper-v1.0"
+            model_id = "kotoba-tech/kotoba-whisper-v1.1"
             torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
             model_kwargs = {"attn_implementation": "sdpa"} if torch.cuda.is_available() else {}
 
-            self.__generate_kwargs = {"language": "japanese", "task": "transcribe"}
+            self.__generate_kwargs = {
+                "language": "japanese",
+                "task": "transcribe",             
+            }
             self.__pipe = pipeline(
-                "automatic-speech-recognition",
                 model = model_id,
                 torch_dtype = torch_dtype,
                 device = device,
-                model_kwargs = model_kwargs
+                model_kwargs = model_kwargs,
+                trust_remote_code=True,
+                chunk_length_s=15,
+                batch_size=16,
+                stable_ts=True,
+                punctuator=False,
             )
 
         @property
@@ -223,13 +266,18 @@ else:
 
         def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
             reslut = self.__pipe(
-                audio_data.astype(np.float32) / float(np.iinfo(np.int16).max),
+                audio_data.astype(np.float16) / float(np.iinfo(np.int16).max),
+                return_timestamps=True,
                 generate_kwargs = self.__generate_kwargs)
+            if "chunks" in reslut and len(reslut["chunks"]) == 1 and "timestamp" in reslut["chunks"][0]: #type: ignore
+                ts = reslut["chunks"][0]["timestamp"] #type: ignore
+                if ts[0] == 0.0 and ts[1] == 0.1:
+                    raise TranscribeException(f"ノイズ判定:{reslut}") 
             r = reslut["text"] #type: ignore
             if isinstance(r, str):
-                return TranscribeResult(r, None)
+                return TranscribeResult(r, reslut)
             if isinstance(r, list):
-                return TranscribeResult("".join(r), None)
+                return TranscribeResult("".join(r), reslut)
             raise ex.ProgramError(f"pipelineから意図しない戻り値型:{type(r)}")
 
 
