@@ -3,6 +3,10 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[packages]
+stable-ts = "2.16.0"
+punctuators = "0.0.5"
+
 [dev-packages]
 pyinstaller = "==6.9.0"
 pyinstaller-hooks-contrib = "==2024.7"
