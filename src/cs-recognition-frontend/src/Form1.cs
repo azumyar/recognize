@@ -7,17 +7,39 @@ using System.Windows.Forms;
 using System.Reflection;
 using System.ComponentModel;
 using System.Xml.Linq;
+using System.Diagnostics;
+using System.Drawing;
+using System.Runtime.InteropServices;
 
 namespace Haru.Kei {
 	public partial class Form1 : Form {
+		[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+		private static extern IntPtr SendMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
+		[DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+		private static extern uint ExtractIconEx(string pszFile, uint nIconIndex, out IntPtr phIconLarge, out IntPtr phIconSmall, uint nIcons);
+		private const int WM_SETICON = 0x0080;
+		private const int ICON_BIG = 1;
+		private const int ICON_SMALL = 0;
+
 		private readonly string CONFIG_FILE = "frontend.conf";
 		private readonly string BAT_FILE = "custom-recognize.bat";
 		private readonly string TEMP_BAT = Path.Combine(Path.GetTempPath(), string.Format("recognize-gui-{0}.bat", Guid.NewGuid()));
 
 		private RecognizeExeArgument arg;
-
 		public Form1() {
 			InitializeComponent();
+
+			IntPtr hIcon;
+			IntPtr hIconSmall;
+			ExtractIconEx(
+				Process.GetCurrentProcess().MainModule.FileName,
+				0,
+				out hIcon,
+				out hIconSmall,
+				1);
+			SendMessage(this.Handle, WM_SETICON, (IntPtr)ICON_BIG, hIcon);
+			SendMessage(this.Handle, WM_SETICON, (IntPtr)ICON_SMALL, hIconSmall);
+
 			this.batToolStripMenuItem.Click += (_, __) => {
 				try {
 					var bat = new StringBuilder()
