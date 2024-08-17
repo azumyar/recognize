@@ -29,14 +29,16 @@ accelerate = "*"
 webrtcvad = "*"
 sounddevice = "*"
 pyinstaller-hooks-contrib = "*"
+stable-ts = "2.16.0"
+punctuators = "0.0.5"
 
 [dev-packages]
 pyinstaller = "==6.9.0"
-pyinstaller-hooks-contrib = "*"
+pyinstaller-hooks-contrib = "==2024.7"
 nuitka = "*"
 #[requires]
 #python_version = "3.10"
 
 [scripts]
-archive1 = "pyinstaller -n recognize --noconfirm src/__main__.py"
+archive1 = "pyinstaller -n recognize --noconfirm --hidden-import punctuators --hidden-import punctuators.models src/__main__.py"
 archive2 = "nuitka --standalone --output-filename=recognize --output-dir=dist --remove-output src/__main__.py"

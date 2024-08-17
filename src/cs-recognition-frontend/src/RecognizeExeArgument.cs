@@ -194,22 +194,29 @@ namespace Haru.Kei {
 		[Description("グーグルの音声認識言語")]
 		[DefaultValue("")]
 		[TypeConverter(typeof(ArgGoogleLangConverter))]
-		[ArgAttribute("--google_language", TargetProperty = "ArgMethod", TargetValue = "google;google_duplex")]
+		[ArgAttribute("--google_language", TargetProperty = "ArgMethod", TargetValue = "google;google_duplex;google_mix")]
 		public string ArgGoogleLanguage { get; set; }
 
 		[Category(categoryModel)]
 		[DisplayName("タイムアウト時間[秒](google)")]
 		[Description("グーグルサーバからのタイムアウト時間")]
 		[DefaultValue(null)]
-		[ArgAttribute("--google_timeout", TargetProperty = "ArgMethod", TargetValue = "google;google_duplex")]
+		[ArgAttribute("--google_timeout", TargetProperty = "ArgMethod", TargetValue = "google;google_duplex;google_mix")]
 		public float? ArgGoogleTimeout { get; set; }
 
 		[Category(categoryModel)]
 		[DisplayName("500エラーリトライ(google)")]
 		[Description("500エラーでエラーを返さず認識処理を指定した回数実行します")]
 		[DefaultValue(null)]
-		[ArgAttribute("--google_error_retry", TargetProperty = "ArgMethod", TargetValue = "google;google_duplex")]
+		[ArgAttribute("--google_error_retry", TargetProperty = "ArgMethod", TargetValue = "google;google_duplex;google_mix")]
 		public int? ArgGoogleErrorRetry { get; set; }
+
+		[Category(categoryModel)]
+		[DisplayName("冒とくフィルタ(google)")]
+		[Description("trueにするとgoogleで冒とく的な単語を伏字にします")]
+		[DefaultValue(null)]
+		[ArgAttribute("--google_profanity_filter", IsFlag = true, TargetProperty = "ArgMethod", TargetValue = "google;google_duplex;google_mix")]
+		public bool? ArgGoogleProfanityFilter { get; set; }
 
 		[Category(categoryModel)]
 		[DisplayName("並列認識呼び出し(google_duplex)")]
@@ -227,8 +234,8 @@ namespace Haru.Kei {
 
 
 		[Category(categoryMic)]
-		[DisplayName("無音閾値[dB]")]
-		[Description("無音ではないと判断する音圧の閾値。デフォルトでは0が設定されています。お使いのマイクによって感度は異なります。")]
+		[DisplayName("環境音境界値[dB]")]
+		[Description("環境音ではないと判断する音圧の境界値。デフォルトでは0が設定されています。お使いのマイクによって感度は異なります。")]
 		[DefaultValue(null)]
 		[ArgAttribute("--mic_db_threshold")]
 		public float? ArgMicDbThresholdV2 { get; set; }
@@ -309,6 +316,11 @@ namespace Haru.Kei {
 		[ArgAttribute("--record_directory", TargetProperty = "ArgRecord", TargetValue = "true", IgnoreCase = true)]
 		public string ArgRecordDirectory { get; set; }
 
+		[DisplayName("AIファイル格納先")]
+		[Description("AIファイル格納ルートフォルダパスを指定します。このパスの配下に.cacheディレクトリが作られます。")]
+		[ArgAttribute("--torch_cache")]
+		public string ArgTorchCache { get; set; }
+
 		[DisplayName("自由記入欄")]
 		[Description("入力した文字列はコマンド引数末尾に追加されます")]
 		[DefaultValue("")]
@@ -321,7 +333,9 @@ namespace Haru.Kei {
 					p.SetValue(this, dva.Value);
 				}
 			}
-			this.ArgLogDirectory = AppDomain.CurrentDomain.BaseDirectory;
+			this.ArgLogDirectory
+				= this.ArgTorchCache
+				= AppDomain.CurrentDomain.BaseDirectory;
 			this.ArgRecordDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Record");
 		}
 
