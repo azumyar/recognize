@@ -236,15 +236,17 @@ else:
     stable_whisper.WhisperResult.adjust_by_silence = __adjust_by_silence_mod
 
     class RecognitionModelWhisperKotoba(RecognitionModel):
-        def __init__(self, device:str) -> None:
+        def __init__(self, device:str, device_index:int) -> None:
             model_id = "kotoba-tech/kotoba-whisper-v1.1"
-            torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+            torch_dtype = torch.bfloat16 if device == "cuda" else torch.float32
             model_kwargs = {"attn_implementation": "sdpa"} if torch.cuda.is_available() else {}
 
             self.__generate_kwargs = {
                 "language": "japanese",
-                "task": "transcribe",             
+                "task": "transcribe",      
             }
+            if device == "cuda":
+                device = f"{device}:{device_index}"
             self.__pipe = pipeline(
                 model = model_id,
                 torch_dtype = torch_dtype,
