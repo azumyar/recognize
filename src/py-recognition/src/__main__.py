@@ -256,7 +256,8 @@ def main(
                     device_index=whisper_device_index,
                     download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
                 val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.RecognitionModelWhisperKotoba(
-                    device=whisper_device),
+                    device=whisper_device,
+                    device_index=whisper_device_index),
                 val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
                     sample_rate=sampling_rate,
                     sample_width=2,
