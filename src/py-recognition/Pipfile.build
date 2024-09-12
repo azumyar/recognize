@@ -12,4 +12,4 @@ pyinstaller = "==6.9.0"
 pyinstaller-hooks-contrib = "==2024.7"
 
 [scripts]
-archive1 = "pyinstaller -n recognize --noconfirm src/__main__.py"
+archive1 = "pyinstaller -n recognize --noconfirm --hidden-import punctuators --hidden-import punctuators.models src/__main__.py"
