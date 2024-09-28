@@ -61,7 +61,7 @@ jobs:
 
     - name: Edit and Build intaller
       run: |
-        pushd src\cs-installer
+        pushd src/cs-installer
         echo "namespace Haru.Kei;" > Const.ci.cs
         echo "internal partial class Const {{" >> Const.ci.cs
         echo "public const string Tag = \"${{github.ref_name}}\";" >> Const.ci.cs
@@ -71,7 +71,7 @@ jobs:
         cat Const.ci.cs
         dotnet publish -p:Configuration=Release -p:Platform="Any CPU"
         popd
-        mv src\cs-installer\bin\Release\net8.0-windows\win-x64\publish\cs-installer.exe setup-${{github.ref_name}}.exe
+        mv src/cs-installer/bin/Release/net8.0-windows/win-x64/publish/cs-installer.exe setup-${{github.ref_name}}.exe
       shell: bash # powershellの構文よくわからない
 
     - name: Release
