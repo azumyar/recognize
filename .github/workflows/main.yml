@@ -38,7 +38,8 @@ jobs:
     - name: conv utf-8
       run: |
         Get-Content -Encoding Shift_JIS src\py-recognition\build.ps1 | Set-Content src\py-recognition\build.ps1.new
-        mv src\py-recognition\build.ps1.new src\py-recognition\build.ps1
+        rm src\py-recognition\build.ps1
+        Move-Item src\py-recognition\build.ps1.new src\py-recognition\build.ps1
 
     - name: Build app
       run: .\build-all.bat
