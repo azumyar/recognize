@@ -96,5 +96,19 @@
                 />
         </Grid>
 
+        <Grid Grid.Row="2" Margin="8" Visibility="{Binding Path=Phase3_4_5_6.Value, Mode=OneWay}">
+            <ProgressBar
+                Value="{Binding DownloadIndicator.Value, Mode=OneWay}"
+                Minimum="0"
+                Maximum="1"
+                IsIndeterminate="True"
+                Height="24"
+                VerticalAlignment="Top"
+                />
+        </Grid>
+
+        <Grid Grid.Row="2" Margin="8" Visibility="{Binding Path=Phase7.Value, Mode=OneWay}">
+
+        </Grid>
     </Grid>
 </Window>
