@@ -37,6 +37,7 @@ jobs:
 
     - name: Build app
       run: .\build-all.bat
+      shell: cmd
 
     - name: Create Artifact Directory
       run: |
