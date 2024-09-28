@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net.Http;
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -84,60 +85,63 @@ internal class ViewModel {
 	public IObservable<string> DoPhase2() {
 		this.Phase.Value = 2;
 		return Observable.Create<string>(async o => {
-			using System.Net.Http.HttpClient clinet = new();
-			this.StatusText.Value = "ファイル情報をダウンロード中…";
-
-			//https://api.github.com/repos/VOICEVOX/voicevox/releases/tags/0.20.0)
-			string json;
-			{
-				var m = new System.Net.Http.HttpRequestMessage(
-					System.Net.Http.HttpMethod.Get,
-					$"https://api.github.com/repos/{Const.Account}/{Const.Repository}/releases/tags/{Const.Tag}");
-				m.Headers.Add("Accept", "application/vnd.github.v3+json");
-				m.Headers.Add("User-Agent", "request");
-				var res = await clinet.SendAsync(m);
-				json = await res.Content.ReadAsStringAsync();
-			}
-			var response = JsonConvert.DeserializeObject<GitHubApiResponse>(json);
-			var fileNames = Enumerable
-				.Range(0, Const.SplitCount)
-				.Select(x => $"{Const.FileName}.{x}")
-				.ToArray();
-
-			var total = response.Assets
-				.Where(x => fileNames.Contains(x.Name))
-				.Select(x => x.Size)
-				.Sum();
-			var indicator = 0d;
-			using var ouputStream = new FileStream(
-				Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Const.InstallDirectory, Const.FileName),
-				FileMode.Create,
-				FileAccess.Write);
-			foreach(var download in response.Assets
-				.Where(x => fileNames.Contains(x.Name))
-				.Select(x => x.BrowserDownloadUrl)) {
-
-				this.StatusText.Value = $"{download}をダウンロード中…";
-				var m = new System.Net.Http.HttpRequestMessage(
-					System.Net.Http.HttpMethod.Get,
-					download);
-				m.Headers.Add("User-Agent", "request");
-				var res = await clinet.SendAsync(m, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
-				using var inputStream = await res.Content.ReadAsStreamAsync();
-				var bytes = new byte[1024 * 10];
-				while(true) {
-					var len = await inputStream.ReadAsync(bytes, 0, bytes.Length);
-					if(len == 0) {
-						break;
-					}
-					await ouputStream.WriteAsync(bytes, 0, len);
-					indicator += len;
-					this.DownloadIndicator.Value = indicator / total;
+			try {
+				using System.Net.Http.HttpClient clinet = new();
+				this.StatusText.Value = "ファイル情報をダウンロード中…";
+				string json;
+				{
+					var m = new System.Net.Http.HttpRequestMessage(
+						System.Net.Http.HttpMethod.Get,
+						$"https://api.github.com/repos/{Const.Account}/{Const.Repository}/releases/tags/{Const.Tag}");
+					m.Headers.Add("Accept", "application/vnd.github.v3+json");
+					m.Headers.Add("User-Agent", "request");
+					var res = await clinet.SendAsync(m);
+					json = await res.Content.ReadAsStringAsync();
 				}
+				var response = JsonConvert.DeserializeObject<GitHubApiResponse>(json);
+				var fileNames = Enumerable
+					.Range(0, Const.SplitCount)
+					.Select(x => $"{Const.FileName}.{x}")
+					.ToArray();
+
+				var total = response.Assets
+					.Where(x => fileNames.Contains(x.Name))
+					.Select(x => x.Size)
+					.Sum();
+				var indicator = 0d;
+				using var ouputStream = new FileStream(
+					Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Const.InstallDirectory, Const.FileName),
+					FileMode.Create,
+					FileAccess.Write);
+				foreach(var download in response.Assets
+					.Where(x => fileNames.Contains(x.Name))
+					.Select(x => x.BrowserDownloadUrl)) {
+
+					this.StatusText.Value = $"{download}をダウンロード中…";
+					var m = new System.Net.Http.HttpRequestMessage(
+						System.Net.Http.HttpMethod.Get,
+						download);
+					m.Headers.Add("User-Agent", "request");
+					var res = await clinet.SendAsync(m, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
+					using var inputStream = await res.Content.ReadAsStreamAsync();
+					var bytes = new byte[1024 * 10];
+					while(true) {
+						var len = await inputStream.ReadAsync(bytes, 0, bytes.Length);
+						if(len == 0) {
+							break;
+						}
+						await ouputStream.WriteAsync(bytes, 0, len);
+						indicator += len;
+						this.DownloadIndicator.Value = indicator / total;
+					}
+				}
+				await ouputStream.FlushAsync();
+				o.OnNext("");
+				o.OnCompleted();
 			}
-			await ouputStream.FlushAsync();
-			o.OnNext("");
-			o.OnCompleted();
+			catch(Exception e) when((e is HttpRequestException) || (e is TaskCanceledException)) {
+				o.OnNext("ダウンロードに失敗しました");
+			}
 			return System.Reactive.Disposables.Disposable.Empty;
 		});
 	}
@@ -145,35 +149,31 @@ internal class ViewModel {
 	public IObservable<string> DoPhase3() {
 		this.Phase.Value = 3;
 		return Observable.Create<string>(async o => {
-			try {
-				this.StatusText.Value = $"アーカイブの展開中…";
-				var r = await Task.Run(async () => {
-					var count = 0;
-				start:
-					try {
-						ZipFile.ExtractToDirectory(
-							Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Const.InstallDirectory, Const.FileName),
-							Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Const.InstallDirectory));
-						return true;
-					}
-					catch(Exception ex) when(ex is IOException) {
-						// 別のプロセス(多分アンチウィルス)が使用していることがあるのでリトライする
-						if(count < 5) {
-							await Task.Delay(1000);
-							count++;
-							goto start;
-						}
-						return false;
-					}
-				});
-				if(r) {
-					o.OnNext("");
-					o.OnCompleted();
-				} else {
-					o.OnNext("アーカイブの展開に失敗しました");
+			this.StatusText.Value = $"アーカイブの展開中…";
+			var r = await Task.Run(async () => {
+				var count = 0;
+			start:
+				try {
+					ZipFile.ExtractToDirectory(
+						Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Const.InstallDirectory, Const.FileName),
+						Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Const.InstallDirectory));
+					return true;
 				}
-			}
-			catch(Exception e) when(e is IOException) {
+				catch(Exception ex) when(ex is IOException) {
+					// 別のプロセス(多分アンチウィルス)が使用していることがあるのでリトライする
+					if(count < 5) {
+						await Task.Delay(1000);
+						count++;
+						goto start;
+					}
+					return false;
+				}
+			});
+			if(r) {
+				o.OnNext("");
+				o.OnCompleted();
+			} else {
+				o.OnNext("アーカイブの展開に失敗しました");
 			}
 			return System.Reactive.Disposables.Disposable.Empty;
 		}).ObserveOn(UIDispatcherScheduler.Default);
@@ -207,8 +207,6 @@ internal class ViewModel {
 		this.Phase.Value = 5;
 		return Observable.Create<string>(async o => {
 			this.StatusText.Value = "新しいファイルを移動中…";
-			var count = 0;
-		start:
 			try {
 				foreach(var d in Directory.EnumerateDirectories(
 					Path.Combine(
