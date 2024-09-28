@@ -35,9 +35,9 @@ jobs:
         pushd src\py-recognition
         pip install pipenv
         python -m pipenv install --dev
-        # todo: ブートローダーを差し替える
+        Expand-Archive -Path bootloader\bootloader.zip -DestinationPath .venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel -Force
         python -m pipenv run archive1
-        copy .\c\mm-interop.dll .\dist\recognize\
+        copy c\mm-interop.dll dist\recognize\
         popd
 
     - name: Build GUI app
