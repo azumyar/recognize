@@ -100,6 +100,7 @@ if($LASTEXITCODE -ne 0) {
 pushd .build
 
 
+$env:PIPENV_SHELL = "powershell"
 $env:PIPENV_VENV_IN_PROJECT = 1
 #$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
