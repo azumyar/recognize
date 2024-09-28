@@ -35,11 +35,13 @@ jobs:
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v1
 
-    - name: Build app
+    - name: fix lf
       run: |
         # 試しに入れる
         ls -r -file -filter *.ps1 | % { (get-content -encoding Default $_.FullName) -join "`r`n" | set-content -encoding Default $_.FullName }
-        .\build-all.bat
+
+    - name: Build app
+      run: .\build-all.bat
       shell: cmd
 
     - name: Create Artifact Directory
