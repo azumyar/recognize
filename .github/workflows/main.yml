@@ -73,4 +73,4 @@ jobs:
       run: Compress-Archive -Path recognize -DestinationPath "recognize.zip"
 
     - name: Split Artifact Zip
-      run: $cnt = 0; Get-Content recognize.zip -Encoding Byte -ReadCount 1800mb | % {$_ | Set-Content "recognize-${{github.ref_name}}.zip.{{$cnt}}" -Encoding Byte; $cnt++}
+      run: $cnt = 0; Get-Content recognize.zip -AsByteStream -Raw -ReadCount 1800mb | % {$_ | Set-Content "recognize-${{github.ref_name}}.zip.{{$cnt}}" -Encoding Byte; $cnt++}
