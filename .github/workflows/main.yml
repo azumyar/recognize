@@ -68,8 +68,8 @@ jobs:
         echo "public const string FileName = \"recognize-${{github.ref_name}}.zip\";" >> Const.ci.cs
         echo "public const int SplitCount = 2;" >> Const.ci.cs
         echo "}" >> Const.ci.cs
-        cat Const.ci.cs
         dotnet publish -p:Configuration=Release
+        dotnet publish -p:Configuration=Release #何か2回publishしないといけない
         popd
         ls src/cs-installer/bin/Release/net8.0-windows/win-x64/publish
         mv src/cs-installer/bin/Release/net8.0-windows/win-x64/publish/cs-installer.exe setup-${{github.ref_name}}.exe
