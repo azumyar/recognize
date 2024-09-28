@@ -7,6 +7,7 @@ function ExistsStream ($file, $stream) {
   return $false
 }
 
+
 if(-not($env:RECOGNIZE_WITHOUT_TORCH)) {
 	$REQUIREMENTS_FILE = "requirements.txt"
 } else {
