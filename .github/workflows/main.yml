@@ -52,6 +52,7 @@ jobs:
         pushd src\py-recognition
         pip install pipenv
         python -m pipenv install --dev
+        # todo: ブートローダーを差し替える
         python -m pipenv run archive1
         copy .\c\mm-interop.dll .\dist\recognize\
         popd
@@ -62,12 +63,14 @@ jobs:
         .\build.bat
         popd
 
-
     - name: Create Artifact Directory
       run: |
         mkdir recognize\src\py-recognition
-        move cs-recognition-frontend\recognize-gui.exe recognize
+        move src\cs-recognition-frontend\recognize-gui.exe recognize
         move src\py-recognition\dist recognize\src\py-recognition
 
     - name: Create Artifact Zip
-      run: Compress-Archive -Path recognize -DestinationPath "recognize-${{github.ref_name}}.zip"
+      run: Compress-Archive -Path recognize -DestinationPath "recognize.zip"
+
+    - name: Split Artifact Zip
+      run: $cnt = 0; Get-Content recognize.zip -Encoding Byte -ReadCount 1800mb | % {$_ | Set-Content "recognize-${{github.ref_name}}.zip.{{$cnt}}" -Encoding Byte; $cnt++}
