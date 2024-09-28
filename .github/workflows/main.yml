@@ -45,4 +45,4 @@ jobs:
         move src\py-recognition\dist recognize\src\py-recognition
 
     - name: Create Artifact Zip
-        run: Compress-Archive -Path recognize -DestinationPath "recognize-${{github.ref_name}}.zip"
+      run: Compress-Archive -Path recognize -DestinationPath "recognize-${{github.ref_name}}.zip"
