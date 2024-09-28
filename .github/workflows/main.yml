@@ -72,6 +72,7 @@ jobs:
         dotnet publish /p:Platform="Any CPU"  /p:Configuration=Release
         popd
         mv src\cs-installer\bin\Release\net8.0-windows\win-x64\publish\cs-installer.exe setup-${{github.ref_name}}.exe
+      shell: powershell
 
     - name: Release
       uses: softprops/action-gh-release@v2
