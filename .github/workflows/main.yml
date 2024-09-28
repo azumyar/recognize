@@ -64,14 +64,15 @@ jobs:
         pushd src\cs-installer
         echo "namespace Haru.Kei;" > Const.ci.cs
         echo "internal partial class Const {{" >> Const.ci.cs
-        echo "public const string Tag = ""{{github.ref_name}}"";" >> Const.ci.cs
-        echo "public const string FileName = "recognize-{{github.ref_name}}.zip"";" >> Const.ci.cs
+        echo "public const string Tag = \"${{github.ref_name}}\";" >> Const.ci.cs
+        echo "public const string FileName = \"recognize-${{github.ref_name}}.zip\";" >> Const.ci.cs
         echo "public const int SplitCount = 2;" >> Const.ci.cs
         echo "}}" >> Const.ci.cs
         cat Const.ci.cs
-        dotnet publish /p:Platform="Any CPU"  /p:Configuration=Release
+        dotnet publish -p:Configuration=Release -p:Platform="Any CPU"
         popd
         mv src\cs-installer\bin\Release\net8.0-windows\win-x64\publish\cs-installer.exe setup-${{github.ref_name}}.exe
+      shell: bash # powershellの構文よくわからない
 
     - name: Release
       uses: softprops/action-gh-release@v2
