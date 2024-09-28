@@ -385,7 +385,7 @@ class RecognitionModelGoogle(RecognitionModelGoogleApi):
         challenge: int = 1):
         super().__init__(sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
         if profanity_filter:
-            self.__profanity_filter = 1
+            self.__profanity_filter = 2
         else:
             self.__profanity_filter = 0
 
@@ -427,7 +427,7 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
 
         super().__init__(sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
         if profanity_filter:
-            self.__profanity_filter = 1
+            self.__profanity_filter = 2
         else:
             self.__profanity_filter = 0
         self.__is_parallel_run = is_parallel_run
@@ -537,7 +537,7 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
 
         super().__init__(sample_rate, sample_width, convert_sample_rete, language, key, timeout, challenge)
         if profanity_filter:
-            self.__profanity_filter = 1
+            self.__profanity_filter = 2
         else:
             self.__profanity_filter = 0        
         self.__parallel_recognize = 1
