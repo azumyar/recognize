@@ -2,11 +2,8 @@ name: recognize-ci
 
 on:
   push:
-    branches:
-      - main
-#    tags:
-#      - 'v.*'
-
+    tags:
+      - 'v.*'
 jobs:
   build:
     runs-on: windows-latest 
@@ -17,35 +14,21 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-#      with:
-#        fetch-depth: 0
+      with:
+        fetch-depth: 0
 
-    - name: Print Config
-      run: |
-        echo "GITHUB_REPOSITORY=$env:GITHUB_REPOSITORY"
-        echo "GITHUB_EVENT_NAME=$env:GITHUB_EVENT_NAME"
-        echo "GITHUB_REF=$env:GITHUB_REF"
-
-    - name: Set up Python
+    - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: 3.10.x
 
-    # Install the .NET Core workload
-    - name: Set up .NET
+    - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
 
-    # Add  MSBuild to the PATH: https://github.com/microsoft/setup-msbuild
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v1
-
-    - name: conv utf-8
-      run: |
-        Get-Content -Encoding Shift_JIS src\py-recognition\build.ps1 | Set-Content src\py-recognition\build.ps1.new
-        rm src\py-recognition\build.ps1
-        Move-Item src\py-recognition\build.ps1.new src\py-recognition\build.ps1
 
     - name: Build CLI app
       run: |
@@ -75,3 +58,9 @@ jobs:
     - name: Split Artifact Zip
       run: split -d -a 1 -b 1800MB recognize.zip recognize-${{github.ref_name}}.zip.
       shell: bash
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: recognize.zip recognize-${{github.ref_name}}.zip.*
