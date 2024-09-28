@@ -50,6 +50,7 @@ jobs:
     - name: Build CLI app
       run: |
         pushd src\py-recognition
+        pip install pipenv
         python -m pipenv install --dev
         python -m pipenv run archive1
         copy .\c\mm-interop.dll .\dist\recognize\
