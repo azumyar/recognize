@@ -2,39 +2,52 @@
 定数モジュール
 """
 from enum import Enum
+import importlib.util
+import ctypes
+
+
+def __is_available_cuda():
+    try:
+        cuda_device_count = ctypes.c_uint32()
+        cuda_device_count.value = 0
+
+        _nvcuda = ctypes.WinDLL("nvcuda.dll")
+        _nvcuda.cuInit.restype = ctypes.c_int32
+        _nvcuda.cuDeviceGetCount.argtypes = (ctypes.c_uint32,)
+        _nvcuda.cuDeviceGetCount.restype = ctypes.c_int32
+        _nvcuda.cuDeviceGetCount.argtypes = (ctypes.POINTER(ctypes.c_uint32),)
+        _nvcuda.cuInit(0)
+        _nvcuda.cuDeviceGetCount(cuda_device_count)
+        return 0 < cuda_device_count.value
+    except:
+        return False
 
 def __support_whisper() -> bool:
-    try:
-        import whisper # type: ignore
-    except:
+    if importlib.util.find_spec("whisper") is None:
         return False
     else:
         return True
 
 def __support_whisper_faster() -> bool:
-    try:
-        import faster_whisper # type: ignore
-    except:
+    if importlib.util.find_spec("faster_whisper") is None:
         return False
     else:
         return True
 
 def __support_whisper_kotoba() -> bool:
-    try:
-        from transformers import pipeline # type: ignore
-        import torch # type: ignore
-    except:
+    if importlib.util.find_spec("transformers") is None:
+        return False
+    elif importlib.util.find_spec("torch") is None:
         return False
     else:
         return True
 
+
 def __default_method_value() -> str:
-    try:
-        import faster_whisper # type: ignore
-    except:
-        return METHOD_VALUE_GOOGLE_DUPLEX
-    else:
+    if __support_whisper_faster():
         return METHOD_VALUE_WHISPER_FASTER
+    else:
+        return METHOD_VALUE_GOOGLE_DUPLEX
 
 
 def __choice_method() -> list[str]:
@@ -49,12 +62,10 @@ def __choice_method() -> list[str]:
     return r + [METHOD_VALUE_GOOGLE, METHOD_VALUE_GOOGLE_DUPLEX, METHOD_VALUE_GOOGLE_MIX]
 
 def __support_silero_vad() -> bool:
-    try:
-        import torch # type: ignore
-    except:
+    if importlib.util.find_spec("torch") is None:
         return False
     else:
-        return torch.cuda.is_available()
+        return SUPPORT_CUDA
 
 def __choice_vad() -> list[str]:
     r = [ VAD_VALUE_GOOGLE ]
@@ -127,7 +138,7 @@ class Console(Enum):
     def background_index(index:int) -> str:
         return f"\033[48;5;{index}m"
 
-
+SUPPORT_CUDA = __is_available_cuda()
 SUPPORT_LIB_WHISPER = __support_whisper()
 SUPPORT_LIB_WHISPER_FASTER = __support_whisper_faster()
 SUPPORT_LIB_WHISPER_KOTOBA = __support_whisper_kotoba()
