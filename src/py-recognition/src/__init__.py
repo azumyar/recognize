@@ -334,3 +334,21 @@ def mm_atach(callback_default, callback_add, callback_remove, callback_state) ->
 
 def mm_is_capture_device(id:ctypes.c_wchar_p):
     return _mm_interop.IsCaptureDevice(id)
+
+def enable_virtual_terminal():
+    from ctypes import windll, wintypes, byref
+    INVALID_HANDLE_VALUE = -1
+    STD_INPUT_HANDLE = -10
+    STD_OUTPUT_HANDLE = -11
+    STD_ERROR_HANDLE = -12
+    ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+    ENABLE_LVB_GRID_WORLDWIDE = 0x0010
+
+    hcon = windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
+    if hcon != INVALID_HANDLE_VALUE:
+        mode = wintypes.DWORD()
+        if windll.kernel32.GetConsoleMode(hcon, byref(mode)) != 0:
+            mode.value |= ENABLE_VIRTUAL_TERMINAL_PROCESSING # | ENABLE_LVB_GRID_WORLDWIDE
+            if windll.kernel32.SetConsoleMode(hcon, mode) != 0:
+                return True
+    return False
