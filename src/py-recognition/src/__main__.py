@@ -160,10 +160,11 @@ def main(
     torch_cache:str,
     feature:str
     ) -> None:
-    from src import ilm_logger, ilm_enviroment
+    from src import ilm_logger, ilm_enviroment, enable_virtual_terminal
 
+    if enable_virtual_terminal() != True:
+        print("失敗")
     cancel = CancellationObject()
-    print(whisper_device)
     print("\033[?25l", end="") # カーソルを消す
     try:
         if record_directory is None:
