@@ -163,7 +163,19 @@ def main(
     from src import ilm_logger, ilm_enviroment, enable_virtual_terminal
 
     if enable_virtual_terminal() != True:
-        print("失敗")
+        ilm_logger.error("仮想ターミナルの設定に失敗しました")
+
+    # torch/kotoba-whisperのダウンロード設定をする(torchのimport前に実施)
+    if torch_cache == "" or torch_cache == None:
+        os.environ["TORCH_HOME"] = \
+            os.environ["HUGGINGFACE_HUB_CACHE"] = \
+                f"{ilm_enviroment.root}{os.sep}.cache"
+    else:
+        os.environ["TORCH_HOME"] = \
+            os.environ["HUGGINGFACE_HUB_CACHE"] = \
+                f"{torch_cache}{os.sep}.cache"     
+
+
     cancel = CancellationObject()
     print("\033[?25l", end="") # カーソルを消す
     try:
