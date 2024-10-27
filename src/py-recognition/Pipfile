@@ -28,13 +28,12 @@ transformers = "*"
 accelerate = "*"
 webrtcvad = "*"
 sounddevice = "*"
-pyinstaller-hooks-contrib = "*"
-stable-ts = "2.16.0"
-punctuators = "0.0.5"
+stable-ts = {version="==2.16.0"}
+punctuators = {version="==0.0.5"}
 
 [dev-packages]
-pyinstaller = "==6.9.0"
-pyinstaller-hooks-contrib = "==2024.7"
+pyinstaller = {version="==6.9.0"}
+pyinstaller-hooks-contrib = {version="==2024.7"}
 nuitka = "*"
 #[requires]
 #python_version = "3.10"
