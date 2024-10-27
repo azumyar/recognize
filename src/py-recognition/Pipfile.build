@@ -4,12 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-stable-ts = "==2.16.0"
-punctuators = "==0.0.5"
+stable-ts = {version="==2.16.0"}
+punctuators = {version="==0.0.5"}
 
 [dev-packages]
-pyinstaller = "==6.9.0"
-pyinstaller-hooks-contrib = "==2024.7"
+pyinstaller = {version="==6.9.0"}
+pyinstaller-hooks-contrib = {version="==2024.7"}
 
 [scripts]
 archive1 = "pyinstaller -n recognize --noconfirm --hidden-import punctuators --hidden-import punctuators.models src/__main__.py"
