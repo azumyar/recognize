@@ -12,7 +12,7 @@ namespace Haru.Kei {
 				return 1;
 			}
 
-			var regex = new Regex(@"(c:\\users\\)([^\\]+)", RegexOptions.IgnoreCase);
+			var regex = new Regex(@"(c:\\{1,2}users\\{1,2})([^\\]+)", RegexOptions.IgnoreCase);
 			var file = args.Last();
 			var isMask = (args.Reverse().Skip(1).Where(x => x == "--mask").Any());
 			var line = "";
