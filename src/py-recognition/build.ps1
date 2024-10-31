@@ -104,8 +104,19 @@ $env:PIPENV_SHELL = "powershell"
 $env:PIPENV_VENV_IN_PROJECT = 1
 #$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
-echo python環境にpipenvをインストールします
-pip3 install pipenv
+echo python仮想環境を作成します
+python -m venv .venv
+if($LASTEXITCODE -ne 0) {
+    echo 仮想環境の作成に失敗しました
+    popd
+    exit 1
+}
+.venv\Scripts\activate.ps1
+echo ok
+echo ""
+
+echo pipenvをインストールします
+pip3 install pipenv==2024.2.0
 if($LASTEXITCODE -ne 0) {
     echo インストールに失敗しました
     popd
@@ -114,7 +125,7 @@ if($LASTEXITCODE -ne 0) {
 echo ok
 echo ""
 
-echo 仮想環境を作成しpython依存関係を復元します
+echo pipenv依存関係を復元します
 python -m pipenv install --dev --skip-lock
 if($LASTEXITCODE -ne 0) {
     echo python依存関係の復元に失敗しました
@@ -188,7 +199,7 @@ if($LASTEXITCODE -ne 0) {
 
 
 echo 仮想環境を削除します
-python -m pipenv --rm
+.venv\Scripts\deactivate.bps1
 if($LASTEXITCODE -ne 0) {
     echo 削除に失敗しました
     popd
