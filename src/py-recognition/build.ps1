@@ -90,19 +90,9 @@ if($LASTEXITCODE -ne 0) {
     echo ソースコードの複製に失敗しました
     exit 1
 }
-Copy-Item -Path .\Pipfile.build -Destination .\.build.\Pipfile
-if($LASTEXITCODE -ne 0) {
-    echo Pipfileの複製に失敗しました
-    exit 1
-}
 
 
 pushd .build
-
-
-$env:PIPENV_SHELL = "powershell"
-$env:PIPENV_VENV_IN_PROJECT = 1
-#$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
 echo python仮想環境を作成します
 python -m venv .venv
@@ -115,26 +105,8 @@ if($LASTEXITCODE -ne 0) {
 echo ok
 echo ""
 
-echo pipenvをインストールします
-pip3 install pipenv==2024.2.0
-if($LASTEXITCODE -ne 0) {
-    echo インストールに失敗しました
-    popd
-    exit 1
-}
-echo ok
-echo ""
-
-echo pipenv依存関係を復元します
-python -m pipenv install --dev --skip-lock
-if($LASTEXITCODE -ne 0) {
-    echo python依存関係の復元に失敗しました
-    popd
-    exit 1
-}
-
 echo webrtcvadのインストールを試行します
-python -m pipenv shell pip install webrtcvad
+pip install webrtcvad --no-cache-dir 
 if($LASTEXITCODE -ne 0) {
     echo インストールに失敗しました
     echo C++ビルド環境をインストールします
@@ -148,18 +120,17 @@ if($LASTEXITCODE -ne 0) {
 echo ok
 echo ""
 
-python -m pipenv shell pip install -r ../$REQUIREMENTS_FILE --no-cache-dir
+echo python依存関係を復元します
+pip install -r ../$REQUIREMENTS_FILE --no-cache-dir
 if($LASTEXITCODE -ne 0) {
     echo python依存関係の復元に失敗しました
     popd
     exit 1
 }
-
 # CUDA関連が容量を圧迫するのでキャッシュは削除する
-# python -m pipenv shell pip cache purge
+# pip cache purge
 echo ok
 echo ""
-
 
 echo ブートローダーを差し替えます
 # NTFS代替ストリームが持っているダウンロード情報を削除する(エラーは無視)
@@ -178,7 +149,7 @@ echo ok
 echo ""
 
 echo exe化を実行します
-python -m pipenv run archive1
+pyinstaller -n recognize --noconfirm --hidden-import punctuators --hidden-import punctuators.models src/__main__.py
 if($LASTEXITCODE -ne 0) {
     echo exe化に失敗しました
     popd
@@ -196,12 +167,13 @@ if($LASTEXITCODE -ne 0) {
     popd
     exit 1
 }
+echo ok
+echo ""
 
-
-echo 仮想環境を削除します
-.venv\Scripts\deactivate.bps1
+echo 仮想環境を終了します
+.venv\Scripts\deactivate.ps1
 if($LASTEXITCODE -ne 0) {
-    echo 削除に失敗しました
+    echo 仮想環境の終了に失敗しました
     popd
     exit 1
 }
