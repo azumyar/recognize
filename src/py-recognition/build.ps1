@@ -171,7 +171,7 @@ echo ok
 echo ""
 
 echo 仮想環境を終了します
-.venv\Scripts\deactivate.ps1
+deactivate
 if($LASTEXITCODE -ne 0) {
     echo 仮想環境の終了に失敗しました
     popd
