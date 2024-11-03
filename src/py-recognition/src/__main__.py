@@ -12,7 +12,9 @@ import src.main_run as main_run
 import src.main_test as main_test
 import src.microphone
 import src.recognition as recognition
+import src.translate as translate_
 import src.output as output
+import src.output_subtitle as output_subtitle
 import src.microphone as microphone
 import src.val as val
 import src.google_recognizers as google
@@ -86,6 +88,10 @@ def __whiper_help(s:str) -> str:
 @click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
 #@click.option("--mic_api", default=val.MIC_API_VALUE_MME, help="--mic_nameで検索するマイクのAPIを指定します", type=click.Choice(val.ARG_CHOICE_MIC_API))
 
+@click.option("--translate", default="", help="使用する翻訳方法", type=click.Choice(val.ARG_CHOICE_TRANSLATE))
+@click.option("--translate_whisper_device", default=__available_cuda(), help=__whiper_help("(whisper)翻訳に使用する演算装置"), type=click.Choice(["cpu","cuda"]))
+@click.option("--translate_whisper_device_index", default=0, help=__whiper_help("(whisper)翻訳に使用するデバイスindex"), type=int)
+
 @click.option("--mic_energy_threshold", default=None, help="互換性のため残されています", type=float)
 @click.option("--mic_db_threshold", default=0, help="設定した値より小さい音を無言として扱う閾値", type=float)
 @click.option("--mic_pause_duration", default=0.5, help="声認識後追加でVADにかけていいく塊の秒数", type=float)
@@ -125,6 +131,9 @@ def main(
     whisper_device:str,
     whisper_device_index:int,
     whisper_language:str,
+    translate:str,
+    translate_whisper_device:str,
+    translate_whisper_device_index:int,
     google_language:str,
     google_timeout:float,
     google_convert_sampling_rate:bool,
@@ -201,6 +210,7 @@ def main(
             val.METHOD_VALUE_WHISPER: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_WHISPER_FASTER: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
+            val.METHOD_VALUE_WHISPER_KOTOBA_BIL: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_GOOGLE: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
@@ -258,6 +268,9 @@ def main(
                 val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.RecognitionModelWhisperKotoba(
                     device=whisper_device,
                     device_index=whisper_device_index),
+                val.METHOD_VALUE_WHISPER_KOTOBA_BIL: lambda: translate_.TranslateModelKotobaWhisperBIL(
+                    device=whisper_device,
+                    device_index=whisper_device_index),
                 val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
                     sample_rate=sampling_rate,
                     sample_width=2,
@@ -290,6 +303,24 @@ def main(
             }[method]()
             ilm_logger.debug(f"#認識モデルは{type(recognition_model)}を使用", reset_console=True)
 
+            if translate == "":
+                translate_model:None|translate_.TranslateModel = None
+                subtitle:None|output_subtitle.SubtitleOutputer = None
+            else:
+                ilm_logger.print("翻訳モデルの初期化")
+                if translate == method:
+                    assert(isinstance(recognition_model, translate_.TranslateModel))
+                    translate_model = recognition_model
+                else:
+                    translate_model = {
+                        val.METHOD_VALUE_WHISPER_KOTOBA_BIL: lambda: translate_.TranslateModelKotobaWhisperBIL(
+                            device=whisper_device,
+                            device_index=whisper_device_index),
+                    }[translate]()
+                subtitle = output_subtitle.FileSubtitleOutputer(ilm_enviroment.root)
+                ilm_logger.debug(f"#翻訳モデルは{type(translate_model)}を使用", reset_console=True)
+
+
             outputer:output.RecognitionOutputer = {
                 val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
                 val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}"),
@@ -310,10 +341,13 @@ def main(
             ])
 
             ilm_logger.print("認識中…")
+            assert(isinstance(recognition_model, recognition.RecognitionModel))
             main_run.run(
                 mc,
                 recognition_model,
+                translate_model,
                 outputer,
+                subtitle,
                 rec,
                 ilm_enviroment,
                 cancel,

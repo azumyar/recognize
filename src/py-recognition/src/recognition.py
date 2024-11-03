@@ -236,9 +236,7 @@ else:
     stable_whisper.WhisperResult.adjust_by_silence = __adjust_by_silence_mod
 
     class RecognitionModelWhisperKotoba(RecognitionModel):
-        def __init__(self, device:str, device_index:int, translate:bool=False) -> None:
-            translate = True
-
+        def __init__(self, device:str, device_index:int) -> None:
             model_id = "kotoba-tech/kotoba-whisper-v2.1"
             torch_dtype = torch.bfloat16 if device == "cuda" else torch.float32
             model_kwargs:Any = {"attn_implementation": "sdpa"} if torch.cuda.is_available() else {}
@@ -261,20 +259,6 @@ else:
                 punctuator=False,
             )
 
-            if translate:
-                model_kwargs["torch_dtype"] = torch_dtype
-                self.__pipe_translate = pipeline(
-                    "automatic-speech-recognition",
-                    model="kotoba-tech/kotoba-whisper-bilingual-v1.0",
-                    #torch_dtype=torch_dtype,
-                    device=device,
-                    model_kwargs=model_kwargs,
-                    chunk_length_s=15,
-                    batch_size=16
-                )
-            else:
-                self.__pipe_translate = None
-
 
         @property
         def required_sample_rate(self) -> int | None:
@@ -284,9 +268,8 @@ else:
             return None
 
         def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
-            audio = audio_data.astype(np.float16) / float(np.iinfo(np.int16).max)
             reslut = self.__pipe(
-                audio,
+                audio_data.astype(np.float16) / float(np.iinfo(np.int16).max),
                 return_timestamps=True,
                 generate_kwargs = self.__generate_kwargs)
             if "chunks" in reslut and len(reslut["chunks"]) == 1 and "timestamp" in reslut["chunks"][0]: #type: ignore
@@ -294,20 +277,6 @@ else:
                 if ts[0] == 0.0 and ts[1] == 0.1:
                     raise TranscribeException(f"ノイズ判定:{reslut}") 
             r = reslut["text"] #type: ignore
-            if self.__pipe_translate is not None:
-                generate_kwargs = {"language": "en", "task": "translate"}
-                reslut_translate_en = self.__pipe_translate(
-                    audio,
-                    generate_kwargs = generate_kwargs)
-                
-                # 以下デバッグ出力
-                from src import ilm_logger
-                import src.val as val
-                ilm_logger.info("--test出力--", console=val.Console.Yellow, reset_console=True)
-                ilm_logger.info(f"[日] {r}", console=val.Console.Yellow, reset_console=True)
-                ilm_logger.info(f"[英] {reslut_translate_en['text']}", console=val.Console.Yellow, reset_console=True) #type: ignore
-                ilm_logger.info("--test出力ここまで--", console=val.Console.Yellow, reset_console=True)
-
             if isinstance(r, str):
                 return TranscribeResult(r, reslut)
             if isinstance(r, list):
