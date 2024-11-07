@@ -92,6 +92,9 @@ def __whiper_help(s:str) -> str:
 @click.option("--translate_whisper_device", default=__available_cuda(), help=__whiper_help("(whisper)翻訳に使用する演算装置"), type=click.Choice(["cpu","cuda"]))
 @click.option("--translate_whisper_device_index", default=0, help=__whiper_help("(whisper)翻訳に使用するデバイスindex"), type=int)
 
+@click.option("--subtitle", default="", help="使用する字幕連携", type=click.Choice(["", "file"]))
+@click.option("--subtitle_file_directory", default=None, help="ファイル字幕連携で保存先", type=str)
+
 @click.option("--mic_energy_threshold", default=None, help="互換性のため残されています", type=float)
 @click.option("--mic_db_threshold", default=0, help="設定した値より小さい音を無言として扱う閾値", type=float)
 @click.option("--mic_pause_duration", default=0.5, help="声認識後追加でVADにかけていいく塊の秒数", type=float)
@@ -134,6 +137,9 @@ def main(
     translate:str,
     translate_whisper_device:str,
     translate_whisper_device_index:int,
+    subtitle:str,
+    subtitle_file_directory:str,
+
     google_language:str,
     google_timeout:float,
     google_convert_sampling_rate:bool,
@@ -181,6 +187,12 @@ def main(
             record_directory = ilm_enviroment.root
         else:
             os.makedirs(record_directory, exist_ok=True)
+
+        if subtitle_file_directory  is None:
+            subtitle_file_directory = ilm_enviroment.root
+        else:
+            os.makedirs(subtitle_file_directory, exist_ok=True)
+
         #sampling_rate = src.mic.Mic.update_sample_rate(mic, mic_sampling_rate) #16000
         sampling_rate = 16000
         rec = Record(record, record_file, record_directory)
@@ -305,7 +317,7 @@ def main(
 
             if translate == "":
                 translate_model:None|translate_.TranslateModel = None
-                subtitle:None|output_subtitle.SubtitleOutputer = None
+                subtitle_:None|output_subtitle.SubtitleOutputer = None
             else:
                 ilm_logger.print("翻訳モデルの初期化")
                 if translate == method:
@@ -314,12 +326,16 @@ def main(
                 else:
                     translate_model = {
                         val.METHOD_VALUE_WHISPER_KOTOBA: lambda: translate_.TranslateModelKotobaWhisperBIL(
-                            device=whisper_device,
-                            device_index=whisper_device_index),
+                            device=translate_whisper_device,
+                            device_index=translate_whisper_device_index),
                     }[translate]()
-                subtitle = output_subtitle.FileSubtitleOutputer(ilm_enviroment.root)
+                subtitle_ = {
+                    "": lambda: output_subtitle.NopSubtitleOutputer(),
+                    "file": lambda: output_subtitle.FileSubtitleOutputer(subtitle_file_directory)
+                }[subtitle]()
                 ilm_logger.debug(f"#翻訳モデルは{type(translate_model)}を使用", reset_console=True)
-
+                ilm_logger.debug(f"#字幕連携は{type(subtitle_)}を使用", reset_console=True)
+                
 
             outputer:output.RecognitionOutputer = {
                 val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
@@ -347,7 +363,7 @@ def main(
                 recognition_model,
                 translate_model,
                 outputer,
-                subtitle,
+                subtitle_,
                 rec,
                 ilm_enviroment,
                 cancel,

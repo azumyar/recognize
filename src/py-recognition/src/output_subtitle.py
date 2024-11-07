@@ -9,6 +9,11 @@ class SubtitleOutputer:
     def output(self, text_ja:str, text_en:str) -> None:
         ...
 
+class NopSubtitleOutputer(SubtitleOutputer):
+    def output(self, text_ja:str, text_en:str) -> None:
+        pass
+
+
 class FileSubtitleOutputer(SubtitleOutputer):
 
     def __init__(self, root:str) -> None:
