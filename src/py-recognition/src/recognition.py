@@ -201,6 +201,8 @@ try:
 except:
     pass
 else:
+    pass
+if False:
     # kotoba-tech/kotoba-whisper-v1.1 がプログレス強制的に出すので入れ替える
     __adjust_by_silence = stable_whisper.WhisperResult.adjust_by_silence
     def __adjust_by_silence_mod(

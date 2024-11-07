@@ -39,7 +39,7 @@ else:
 
         def replace_none_ts(parts):
             total_dur = round(audio.shape[-1] / sample_rate, 3)
-            _medium_dur =  None
+            _medium_dur:Any =  None
             _ts_nonzero_mask:Any = None
 
             def ts_nonzero_mask() -> np.ndarray:
