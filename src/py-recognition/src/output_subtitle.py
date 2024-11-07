@@ -2,7 +2,8 @@ import io
 import os
 import re
 import datetime
-
+import time
+import threading
 
 class SubtitleOutputer:
     def output(self, text_ja:str, text_en:str) -> None:
@@ -21,6 +22,11 @@ class FileSubtitleOutputer(SubtitleOutputer):
             "w",
             encoding="UTF-8",
             newline="")
+        self.__prv_time = 0
+        #t = threading.Thread(target = self.__scheduler)
+        t = threading.Timer(0.1, self.__scheduler)
+        t.setDaemon(True)
+        t.start()
 
     def output(self, text_ja:str, text_en:str) -> None:
         self.__io_ja.seek(0)
@@ -31,3 +37,12 @@ class FileSubtitleOutputer(SubtitleOutputer):
         self.__io_en.write(text_en)
         self.__io_ja.flush()
         self.__io_en.flush()
+        self.__prv_time = time.time()
+
+    def __scheduler(self) -> None:
+        cur = time.time()
+        if 4 < (cur - self.__prv_time):
+            self.output("", "")
+        t = threading.Timer(0.1, self.__scheduler)
+        t.setDaemon(True)
+        t.start()
