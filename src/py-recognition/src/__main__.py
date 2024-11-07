@@ -210,7 +210,7 @@ def main(
             val.METHOD_VALUE_WHISPER: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_WHISPER_FASTER: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
-            val.METHOD_VALUE_WHISPER_KOTOBA_BIL: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
+            #val.METHOD_VALUE_WHISPER_KOTOBA_BIL: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_GOOGLE: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
@@ -265,10 +265,10 @@ def main(
                     device=whisper_device,
                     device_index=whisper_device_index,
                     download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
-                val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.RecognitionModelWhisperKotoba(
-                    device=whisper_device,
-                    device_index=whisper_device_index),
-                val.METHOD_VALUE_WHISPER_KOTOBA_BIL: lambda: translate_.TranslateModelKotobaWhisperBIL(
+                #val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.RecognitionModelWhisperKotoba(
+                #    device=whisper_device,
+                #    device_index=whisper_device_index),
+                val.METHOD_VALUE_WHISPER_KOTOBA: lambda: translate_.TranslateModelKotobaWhisperBIL(
                     device=whisper_device,
                     device_index=whisper_device_index),
                 val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
@@ -313,7 +313,7 @@ def main(
                     translate_model = recognition_model
                 else:
                     translate_model = {
-                        val.METHOD_VALUE_WHISPER_KOTOBA_BIL: lambda: translate_.TranslateModelKotobaWhisperBIL(
+                        val.METHOD_VALUE_WHISPER_KOTOBA: lambda: translate_.TranslateModelKotobaWhisperBIL(
                             device=whisper_device,
                             device_index=whisper_device_index),
                     }[translate]()

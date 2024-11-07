@@ -45,14 +45,13 @@ def __choice_method() -> list[str]:
         r.append(METHOD_VALUE_WHISPER_FASTER)
     if SUPPORT_LIB_WHISPER_KOTOBA:
         r.append(METHOD_VALUE_WHISPER_KOTOBA)
-        r.append(METHOD_VALUE_WHISPER_KOTOBA_BIL)
 
     return r + [METHOD_VALUE_GOOGLE, METHOD_VALUE_GOOGLE_DUPLEX, METHOD_VALUE_GOOGLE_MIX]
 
 def __choice_translate() -> list[str]:
     r = [ "" ]
     if SUPPORT_LIB_WHISPER_KOTOBA:
-        r.append(METHOD_VALUE_WHISPER_KOTOBA_BIL)
+        r.append(METHOD_VALUE_WHISPER_KOTOBA)
     return r
 
 def __support_silero_vad() -> bool:
@@ -172,7 +171,6 @@ ARG_CHOICE_TEST = [
 METHOD_VALUE_WHISPER = "whisper"
 METHOD_VALUE_WHISPER_FASTER = "faster_whisper"
 METHOD_VALUE_WHISPER_KOTOBA = "kotoba_whisper"
-METHOD_VALUE_WHISPER_KOTOBA_BIL = "kotoba_whisper_BIL"
 METHOD_VALUE_GOOGLE= "google"
 METHOD_VALUE_GOOGLE_DUPLEX = "google_duplex"
 METHOD_VALUE_GOOGLE_MIX = "google_mix"
