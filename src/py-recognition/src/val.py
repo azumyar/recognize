@@ -165,7 +165,7 @@ TEST_VALUE_AMBIENT= "mic_ambient"
 ARG_CHOICE_TEST = [
     "",
     TEST_VALUE_MIC,
-    TEST_VALUE_AMBIENT
+    TEST_VALUE_AMBIENT,
 ]
 
 METHOD_VALUE_WHISPER = "whisper"
@@ -178,6 +178,15 @@ DEFALUT_METHOD_VALUE = __default_method_value()
 ARG_CHOICE_METHOD = __choice_method()
 
 ARG_CHOICE_TRANSLATE = __choice_translate()
+
+SUBTITLE_VALUE_FILE = "file"
+SUBTITLE_VALUE_OBS_WS_V5 = "obs"
+ARG_CHOICE_SUBTITLE = [
+    "",
+    SUBTITLE_VALUE_FILE,
+    SUBTITLE_VALUE_OBS_WS_V5,
+]
+
 
 MIC_API_VALUE_MME = "mme"
 MIC_API_VALUE_WASAPI = "wasapi"

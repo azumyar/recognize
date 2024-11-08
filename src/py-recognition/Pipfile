@@ -31,6 +31,7 @@ sounddevice = "*"
 pyinstaller-hooks-contrib = "*"
 stable-ts = "2.16.0"
 punctuators = "0.0.5"
+obs-websocket-py = "*"
 
 [dev-packages]
 pyinstaller = "==6.9.0"

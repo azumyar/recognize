@@ -12,7 +12,7 @@ import src.main_run as main_run
 import src.main_test as main_test
 import src.microphone
 import src.recognition as recognition
-import src.translate as translate_
+import src.recognition_translate as translate_
 import src.output as output
 import src.output_subtitle as output_subtitle
 import src.microphone as microphone
@@ -92,8 +92,14 @@ def __whiper_help(s:str) -> str:
 @click.option("--translate_whisper_device", default=__available_cuda(), help=__whiper_help("(whisper)翻訳に使用する演算装置"), type=click.Choice(["cpu","cuda"]))
 @click.option("--translate_whisper_device_index", default=0, help=__whiper_help("(whisper)翻訳に使用するデバイスindex"), type=int)
 
-@click.option("--subtitle", default="", help="使用する字幕連携", type=click.Choice(["", "file"]))
+@click.option("--subtitle", default="", help="使用する字幕連携", type=click.Choice(val.ARG_CHOICE_SUBTITLE))
+@click.option("--subtitle_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
 @click.option("--subtitle_file_directory", default=None, help="ファイル字幕連携で保存先", type=str)
+@click.option("--subtitle_obs_host", default="localhost", help="", type=str)
+@click.option("--subtitle_obs_port", default=4455, help="OBS Web Socket APIのポート", type=int)
+@click.option("--subtitle_obs_password", default="", help="OBS Web Socket APIのパスワード", type=str)
+@click.option("--subtitle_obs_text_ja", default=None, help="字幕(ja_JP)テキストオブジェクトの名前", type=str)
+@click.option("--subtitle_obs_text_en", default=None, help="字幕(en_US)テキストオブジェクトの名前", type=str)
 
 @click.option("--mic_energy_threshold", default=None, help="互換性のため残されています", type=float)
 @click.option("--mic_db_threshold", default=0, help="設定した値より小さい音を無言として扱う閾値", type=float)
@@ -138,8 +144,13 @@ def main(
     translate_whisper_device:str,
     translate_whisper_device_index:int,
     subtitle:str,
+    subtitle_truncate:float,
     subtitle_file_directory:str,
-
+    subtitle_obs_host:str,
+    subtitle_obs_port:int,
+    subtitle_obs_password:str,
+    subtitle_obs_text_ja:Optional[str],
+    subtitle_obs_text_en:Optional[str],
     google_language:str,
     google_timeout:float,
     google_convert_sampling_rate:bool,
@@ -330,8 +341,19 @@ def main(
                             device_index=translate_whisper_device_index),
                     }[translate]()
                 subtitle_ = {
-                    "": lambda: output_subtitle.NopSubtitleOutputer(),
-                    "file": lambda: output_subtitle.FileSubtitleOutputer(subtitle_file_directory)
+                    "": lambda: output_subtitle.NopSubtitleOutputer(ilm_logger),
+                    val.SUBTITLE_VALUE_FILE: lambda: output_subtitle.FileSubtitleOutputer(
+                        subtitle_file_directory,
+                        subtitle_truncate,
+                        ilm_logger),
+                    val.SUBTITLE_VALUE_OBS_WS_V5: lambda: output_subtitle.ObsV5SubtitleOutputer(
+                        subtitle_obs_host,
+                        subtitle_obs_port,
+                        subtitle_obs_password,
+                        subtitle_obs_text_ja,
+                        subtitle_obs_text_en,
+                        subtitle_truncate,
+                        ilm_logger),
                 }[subtitle]()
                 ilm_logger.debug(f"#翻訳モデルは{type(translate_model)}を使用", reset_console=True)
                 ilm_logger.debug(f"#字幕連携は{type(subtitle_)}を使用", reset_console=True)

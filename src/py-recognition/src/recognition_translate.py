@@ -149,8 +149,6 @@ else:
                 generate_kwargs = self.__generate_kwargs_ttranscribe)
             r2 = fix_timestamp(reslut["chunks"], audio, sample_rate) # type: ignore
             reslut["chunks"] = r2 # type: ignore
-            print(reslut)
-            print(r2)
             if "chunks" in reslut and len(reslut["chunks"]) == 1 and "timestamp" in reslut["chunks"][0]: #type: ignore
                 ts = reslut["chunks"][0]["timestamp"] #type: ignore
                 if ts[0] == 0.0 and ts[1] == 0.1:

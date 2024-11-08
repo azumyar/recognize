@@ -16,7 +16,7 @@ from typing import Any, Callable, Iterable, Optional, NamedTuple
 from src import Logger, Enviroment, db2rms, rms2db
 import src.microphone
 import src.recognition as recognition
-import src.translate as translate
+import src.recognition_translate as recognition_translate
 import src.output as output
 import src.output_subtitle as output_subtitle
 import src.val as val
@@ -28,7 +28,7 @@ from src.main_common import Record, save_wav
 def run(
     mic:src.microphone.Microphone,
     recognition_model:recognition.RecognitionModel,
-    translate_model:None|translate.TranslateModel,
+    translate_model:None|recognition_translate.TranslateModel,
     outputer:output.RecognitionOutputer,
     subtitle_outputer:None|output_subtitle.SubtitleOutputer,
     record:Record,
@@ -123,7 +123,7 @@ def run(
                 if translate_model != None:
                     assert(subtitle_outputer != None)
                     rr = performance(lambda: translate_model.translate(np.frombuffer(dd, np.int16).flatten())) # type: ignore
-                    assert(isinstance(rr.result, translate.TranslateResult))
+                    assert(isinstance(rr.result, recognition_translate.TranslateResult))
 
                     if env.verbose == val.VERBOSE_INFO:
                         logger.notice(f"#{index}", end=" ")
@@ -184,7 +184,7 @@ def run(
                     log_transcribe = f"{log_transcribe}{os.linesep}{r.result.extend_data}"
                 log_time = f"{round(r.time, 2)}s {round(r.time/pcm_sec, 2)}tps"
             if not rr.result is None:
-                assert(isinstance(rr.result, translate.TranslateResult))
+                assert(isinstance(rr.result, recognition_translate.TranslateResult))
                 log_translate = rr.result.translate
                 log_time_translate = f"{round(rr.time, 2)}s {round(rr.time/pcm_sec, 2)}tps"
             if not log_exception is None:
