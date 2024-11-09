@@ -11,8 +11,8 @@ RULE_REGEX = "regex"
 
 
 class TranscribeFilterRuleSet(NamedTuple):
-    action:str
     rule:str
+    action:str
     src:str
     dst:str
     
@@ -43,8 +43,8 @@ class TranscribeFilter:
                             if not check in rul:
                                 raise RuntimeError(f"フィルタセット[{i}]ルール[{j}]に{check}が定義されていません")
                         rules.append(TranscribeFilterRuleSet(
-                            rul["action"],
                             rul["rule"],
+                            rul["action"],
                             rul["src"],
                             rul["dst"]))
                     self.__filter_set.append(TranscribeFilterSet(
@@ -59,7 +59,7 @@ class TranscribeFilter:
                 for rule in set.rules:
                     if rule.src == "":
                         continue
-                    f  = {
+                    f = {
                         ACTION_MASK: self.action_mask,
                         ACTION_MASK_ALL: self.action_mask_all,
                         ACTION_REPLACE: self.action_replace,

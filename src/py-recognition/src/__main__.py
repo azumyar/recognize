@@ -375,13 +375,18 @@ def main(
             }[subtitle]()
             ilm_logger.debug(f"#字幕連携は{type(subtitle_)}を使用", reset_console=True)
 
+            jsn = {}
             if transcribe_filter is None:
-                jsn = {}
                 filter_transcribe = filter_t.TranscribeFilter(None)
             else:
+                ilm_logger.print("認識変換フィルタ読み込み")
                 with open(transcribe_filter, "r", encoding="utf-8") as json_file:
-                    jsn = json.load(json_file)
-                    filter_transcribe = filter_t.TranscribeFilter(jsn)
+                    try:
+                        jsn = json.load(json_file)
+                        filter_transcribe = filter_t.TranscribeFilter(jsn)
+                    except json.decoder.JSONDecodeError:
+                        ilm_logger.error("JSONファイルの内容が不正です。読み込みをスキップします")
+                        filter_transcribe = filter_t.TranscribeFilter(None)
 
             ilm_logger.log([
                 f"マイク: {mc.device_name}",
