@@ -79,8 +79,8 @@ def run(
             reset_console=True)
         r = PerformanceResult(None, -1)
         rr:PerformanceResult =  PerformanceResult(None, -1)
-        transcribe = ""
         translate = ""
+        transcribe_filter = ""
         log_exception:Exception | None = None
         try:
             save_wav(record, index, data, mic.sample_rate, 2, logger)
@@ -113,12 +113,11 @@ def run(
             r = performance(lambda: recognition_model.transcribe(np.frombuffer(d, np.int16).flatten()))
             assert(isinstance(r.result, recognition.TranscribeResult)) # ジェネリクス使った型定義の方法がわかってないのでassert置いて型を確定させる
             if r.result.transcribe not in ["", " ", "\n", None]:
-                transcribe = r.result.transcribe
                 def green(o:object, dg:str = "") -> str:
                     return f"{val.Console.Green.value}{o}{dg}{val.Console.Reset.value}"
                 if env.verbose == val.VERBOSE_INFO:
                     logger.notice(f"#{index}", end=" ")
-                text = f"認識時間[{green(round(r.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(r.time/pcm_sec, 2), 'tps')}: {transcribe}"
+                text = f"認識時間[{green(round(r.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(r.time/pcm_sec, 2), 'tps')}: {r.result.transcribe}"
                 import re
                 l = sum(map(lambda x: 1 if ord(x) < 256 else 2, re.sub("\033\\[[^m]+m", "", text)))
                 if l < 80:
@@ -136,13 +135,13 @@ def run(
             if not r.result.extend_data is None:
                 logger.trace(f"${r.result.extend_data}")
 
-            transcribe = filter_transcribe.filter(transcribe)
+            transcribe_filter = filter_transcribe.filter(r.result.transcribe)
             if env.verbose == val.VERBOSE_INFO:
                 logger.notice(f"#{index}", end=" ")
-            logger.notice(f"フィルタ: {transcribe}")
-            if transcribe != "":
-                outputer.output(transcribe, translate)
-                subtitle_outputer.output(transcribe, translate)
+            logger.notice(f"フィルタ: {transcribe_filter}")
+            if transcribe_filter != "":
+                outputer.output(transcribe_filter, translate)
+                subtitle_outputer.output(transcribe_filter, translate)
         except recognition.TranscribeException as e:
             if env.verbose == val.VERBOSE_INFO:
                 logger.notice(f"#{index}", end=" ")
@@ -182,11 +181,13 @@ def run(
         # ログ出力
         try:
             log_transcribe = " - "
+            log_transcribe_filter = " - "
             log_translate = " - "
             log_time = " - "
             log_time_translate = " - "
             log_exception_s = " - "
             log_insert:str
+            log_en_info = " - "
             if not r.result is None:
                 assert(isinstance(r.result, recognition.TranscribeResult)) # ジェネリクス使った型定義の方法がわかってないのでassert置いて型を確定させる
                 if r.result.transcribe not in ["", " ", "\n", None]:
@@ -194,6 +195,7 @@ def run(
                 if not r.result.extend_data is None:
                     log_transcribe = f"{log_transcribe}{os.linesep}{r.result.extend_data}"
                 log_time = f"{round(r.time, 2)}s {round(r.time/pcm_sec, 2)}tps"
+                log_transcribe_filter = transcribe_filter
             if not rr.result is None:
                 assert(isinstance(rr.result, recognition_translate.TranslateResult))
                 log_translate = rr.result.translate
@@ -210,7 +212,6 @@ def run(
                 log_insert = f"({round(mic.end_insert_sec, 2)}s挿入)"
             else:
                 log_insert = ""
-            log_en_info = " - "
             if not param.energy is None:
                 log_insert = f"{log_insert}, dB={rms2db(param.energy.value):.2f}dB"
                 log_en_info = f"energy={round(param.energy.value, 2)}, max={round(param.energy.max, 2)}, min={round(param.energy.min, 2)}"
@@ -223,7 +224,7 @@ def run(
                 f"認識時間　　　　 : {log_time}",
                 f"翻訳結果　　　　 : {log_translate}",
                 f"翻訳時間　　　　 : {log_time_translate}",
-                #f"フィルタ　　　　 : {log_filter}",
+                f"フィルタ結果　　 : {log_transcribe_filter}",
                 f"例外情報　　　　 : {log_exception_s}",
                 f"マイク情報　　　 : {log_info_mic}",
                 f"認識モデル情報　 : {log_info_recognition}",

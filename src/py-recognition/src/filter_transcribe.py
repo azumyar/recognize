@@ -1,14 +1,13 @@
 import re
 from typing import Any, Callable, Iterable, Optional, NamedTuple
 
-ACTION_MASK = "mask"
-ACTION_MASK_ALL = "mask-all"
-ACTION_REPLACE = "replace"
-
 RULE_MATCH = "match"
 RULE_MATCH_ALL = "match-all"
 RULE_REGEX = "regex"
 
+ACTION_MASK = "mask"
+ACTION_MASK_ALL = "mask-all"
+ACTION_REPLACE = "replace"
 
 class TranscribeFilterRuleSet(NamedTuple):
     rule:str
@@ -39,9 +38,16 @@ class TranscribeFilter:
                     rules:list[TranscribeFilterRuleSet] = []
                     for j in range(len(fil["rules"])):
                         rul = fil["rules"][j]
-                        for check in ["action", "rule", "src", "dst"]:
+                        for check in ["rule", "action", "src", "dst"]:
                             if not check in rul:
                                 raise RuntimeError(f"フィルタセット[{i}]ルール[{j}]に{check}が定義されていません")
+                        
+                        if not rul["rule"] in [RULE_MATCH, RULE_MATCH_ALL, RULE_REGEX]:
+                            raise RuntimeError(f"フィルタセット[{i}]ルール[{j}]の定義[rule: {rul['rule']}]は無効です")
+                        if not rul["action"] in [ACTION_MASK, ACTION_MASK_ALL, ACTION_REPLACE]:
+                            raise RuntimeError(f"フィルタセット[{i}]ルール[{j}]の定義[action: {rul['action']}]は無効です")
+                            
+
                         rules.append(TranscribeFilterRuleSet(
                             rul["rule"],
                             rul["action"],
