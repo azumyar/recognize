@@ -293,10 +293,7 @@ def main(
                     device=whisper_device,
                     device_index=whisper_device_index,
                     download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
-                #val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.RecognitionModelWhisperKotoba(
-                #    device=whisper_device,
-                #    device_index=whisper_device_index),
-                val.METHOD_VALUE_WHISPER_KOTOBA: lambda: translate_.TranslateModelKotobaWhisperBIL(
+                val.METHOD_VALUE_WHISPER_KOTOBA: lambda: translate_.RecognizeAndTranslateModelKotobaWhisper(
                     device=whisper_device,
                     device_index=whisper_device_index),
                 val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
@@ -340,7 +337,7 @@ def main(
                     translate_model = recognition_model
                 else:
                     translate_model = {
-                        val.METHOD_VALUE_WHISPER_KOTOBA: lambda: translate_.TranslateModelKotobaWhisperBIL(
+                        val.METHOD_VALUE_WHISPER_KOTOBA: lambda: translate_.RecognizeAndTranslateModelKotobaWhisper(
                             device=translate_whisper_device,
                             device_index=translate_whisper_device_index),
                     }[translate]()

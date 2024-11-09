@@ -29,8 +29,7 @@ accelerate = "*"
 webrtcvad = "*"
 sounddevice = "*"
 pyinstaller-hooks-contrib = "*"
-stable-ts = "2.16.0"
-punctuators = "0.0.5"
+stable-ts = "*"
 obs-websocket-py = "*"
 
 [dev-packages]
