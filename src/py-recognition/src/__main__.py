@@ -4,12 +4,13 @@ import os
 import sys
 import platform
 import click
-import speech_recognition
+import json
 from typing import Any, Callable, Iterable, Optional, NamedTuple
 
 from src import Logger, Enviroment, db2rms, rms2db, ilm_logger, mm_atach, mm_is_capture_device
 import src.main_run as main_run
 import src.main_test as main_test
+import src.filter_transcribe as filter_t
 import src.microphone
 import src.recognition as recognition
 import src.recognition_translate as translate_
@@ -88,6 +89,8 @@ def __whiper_help(s:str) -> str:
 @click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
 #@click.option("--mic_api", default=val.MIC_API_VALUE_MME, help="--mic_nameで検索するマイクのAPIを指定します", type=click.Choice(val.ARG_CHOICE_MIC_API))
 
+@click.option("--transcribe_filter", default=None, help="変換フィルタルールファイル", type=str)
+
 @click.option("--translate", default="", help="使用する翻訳方法", type=click.Choice(val.ARG_CHOICE_TRANSLATE))
 @click.option("--translate_whisper_device", default=__available_cuda(), help=__whiper_help("(whisper)翻訳に使用する演算装置"), type=click.Choice(["cpu","cuda"]))
 @click.option("--translate_whisper_device_index", default=0, help=__whiper_help("(whisper)翻訳に使用するデバイスindex"), type=int)
@@ -140,6 +143,15 @@ def main(
     whisper_device:str,
     whisper_device_index:int,
     whisper_language:str,
+    google_language:str,
+    google_timeout:float,
+    google_convert_sampling_rate:bool,
+    google_error_retry:int,
+    google_profanity_filter:bool,
+    google_duplex_parallel:bool,
+    google_duplex_parallel_max:Optional[int],
+    google_duplex_parallel_reduce_count:Optional[int],
+    transcribe_filter:Optional[str],
     translate:str,
     translate_whisper_device:str,
     translate_whisper_device_index:int,
@@ -151,14 +163,7 @@ def main(
     subtitle_obs_password:str,
     subtitle_obs_text_ja:Optional[str],
     subtitle_obs_text_en:Optional[str],
-    google_language:str,
-    google_timeout:float,
-    google_convert_sampling_rate:bool,
-    google_error_retry:int,
-    google_profanity_filter:bool,
-    google_duplex_parallel:bool,
-    google_duplex_parallel_max:Optional[int],
-    google_duplex_parallel_reduce_count:Optional[int],
+
     mic:Optional[int],
     mic_name:Optional[str],
     #mic_api:str,
@@ -370,13 +375,22 @@ def main(
             }[subtitle]()
             ilm_logger.debug(f"#字幕連携は{type(subtitle_)}を使用", reset_console=True)
 
+            if transcribe_filter is None:
+                jsn = {}
+                filter_transcribe = filter_t.TranscribeFilter(None)
+            else:
+                with open(transcribe_filter, "r", encoding="utf-8") as json_file:
+                    jsn = json.load(json_file)
+                    filter_transcribe = filter_t.TranscribeFilter(jsn)
+
             ilm_logger.log([
                 f"マイク: {mc.device_name}",
                 f"認識モデル: {type(recognition_model)}",
                 f"翻訳モデル: {type(translate_model)}",
                 f"出力: {type(outputer)}",
-                f"フィルタ = {','.join(list(map(lambda x: f'{type(x)}', filters)))}",
+                f"マイクフィルタ = {','.join(list(map(lambda x: f'{type(x)}', filters)))}",
                 f"字幕: {type(subtitle)}",
+                f"変換フィルタ: {str(jsn)}",
             ])
 
             ilm_logger.print("認識中…")
@@ -385,6 +399,7 @@ def main(
                 mc,
                 recognition_model,
                 translate_model,
+                filter_transcribe,
                 outputer,
                 subtitle_,
                 rec,

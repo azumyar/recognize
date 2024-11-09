@@ -22,6 +22,7 @@ import src.output_subtitle as output_subtitle
 import src.val as val
 import src.google_recognizers as google
 import src.exception
+import src.filter_transcribe as filter_t
 from src.cancellation import CancellationObject
 from src.main_common import Record, save_wav
 
@@ -29,6 +30,7 @@ def run(
     mic:src.microphone.Microphone,
     recognition_model:recognition.RecognitionModel,
     translate_model:None|recognition_translate.TranslateModel,
+    filter_transcribe:filter_t.TranscribeFilter,
     outputer:output.RecognitionOutputer,
     subtitle_outputer:output_subtitle.SubtitleOutputer,
     record:Record,
@@ -133,8 +135,14 @@ def run(
                     logger.notice(f"翻訳時間[{green(round(rr.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(rr.time/pcm_sec, 2), 'tps')}: {translate}")
             if not r.result.extend_data is None:
                 logger.trace(f"${r.result.extend_data}")
-            outputer.output(transcribe, translate)
-            subtitle_outputer.output(transcribe, translate)
+
+            transcribe = filter_transcribe.filter(transcribe)
+            if env.verbose == val.VERBOSE_INFO:
+                logger.notice(f"#{index}", end=" ")
+            logger.notice(f"フィルタ: {transcribe}")
+            if transcribe != "":
+                outputer.output(transcribe, translate)
+                subtitle_outputer.output(transcribe, translate)
         except recognition.TranscribeException as e:
             if env.verbose == val.VERBOSE_INFO:
                 logger.notice(f"#{index}", end=" ")
@@ -215,6 +223,7 @@ def run(
                 f"認識時間　　　　 : {log_time}",
                 f"翻訳結果　　　　 : {log_translate}",
                 f"翻訳時間　　　　 : {log_time_translate}",
+                #f"フィルタ　　　　 : {log_filter}",
                 f"例外情報　　　　 : {log_exception_s}",
                 f"マイク情報　　　 : {log_info_mic}",
                 f"認識モデル情報　 : {log_info_recognition}",
