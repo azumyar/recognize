@@ -328,7 +328,6 @@ def main(
 
             if translate == "":
                 translate_model:None|translate_.TranslateModel = None
-                subtitle_:None|output_subtitle.SubtitleOutputer = None
             else:
                 ilm_logger.print("翻訳モデルの初期化")
                 if translate == method:
@@ -340,24 +339,7 @@ def main(
                             device=translate_whisper_device,
                             device_index=translate_whisper_device_index),
                     }[translate]()
-                subtitle_ = {
-                    "": lambda: output_subtitle.NopSubtitleOutputer(ilm_logger),
-                    val.SUBTITLE_VALUE_FILE: lambda: output_subtitle.FileSubtitleOutputer(
-                        subtitle_file_directory,
-                        subtitle_truncate,
-                        ilm_logger),
-                    val.SUBTITLE_VALUE_OBS_WS_V5: lambda: output_subtitle.ObsV5SubtitleOutputer(
-                        subtitle_obs_host,
-                        subtitle_obs_port,
-                        subtitle_obs_password,
-                        subtitle_obs_text_ja,
-                        subtitle_obs_text_en,
-                        subtitle_truncate,
-                        ilm_logger),
-                }[subtitle]()
                 ilm_logger.debug(f"#翻訳モデルは{type(translate_model)}を使用", reset_console=True)
-                ilm_logger.debug(f"#字幕連携は{type(subtitle_)}を使用", reset_console=True)
-                
 
             outputer:output.RecognitionOutputer = {
                 val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
@@ -371,11 +353,30 @@ def main(
             for f in filters:
                ilm_logger.debug(f"#{type(f)}", reset_console=True)
 
+            subtitle_ = {
+                "": lambda: output_subtitle.NopSubtitleOutputer(ilm_logger),
+                val.SUBTITLE_VALUE_FILE: lambda: output_subtitle.FileSubtitleOutputer(
+                    subtitle_file_directory,
+                    subtitle_truncate,
+                    ilm_logger),
+                val.SUBTITLE_VALUE_OBS_WS_V5: lambda: output_subtitle.ObsV5SubtitleOutputer(
+                    subtitle_obs_host,
+                    subtitle_obs_port,
+                    subtitle_obs_password,
+                    subtitle_obs_text_ja,
+                    subtitle_obs_text_en,
+                    subtitle_truncate,
+                    ilm_logger),
+            }[subtitle]()
+            ilm_logger.debug(f"#字幕連携は{type(subtitle_)}を使用", reset_console=True)
+
             ilm_logger.log([
                 f"マイク: {mc.device_name}",
                 f"認識モデル: {type(recognition_model)}",
-                f"出力 = {type(outputer)}",
-                f"フィルタ = {','.join(list(map(lambda x: f'{type(x)}', filters)))}"
+                f"翻訳モデル: {type(translate_model)}",
+                f"出力: {type(outputer)}",
+                f"フィルタ = {','.join(list(map(lambda x: f'{type(x)}', filters)))}",
+                f"字幕: {type(subtitle)}",
             ])
 
             ilm_logger.print("認識中…")

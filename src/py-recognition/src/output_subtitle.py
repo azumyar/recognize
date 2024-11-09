@@ -27,6 +27,7 @@ class SubtitleOutputer:
         t = threading.Timer(0.1, self.__scheduler)
         t.setDaemon(True)
         t.start()
+
     def output(self, text_ja:str, text_en:str) -> None:
         self.__prv_time = time.time()
 

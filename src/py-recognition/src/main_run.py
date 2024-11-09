@@ -30,7 +30,7 @@ def run(
     recognition_model:recognition.RecognitionModel,
     translate_model:None|recognition_translate.TranslateModel,
     outputer:output.RecognitionOutputer,
-    subtitle_outputer:None|output_subtitle.SubtitleOutputer,
+    subtitle_outputer:output_subtitle.SubtitleOutputer,
     record:Record,
     env:Enviroment,
     cancel:CancellationObject,
@@ -77,6 +77,8 @@ def run(
             reset_console=True)
         r = PerformanceResult(None, -1)
         rr:PerformanceResult =  PerformanceResult(None, -1)
+        transcribe = ""
+        translate = ""
         log_exception:Exception | None = None
         try:
             save_wav(record, index, data, mic.sample_rate, 2, logger)
@@ -109,11 +111,12 @@ def run(
             r = performance(lambda: recognition_model.transcribe(np.frombuffer(d, np.int16).flatten()))
             assert(isinstance(r.result, recognition.TranscribeResult)) # ジェネリクス使った型定義の方法がわかってないのでassert置いて型を確定させる
             if r.result.transcribe not in ["", " ", "\n", None]:
+                transcribe = r.result.transcribe
                 def green(o:object, dg:str = "") -> str:
                     return f"{val.Console.Green.value}{o}{dg}{val.Console.Reset.value}"
                 if env.verbose == val.VERBOSE_INFO:
                     logger.notice(f"#{index}", end=" ")
-                text = f"認識時間[{green(round(r.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(r.time/pcm_sec, 2), 'tps')}: {outputer.output(r.result.transcribe)}"
+                text = f"認識時間[{green(round(r.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(r.time/pcm_sec, 2), 'tps')}: {transcribe}"
                 import re
                 l = sum(map(lambda x: 1 if ord(x) < 256 else 2, re.sub("\033\\[[^m]+m", "", text)))
                 if l < 80:
@@ -121,17 +124,17 @@ def run(
                 logger.notice(text, console=val.Console.DefaultColor)
 
                 if translate_model != None:
-                    assert(subtitle_outputer != None)
                     rr = performance(lambda: translate_model.translate(np.frombuffer(dd, np.int16).flatten())) # type: ignore
                     assert(isinstance(rr.result, recognition_translate.TranslateResult))
+                    translate = rr.result.translate
 
                     if env.verbose == val.VERBOSE_INFO:
                         logger.notice(f"#{index}", end=" ")
-                    logger.notice(f"翻訳時間[{green(round(rr.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(rr.time/pcm_sec, 2), 'tps')}: {rr.result.translate}")
-                    subtitle_outputer.output(r.result.transcribe, rr.result.translate)
+                    logger.notice(f"翻訳時間[{green(round(rr.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(rr.time/pcm_sec, 2), 'tps')}: {translate}")
             if not r.result.extend_data is None:
                 logger.trace(f"${r.result.extend_data}")
-
+            outputer.output(transcribe, translate)
+            subtitle_outputer.output(transcribe, translate)
         except recognition.TranscribeException as e:
             if env.verbose == val.VERBOSE_INFO:
                 logger.notice(f"#{index}", end=" ")
