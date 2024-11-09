@@ -384,8 +384,13 @@ def main(
                     try:
                         jsn = json.load(json_file)
                         filter_transcribe = filter_t.TranscribeFilter(jsn)
-                    except json.decoder.JSONDecodeError:
+                    except json.decoder.JSONDecodeError as ex:
                         ilm_logger.error("JSONファイルの内容が不正です。読み込みをスキップします")
+                        ilm_logger.error({ex})
+                        filter_transcribe = filter_t.TranscribeFilter(None)
+                    except filter_t.JsonReadException as ex:
+                        ilm_logger.error("JSONファイルの内容が不正です。読み込みをスキップします")
+                        ilm_logger.error({ex})
                         filter_transcribe = filter_t.TranscribeFilter(None)
 
             ilm_logger.log([

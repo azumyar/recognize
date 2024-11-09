@@ -1,6 +1,8 @@
 import re
 from typing import Any, Callable, Iterable, Optional, NamedTuple
 
+import src.exception as ex
+
 RULE_MATCH = "match"
 RULE_MATCH_ALL = "match-all"
 RULE_REGEX = "regex"
@@ -14,7 +16,7 @@ class TranscribeFilterRuleSet(NamedTuple):
     action:str
     src:str
     dst:str
-    
+
 
 class TranscribeFilterSet(NamedTuple):
     name:str
@@ -22,30 +24,37 @@ class TranscribeFilterSet(NamedTuple):
     rules:list[TranscribeFilterRuleSet]
 
 
+
+class JsonReadException(ex.IlluminateException):
+    """
+    JSON読み込みに失敗
+    """
+    pass
+
+
 class TranscribeFilter:
     def __init__(self, json:Any):
         self.__filter_set:list[TranscribeFilterSet] = []
         if json is not None:
             if not "filters" in json:
-                raise RuntimeError("設定JSONにfiltersが定義されていません")
+                raise JsonReadException("設定JSONにfiltersが定義されていません")
 
             for i in range(len(json["filters"])):
                 fil = json["filters"][i]
                 for check in ["name", "enable", "rules"]:
                     if not check in fil:
-                        raise RuntimeError(f"フィルタセット[{i}]に{check}が定義されていません")
+                        raise JsonReadException(f"フィルタセット[{i}]に{check}が定義されていません")
                 if fil["enable"]:
                     rules:list[TranscribeFilterRuleSet] = []
                     for j in range(len(fil["rules"])):
                         rul = fil["rules"][j]
                         for check in ["rule", "action", "src", "dst"]:
                             if not check in rul:
-                                raise RuntimeError(f"フィルタセット[{i}]ルール[{j}]に{check}が定義されていません")
-                        
+                                raise JsonReadException(f"フィルタセット[{i}]ルール[{j}]に{check}が定義されていません")
                         if not rul["rule"] in [RULE_MATCH, RULE_MATCH_ALL, RULE_REGEX]:
-                            raise RuntimeError(f"フィルタセット[{i}]ルール[{j}]の定義[rule: {rul['rule']}]は無効です")
+                            raise JsonReadException(f"フィルタセット[{i}]ルール[{j}]の定義[rule: {rul['rule']}]は無効です")
                         if not rul["action"] in [ACTION_MASK, ACTION_MASK_ALL, ACTION_REPLACE]:
-                            raise RuntimeError(f"フィルタセット[{i}]ルール[{j}]の定義[action: {rul['action']}]は無効です")
+                            raise JsonReadException(f"フィルタセット[{i}]ルール[{j}]の定義[action: {rul['action']}]は無効です")
                             
 
                         rules.append(TranscribeFilterRuleSet(
