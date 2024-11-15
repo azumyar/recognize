@@ -28,8 +28,7 @@ transformers = "*"
 accelerate = "*"
 webrtcvad = "*"
 sounddevice = "*"
-pyinstaller-hooks-contrib = "*"
-stable-ts = "*"
+stable-ts = "2.16.0"
 obs-websocket-py = "*"
 
 [dev-packages]

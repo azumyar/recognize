@@ -105,7 +105,7 @@ else:
         result = _fix_timestamp(sample_rate=sample_rate, audio=audio, result=pipeline_output)
         result.adjust_by_silence(
             audio,
-            vad=True,
+            #vad=True,
             q_levels=20,
             k_size=5,
             sample_rate=sample_rate,
