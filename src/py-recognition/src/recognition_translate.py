@@ -343,7 +343,7 @@ else:
             r:str = reslut["text"] #type: ignore
             return TranslateResult(r, reslut)
 
-        def get_verbose(self, _:int) -> str | None:
+        def get_verbose(self, verbose:int) -> str | None:
             return None
 
         def transcribe(self, audio_data:np.ndarray) -> recognition.TranscribeResult:
