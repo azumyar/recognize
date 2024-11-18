@@ -66,6 +66,10 @@ class TranscribeFilter:
                         fil["name"],
                         fil["enable"],
                         rules))
+    
+    @property
+    def has_rule(self) -> bool:
+        return 0 < len(self.__filter_set)
 
     def filter(self, text:str) -> str:
         result = text

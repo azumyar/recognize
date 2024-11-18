@@ -50,6 +50,14 @@ def run(
         class PerformanceResult(NamedTuple):
             result:Any
             time:float
+        
+        def fill_right(text:str) -> str:
+            import re
+            l = sum(map(lambda x: 1 if ord(x) < 256 else 2, re.sub("\033\\[[^m]+m", "", text)))
+            if l < 80:
+                return text + "".join(map(lambda _: " ", range(80 - l)))
+            else:
+                return text
 
         def performance(func:Callable[[], Any]) ->  PerformanceResult:
             """
@@ -117,12 +125,7 @@ def run(
                     return f"{val.Console.Green.value}{o}{dg}{val.Console.Reset.value}"
                 if env.verbose == val.VERBOSE_INFO:
                     logger.notice(f"#{index}", end=" ")
-                text = f"認識時間[{green(round(r.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(r.time/pcm_sec, 2), 'tps')}: {r.result.transcribe}"
-                import re
-                l = sum(map(lambda x: 1 if ord(x) < 256 else 2, re.sub("\033\\[[^m]+m", "", text)))
-                if l < 80:
-                    text = text + "".join(map(lambda _: " ", range(80 - l)))
-                logger.notice(text, console=val.Console.DefaultColor)
+                logger.notice(fill_right(f"認識時間[{green(round(r.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(r.time/pcm_sec, 2), 'tps')}: {r.result.transcribe}"), console=val.Console.DefaultColor)
 
                 if translate_model != None:
                     rr = performance(lambda: translate_model.translate(np.frombuffer(dd, np.int16).flatten())) # type: ignore
@@ -131,14 +134,14 @@ def run(
 
                     if env.verbose == val.VERBOSE_INFO:
                         logger.notice(f"#{index}", end=" ")
-                    logger.notice(f"翻訳時間[{green(round(rr.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(rr.time/pcm_sec, 2), 'tps')}: {translate}")
+                    logger.notice(fill_right(f"翻訳時間[{green(round(rr.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(rr.time/pcm_sec, 2), 'tps')}: {translate}"))
             if not r.result.extend_data is None:
                 logger.trace(f"${r.result.extend_data}")
 
             transcribe_filter = filter_transcribe.filter(r.result.transcribe)
             if env.verbose == val.VERBOSE_INFO:
                 logger.notice(f"#{index}", end=" ")
-            logger.notice(f"フィルタ: {transcribe_filter}")
+            logger.notice(fill_right(f"フィルタ: {transcribe_filter}"))
             if transcribe_filter != "":
                 outputer.output(transcribe_filter, translate)
                 subtitle_outputer.output(transcribe_filter, translate)

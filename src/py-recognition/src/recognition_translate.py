@@ -49,6 +49,8 @@ else:
     from transformers.feature_extraction_sequence_utils import SequenceFeatureExtractor
     from stable_whisper import WhisperResult
 
+    from transformers.utils import logging
+    logging.set_verbosity_error() 
 
     def _fix_timestamp(sample_rate: int, result: List[Dict[str, Any]], audio: np.ndarray) -> WhisperResult:
 
