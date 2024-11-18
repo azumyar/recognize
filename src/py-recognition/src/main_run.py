@@ -138,10 +138,12 @@ def run(
             if not r.result.extend_data is None:
                 logger.trace(f"${r.result.extend_data}")
 
-            transcribe_filter = filter_transcribe.filter(r.result.transcribe)
-            if env.verbose == val.VERBOSE_INFO:
-                logger.notice(f"#{index}", end=" ")
-            logger.notice(fill_right(f"フィルタ: {transcribe_filter}"))
+            transcribe_filter:str = r.result.transcribe
+            if filter_transcribe.has_rule:
+                transcribe_filter = filter_transcribe.filter(r.result.transcribe)
+                if env.verbose == val.VERBOSE_INFO:
+                    logger.notice(f"#{index}", end=" ")
+                logger.notice(fill_right(f"フィルタ: {transcribe_filter}"))
             if transcribe_filter != "":
                 outputer.output(transcribe_filter, translate)
                 subtitle_outputer.output(transcribe_filter, translate)

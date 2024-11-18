@@ -4,11 +4,8 @@ import os
 import sys
 import platform
 import click
-<<<<<<< HEAD
 import importlib.util
-=======
 import json
->>>>>>> feature/py-kotoba
 from typing import Any, Callable, Iterable, Optional, NamedTuple
 
 from src import Logger, Enviroment, db2rms, rms2db, ilm_logger, mm_atach, mm_is_capture_device
@@ -300,61 +297,6 @@ def main(
                 feature)
         else:
             ilm_logger.print("認識モデルの初期化")
-<<<<<<< HEAD
-            recognition_model:recognition.RecognitionModel
-            if method in [val.METHOD_VALUE_WHISPER, val.METHOD_VALUE_WHISPER_FASTER, val.METHOD_VALUE_WHISPER_KOTOBA]:
-                import src.recognition_torch as recog_torch
-                recognition_model = {
-                    val.METHOD_VALUE_WHISPER: lambda: recog_torch.RecognitionModelWhisper(
-                        model=whisper_model,
-                        language=whisper_language,
-                        device=whisper_device,
-                        download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
-                    val.METHOD_VALUE_WHISPER_FASTER: lambda:  recog_torch.RecognitionModelWhisperFaster(
-                        model=whisper_model,
-                        language=whisper_language,
-                        device=whisper_device,
-                        device_index=whisper_device_index,
-                        download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
-                    val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recog_torch.RecognitionModelWhisperKotoba(
-                        device=whisper_device,
-                        device_index=whisper_device_index),
-                }[method]()
-            elif method in [val.METHOD_VALUE_GOOGLE, val.METHOD_VALUE_GOOGLE_DUPLEX, val.METHOD_VALUE_GOOGLE_MIX]:
-                recognition_model:recognition.RecognitionModel = {
-                    val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
-                        sample_rate=sampling_rate,
-                        sample_width=2,
-                        convert_sample_rete=google_convert_sampling_rate,
-                        language=google_language,
-                        profanity_filter=google_profanity_filter,
-                        timeout=google_timeout if 0 < google_timeout else None,
-                        challenge=google_error_retry),
-                    val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.RecognitionModelGoogleDuplex(
-                        sample_rate=sampling_rate,
-                        sample_width=2,
-                        convert_sample_rete=google_convert_sampling_rate,
-                        language=google_language,
-                        profanity_filter=google_profanity_filter,
-                        timeout=google_timeout if 0 < google_timeout else None,
-                        challenge=google_error_retry,
-                        is_parallel_run=google_duplex_parallel,
-                        parallel_max=google_duplex_parallel_max,
-                        parallel_reduce_count=google_duplex_parallel_reduce_count),
-                    val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.RecognitionModelGoogleMix(
-                        sample_rate=sampling_rate,
-                        sample_width=2,
-                        convert_sample_rete=google_convert_sampling_rate,
-                        language=google_language,
-                        profanity_filter=google_profanity_filter,
-                        timeout=google_timeout if 0 < google_timeout else None,
-                        challenge=google_error_retry,
-                        parallel_max_duplex=google_duplex_parallel_max,
-                        parallel_reduce_count_duplex=google_duplex_parallel_reduce_count),
-                }[method]()
-            else:
-                raise ValueError(f"method:{method} is not support")
-=======
             recognition_model:recognition.RecognitionModel = {
                 val.METHOD_VALUE_WHISPER: lambda: recognition.RecognitionModelWhisper(
                     model=whisper_model,
@@ -400,7 +342,6 @@ def main(
                     parallel_max_duplex=google_duplex_parallel_max,
                     parallel_reduce_count_duplex=google_duplex_parallel_reduce_count),
             }[method]()
->>>>>>> feature/py-kotoba
             ilm_logger.debug(f"#認識モデルは{type(recognition_model)}を使用", reset_console=True)
 
             if translate == "":

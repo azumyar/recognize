@@ -84,8 +84,6 @@ class RecognitionModel:
     def get_log_info(self) -> str | None:
         ...
 
-<<<<<<< HEAD
-=======
 try:
     import whisper # type: ignore
     import torch # type: ignore
@@ -112,7 +110,7 @@ else:
         def required_sample_rate(self) -> int | None:
             return 16000
 
-        def get_verbose(self, _:int) -> str | None:
+        def get_verbose(self, verbose:int) -> str | None:
             return None
 
         def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
@@ -176,7 +174,7 @@ else:
         def required_sample_rate(self) -> int | None:
             return 16000
 
-        def get_verbose(self, _:int) -> str | None:
+        def get_verbose(self, verbose:int) -> str | None:
             return None
 
         def get_log_info(self) -> str:
@@ -194,7 +192,6 @@ else:
                 c.append(s.text)
             return TranscribeResult("".join(c), segments)
 
->>>>>>> feature/py-kotoba
 
 class RecognitionModelGoogleApi(RecognitionModel):
     """
