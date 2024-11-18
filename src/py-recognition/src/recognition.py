@@ -84,6 +84,117 @@ class RecognitionModel:
     def get_log_info(self) -> str | None:
         ...
 
+<<<<<<< HEAD
+=======
+try:
+    import whisper # type: ignore
+    import torch # type: ignore
+except:
+    pass
+else:
+    class RecognitionModelWhisper(RecognitionModel):
+        """
+        認識モデルのwhisper実装
+        """
+        def __init__(
+            self,
+            model:str,
+            language:str,
+            device:str,
+            download_root:str) -> None:
+            self.__is_fp16 = device == "cuda"
+            self.__language = language if language != "" else None
+
+            m = f"{model}.{language}" if (model != "large") and (model != "large-v2") and (model != "large-v3") and (language == "en") else model
+            self.audio_model = whisper.load_model(m, download_root=download_root).to(device)
+
+        @property
+        def required_sample_rate(self) -> int | None:
+            return 16000
+
+        def get_verbose(self, _:int) -> str | None:
+            return None
+
+        def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
+            r = self.audio_model.transcribe(
+                torch.from_numpy(audio_data.astype(np.float32) / float(np.iinfo(np.int16).max)),
+                language = self.__language,
+                fp16 = self.__is_fp16)["text"]
+            if isinstance(r, str):
+                return TranscribeResult(r, None)
+            if isinstance(r, list):
+                return TranscribeResult("".join(r), None)
+            raise ex.ProgramError(f"Whisper.transcribeから意図しない戻り値型:{type(r)}")
+
+        def get_log_info(self) -> str:
+            return ""
+
+try:
+    import faster_whisper # type: ignore
+    import torch # type: ignore
+except:
+    pass
+else:
+    class RecognitionModelWhisperFaster(RecognitionModel):
+        """
+        認識モデルのfaster_whisper実装
+        """
+        def __init__(
+            self,
+            model:str,
+            language:str,
+            device:str,
+            device_index:int,
+            download_root:str) -> None:
+            self.__language = language if language != "" else None
+
+            def get(device:str) -> tuple[str, str]:
+                if device == "cuda":
+                    try:
+                        if torch.cuda.is_available():
+                            mj, mi = torch.cuda.get_device_capability()
+                            if 7 <= mj:
+                                return ("cuda", "float16")
+                            elif mj == 6 and 1 <= mi:
+                                return ("cuda", "int8")
+                            else:
+                                return ("cpu", "int8")
+                    except:
+                        pass
+                return ("cpu", "int8")
+
+            m = f"{model}.{language}" if (model != "large") and (model != "large-v2") and (language == "en") else model
+            run_device, compute_type = get(device)
+            self.audio_model = faster_whisper.WhisperModel(
+                m,
+                run_device,
+                device_index = device_index,
+                compute_type = compute_type,
+                download_root = download_root)
+
+        @property
+        def required_sample_rate(self) -> int | None:
+            return 16000
+
+        def get_verbose(self, _:int) -> str | None:
+            return None
+
+        def get_log_info(self) -> str:
+            return ""
+
+        def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
+            segments, _  = self.audio_model.transcribe(
+                audio_data.astype(np.float32) / float(np.iinfo(np.int16).max),
+                language = self.__language,
+                beam_size=5)
+                #max_new_tokens = 128,
+                #condition_on_previous_text = False)
+            c = []
+            for s in segments:
+                c.append(s.text)
+            return TranscribeResult("".join(c), segments)
+
+>>>>>>> feature/py-kotoba
 
 class RecognitionModelGoogleApi(RecognitionModel):
     """

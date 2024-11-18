@@ -61,6 +61,12 @@ def __choice_method() -> list[str]:
 
     return r + [METHOD_VALUE_GOOGLE, METHOD_VALUE_GOOGLE_DUPLEX, METHOD_VALUE_GOOGLE_MIX]
 
+def __choice_translate() -> list[str]:
+    r = [ "" ]
+    if SUPPORT_LIB_WHISPER_KOTOBA:
+        r.append(METHOD_VALUE_WHISPER_KOTOBA)
+    return r
+
 def __support_silero_vad() -> bool:
     if importlib.util.find_spec("torch") is None:
         return False
@@ -170,7 +176,7 @@ TEST_VALUE_AMBIENT= "mic_ambient"
 ARG_CHOICE_TEST = [
     "",
     TEST_VALUE_MIC,
-    TEST_VALUE_AMBIENT
+    TEST_VALUE_AMBIENT,
 ]
 
 METHOD_VALUE_WHISPER = "whisper"
@@ -181,6 +187,17 @@ METHOD_VALUE_GOOGLE_DUPLEX = "google_duplex"
 METHOD_VALUE_GOOGLE_MIX = "google_mix"
 DEFALUT_METHOD_VALUE = __default_method_value()
 ARG_CHOICE_METHOD = __choice_method()
+
+ARG_CHOICE_TRANSLATE = __choice_translate()
+
+SUBTITLE_VALUE_FILE = "file"
+SUBTITLE_VALUE_OBS_WS_V5 = "obs"
+ARG_CHOICE_SUBTITLE = [
+    "",
+    SUBTITLE_VALUE_FILE,
+    SUBTITLE_VALUE_OBS_WS_V5,
+]
+
 
 MIC_API_VALUE_MME = "mme"
 MIC_API_VALUE_WASAPI = "wasapi"
