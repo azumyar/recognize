@@ -94,7 +94,15 @@ namespace Haru.Kei {
 			// 自由に編集して
 			public override bool GetStandardValuesExclusive(ITypeDescriptorContext context) { return false; }
 		}
-		
+		/// <summary>--translateの選択一覧</summary>
+		class ArgTranslateConverter : SelectableConverter<string> {
+			protected override string[] GetItems() {
+				return new[] {
+					"",
+					"kotoba_whisper",
+				};
+			}
+		}
 
 		/// <summary>--outの選択一覧</summary>
 		class ArgHpfConverter : SelectableConverter<string> {
@@ -133,6 +141,16 @@ namespace Haru.Kei {
 			}
 		}
 
+		/// <summary>--mehodの選択一覧</summary>
+		class ArgSubtitleConverter : SelectableConverter<string> {
+			protected override string[] GetItems() {
+				return new[] {
+					"",
+					"obs",
+				};
+			}
+		}
+
 		/// <summary>--verboseの選択一覧</summary>
 		class ArgVerboseConverter : SelectableConverter<string> {
 			protected override string[] GetItems() {
@@ -148,8 +166,10 @@ namespace Haru.Kei {
 
 		protected const string categoryOutput = "00.環境";
 		protected const string categoryModel = "01.認識モデル";
-		protected const string categoryMic = "02.マイク";
-		protected const string categoryOut = "03.出力";
+		protected const string categoryTranslate = "02.翻訳モデル";
+		protected const string categoryMic = "03.マイク";
+		protected const string categoryOut = "04.出力";
+		protected const string categorySubtitle = "05.字幕";
 
 		[Browsable(false)]
 		[Save(IsRestore = false)]
@@ -225,6 +245,15 @@ namespace Haru.Kei {
 		[ArgAttribute("--google_duplex_parallel", IsFlag = true, TargetProperty = "ArgMethod", TargetValue = "google_duplex")]
 		public bool? ArgGoogleDuplexParallelRun { get; set; }
 
+		[Category(categoryTranslate)]
+		[DisplayName("翻訳モデル")]
+		[Description("β機能")]
+		[DefaultValue("")]
+		[TypeConverter(typeof(ArgTranslateConverter))]
+		[ArgAttribute("--translate")]
+		public string ArgTranslate { get; set; }
+
+
 		[Category(categoryMic)]
 		[DisplayName("マイクデバイス")]
 		[Description("マイクのデバイスIndex\r\nマイクのデバイスリストを見るには--print_micsで実行してください")]
@@ -277,6 +306,50 @@ namespace Haru.Kei {
 		[Description("ゆかコネNEOのウェブソケットポートを指定します。\r\n通常自動的に取得するため必要ありません")]
 		[ArgAttribute("--out_yukacone", TargetProperty = "ArgOut", TargetValue = "yukacone")]
 		public int? ArgOutYukacone { get; set; }
+
+		[DisplayName("字幕連携")]
+		[DefaultValue(null)]
+		[Category(categorySubtitle)]
+		[Description("β機能")]
+		[TypeConverter(typeof(ArgSubtitleConverter))]
+		[ArgAttribute("--subtitle")] 
+		public string ArgSubtitle { get; set; }
+
+		[DisplayName("字幕時間[秒]")]
+		[DefaultValue(null)]
+		[Category(categorySubtitle)]
+		[Description("β機能")]
+		[ArgAttribute("--subtitle_truncate")]
+		public float? ArgSubtitleTruncate { get; set; }
+
+		[DisplayName("Web Socket ポート(OBS)")]
+		[DefaultValue(null)]
+		[Category(categorySubtitle)]
+		[Description("β機能")]
+		[ArgAttribute("--subtitle_obs_port", TargetProperty = "ArgSubtitle", TargetValue = "obs")]
+		public int? ArgSubtitlePort { get; set; }
+
+		[DisplayName("Web Socket パスワード(OBS)")]
+		[DefaultValue(null)]
+		[Category(categorySubtitle)]
+		[Description("β機能")]
+		[ArgAttribute("--subtitle_obs_password", TargetProperty = "ArgSubtitle", TargetValue = "obs")]
+		public string ArgSubtitlePassword { get; set; }
+
+		[DisplayName("日本語字幕テキストソース(OBS)")]
+		[DefaultValue(null)]
+		[Category(categorySubtitle)]
+		[Description("β機能")]
+		[ArgAttribute("--subtitle_obs_text_ja", TargetProperty = "ArgSubtitle", TargetValue = "obs")]
+		public string ArgSubtitleObsTextJa { get; set; }
+
+		[DisplayName("英語字幕テキストソース(OBS)")]
+		[DefaultValue(null)]
+		[Category(categorySubtitle)]
+		[Description("β機能")]
+		[ArgAttribute("--subtitle_obs_text_en", TargetProperty = "ArgSubtitle", TargetValue = "obs")]
+		public string ArgSubtitleObsTextEn { get; set; }
+
 
 		[DisplayName("ログレベル")]
 		[Description("コンソールに出すログ出力レベルを設定します")]
