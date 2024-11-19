@@ -297,51 +297,56 @@ def main(
                 feature)
         else:
             ilm_logger.print("認識モデルの初期化")
-            recognition_model:recognition.RecognitionModel = {
-                val.METHOD_VALUE_WHISPER: lambda: recognition.RecognitionModelWhisper(
-                    model=whisper_model,
-                    language=whisper_language,
-                    device=whisper_device,
-                    download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
-                val.METHOD_VALUE_WHISPER_FASTER: lambda:  recognition.RecognitionModelWhisperFaster(
-                    model=whisper_model,
-                    language=whisper_language,
-                    device=whisper_device,
-                    device_index=whisper_device_index,
-                    download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
-                val.METHOD_VALUE_WHISPER_KOTOBA: lambda: translate_.RecognizeAndTranslateModelKotobaWhisper(
-                    device=whisper_device,
-                    device_index=whisper_device_index),
-                val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
-                    sample_rate=sampling_rate,
-                    sample_width=2,
-                    convert_sample_rete=google_convert_sampling_rate,
-                    language=google_language,
-                    profanity_filter=google_profanity_filter,
-                    timeout=google_timeout if 0 < google_timeout else None,
-                    challenge=google_error_retry),
-                val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.RecognitionModelGoogleDuplex(
-                    sample_rate=sampling_rate,
-                    sample_width=2,
-                    convert_sample_rete=google_convert_sampling_rate,
-                    language=google_language,
-                    profanity_filter=google_profanity_filter,
-                    timeout=google_timeout if 0 < google_timeout else None,
-                    challenge=google_error_retry,
-                    is_parallel_run=google_duplex_parallel,
-                    parallel_max=google_duplex_parallel_max,
-                    parallel_reduce_count=google_duplex_parallel_reduce_count),
-                val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.RecognitionModelGoogleMix(
-                    sample_rate=sampling_rate,
-                    sample_width=2,
-                    convert_sample_rete=google_convert_sampling_rate,
-                    language=google_language,
-                    profanity_filter=google_profanity_filter,
-                    timeout=google_timeout if 0 < google_timeout else None,
-                    challenge=google_error_retry,
-                    parallel_max_duplex=google_duplex_parallel_max,
-                    parallel_reduce_count_duplex=google_duplex_parallel_reduce_count),
-            }[method]()
+            if method in [val.METHOD_VALUE_WHISPER, val.METHOD_VALUE_WHISPER_FASTER, val.METHOD_VALUE_WHISPER_KOTOBA]:
+                import src.recognition_torch as recognition_torch
+                recognition_model:recognition.RecognitionModel = {
+                    val.METHOD_VALUE_WHISPER: lambda: recognition_torch.RecognitionModelWhisper(
+                        model=whisper_model,
+                        language=whisper_language,
+                        device=whisper_device,
+                        download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
+                    val.METHOD_VALUE_WHISPER_FASTER: lambda:  recognition_torch.RecognitionModelWhisperFaster(
+                        model=whisper_model,
+                        language=whisper_language,
+                        device=whisper_device,
+                        device_index=whisper_device_index,
+                        download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
+                    val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition_torch.RecognizeAndTranslateModelKotobaWhisper(
+                        device=whisper_device,
+                        device_index=whisper_device_index),
+                }[method]()
+            else:
+                recognition_model:recognition.RecognitionModel = {
+                    val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
+                        sample_rate=sampling_rate,
+                        sample_width=2,
+                        convert_sample_rete=google_convert_sampling_rate,
+                        language=google_language,
+                        profanity_filter=google_profanity_filter,
+                        timeout=google_timeout if 0 < google_timeout else None,
+                        challenge=google_error_retry),
+                    val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.RecognitionModelGoogleDuplex(
+                        sample_rate=sampling_rate,
+                        sample_width=2,
+                        convert_sample_rete=google_convert_sampling_rate,
+                        language=google_language,
+                        profanity_filter=google_profanity_filter,
+                        timeout=google_timeout if 0 < google_timeout else None,
+                        challenge=google_error_retry,
+                        is_parallel_run=google_duplex_parallel,
+                        parallel_max=google_duplex_parallel_max,
+                        parallel_reduce_count=google_duplex_parallel_reduce_count),
+                    val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.RecognitionModelGoogleMix(
+                        sample_rate=sampling_rate,
+                        sample_width=2,
+                        convert_sample_rete=google_convert_sampling_rate,
+                        language=google_language,
+                        profanity_filter=google_profanity_filter,
+                        timeout=google_timeout if 0 < google_timeout else None,
+                        challenge=google_error_retry,
+                        parallel_max_duplex=google_duplex_parallel_max,
+                        parallel_reduce_count_duplex=google_duplex_parallel_reduce_count),
+                }[method]()
             ilm_logger.debug(f"#認識モデルは{type(recognition_model)}を使用", reset_console=True)
 
             if translate == "":
@@ -352,8 +357,9 @@ def main(
                     assert(isinstance(recognition_model, translate_.TranslateModel))
                     translate_model = recognition_model
                 else:
+                    import src.recognition_torch as recognition_torch
                     translate_model = {
-                        val.METHOD_VALUE_WHISPER_KOTOBA: lambda: translate_.RecognizeAndTranslateModelKotobaWhisper(
+                        val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition_torch.RecognizeAndTranslateModelKotobaWhisper(
                             device=translate_whisper_device,
                             device_index=translate_whisper_device_index),
                     }[translate]()
