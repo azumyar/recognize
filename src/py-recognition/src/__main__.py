@@ -296,8 +296,14 @@ def main(
                 ilm_logger,
                 feature)
         else:
+            is_loaded_torch = False
+
             ilm_logger.print("認識モデルの初期化")
             if method in [val.METHOD_VALUE_WHISPER, val.METHOD_VALUE_WHISPER_FASTER, val.METHOD_VALUE_WHISPER_KOTOBA]:
+                if not is_loaded_torch:
+                    ilm_logger.print("torchをロードします。この処理は時間がかかることがあります", console=val.Console.Yellow, reset_console=True)
+                    is_loaded_torch = True
+
                 import src.recognition_torch as recognition_torch
                 recognition_model:recognition.RecognitionModel = {
                     val.METHOD_VALUE_WHISPER: lambda: recognition_torch.RecognitionModelWhisper(
@@ -357,6 +363,9 @@ def main(
                     assert(isinstance(recognition_model, translate_.TranslateModel))
                     translate_model = recognition_model
                 else:
+                    if not is_loaded_torch:
+                        ilm_logger.print("torchをロードします。この処理は時間がかかることがあります", console=val.Console.Yellow, reset_console=True)
+                        is_loaded_torch = True
                     import src.recognition_torch as recognition_torch
                     translate_model = {
                         val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition_torch.RecognizeAndTranslateModelKotobaWhisper(
