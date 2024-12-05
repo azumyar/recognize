@@ -247,7 +247,7 @@ namespace Haru.Kei {
 
 		[Category(categoryTranslate)]
 		[DisplayName("翻訳モデル")]
-		[Description("β機能")]
+		[Description("翻訳モデル")]
 		[DefaultValue("")]
 		[TypeConverter(typeof(ArgTranslateConverter))]
 		[ArgAttribute("--translate")]
@@ -310,7 +310,7 @@ namespace Haru.Kei {
 		[DisplayName("字幕連携")]
 		[DefaultValue(null)]
 		[Category(categorySubtitle)]
-		[Description("β機能")]
+		[Description("字幕連携先を指定します")]
 		[TypeConverter(typeof(ArgSubtitleConverter))]
 		[ArgAttribute("--subtitle")] 
 		public string ArgSubtitle { get; set; }
@@ -318,35 +318,35 @@ namespace Haru.Kei {
 		[DisplayName("字幕時間[秒]")]
 		[DefaultValue(null)]
 		[Category(categorySubtitle)]
-		[Description("β機能")]
+		[Description("字幕の表示時間を指定します。0秒を指定すると字幕は消去されません。")]
 		[ArgAttribute("--subtitle_truncate")]
 		public float? ArgSubtitleTruncate { get; set; }
 
 		[DisplayName("Web Socket ポート(OBS)")]
 		[DefaultValue(null)]
 		[Category(categorySubtitle)]
-		[Description("β機能")]
+		[Description("OBSのWeb Socketポートを指定します")]
 		[ArgAttribute("--subtitle_obs_port", TargetProperty = "ArgSubtitle", TargetValue = "obs")]
 		public int? ArgSubtitlePort { get; set; }
 
 		[DisplayName("Web Socket パスワード(OBS)")]
 		[DefaultValue(null)]
 		[Category(categorySubtitle)]
-		[Description("β機能")]
+		[Description("OBSのWeb Socketパスワードを指定します")]
 		[ArgAttribute("--subtitle_obs_password", TargetProperty = "ArgSubtitle", TargetValue = "obs")]
 		public string ArgSubtitlePassword { get; set; }
-
+		/*
 		[DisplayName("日本語字幕テキストソース(OBS)")]
 		[DefaultValue(null)]
 		[Category(categorySubtitle)]
-		[Description("β機能")]
+		[Description("日本語字幕を表示するOBSテキストソースを指定します")]
 		[ArgAttribute("--subtitle_obs_text_ja", TargetProperty = "ArgSubtitle", TargetValue = "obs")]
 		public string ArgSubtitleObsTextJa { get; set; }
-
+		*/
 		[DisplayName("英語字幕テキストソース(OBS)")]
 		[DefaultValue(null)]
 		[Category(categorySubtitle)]
-		[Description("β機能")]
+		[Description("英語字幕を表示するOBSテキストソースを指定します")]
 		[ArgAttribute("--subtitle_obs_text_en", TargetProperty = "ArgSubtitle", TargetValue = "obs")]
 		public string ArgSubtitleObsTextEn { get; set; }
 
