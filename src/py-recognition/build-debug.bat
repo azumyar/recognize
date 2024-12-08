@@ -12,8 +12,6 @@ copy .\c\mm-interop.dll .\dist\recognize\
 if %errorlevel% neq 0 goto error
 
 python -m pipenv requirements > requirements.txt
-echo stable-ts==2.16.0 >> requirements.txt
-echo punctuators==0.0.5 >> requirements.txt
 echo pyinstaller==6.9.0 >> requirements.txt
 echo pyinstaller-hooks-contrib==2024.7 >> requirements.txt
 

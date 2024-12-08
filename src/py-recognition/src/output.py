@@ -9,11 +9,11 @@ class RecognitionOutputer:
     """
     認識結果を出力する抽象基底クラス
     """
-    def output(self, text: str) -> str:
+    def output(self, text_ja:str, text_en:str) -> str:
         """
         認識結果を出力
         """
-        return text
+        return text_ja
 
 class PrintOutputer(RecognitionOutputer):
     """
@@ -53,8 +53,10 @@ class WebSocketOutputer(RecognitionOutputer):
 
         self.__soc = connect(self.__uri)
 
+    def output(self, text_ja:str, text_en:str) -> str:
+        ...
 
-    def output(self, text:str) -> str:
+    def _send(self, text:str) -> str:
         #async def send(text:str):
         #    async with websockets.connect(self.uri) as websocket:
         #        await websocket.send(text)
@@ -87,8 +89,8 @@ class YukarinetteOutputer(WebSocketOutputer):
     def __init__(self, uri:str):
         super().__init__(uri, "ゆかりねっと")
 
-    def output(self, text:str) -> str:
-        return super().output(f"0:{text}")
+    def output(self, text_ja:str, text_en:str) -> str:
+        return self._send(f"0:{text_ja}")
 
 class YukaconeOutputer(WebSocketOutputer):
     """
@@ -97,8 +99,8 @@ class YukaconeOutputer(WebSocketOutputer):
     def __init__(self, uri:str):
         super().__init__(f"{uri}/textonly", "ゆかコネNEO")
 
-    def output(self, text:str) -> str:
-        return super().output(text)
+    def output(self, text_ja:str, text_en:str) -> str:
+        return self._send(text_ja)
 
     @staticmethod
     def get_port(port:int | None) -> str:
@@ -127,9 +129,10 @@ class IlluminateSpeechOutputer(WebSocketOutputer):
     def __init__(self, uri:str):
         super().__init__(uri, "IlluminateSpeech")
 
-    def output(self, text:str) -> str:
-        return super().output(json.dumps({
-            "transcript": text,
+    def output(self, text_ja:str, text_en:str) -> str:
+        return self._send(json.dumps({
+            "transcript": text_ja,
+            "translate": text_en,
             "finish": True,
         }, ensure_ascii=False))
 
