@@ -1,0 +1,86 @@
+name: recognize-ci
+
+on:
+  push:
+    tags:
+      - 'v.*'
+jobs:
+  build:
+    runs-on: windows-latest 
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      PIPENV_VENV_IN_PROJECT: 1
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.10.x
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Setup MSBuild.exe
+      uses: microsoft/setup-msbuild@v1
+
+    - name: Build CLI app
+      run: |
+        pushd src\py-recognition
+        python -m venv .venv
+        .venv\Scripts\activate.ps1
+        pip install -r requirements.txt --no-cache-dir
+        Expand-Archive -Path bootloader\bootloader.zip -DestinationPath .venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel -Force
+        pyinstaller -n recognize --noconfirm src/__main__.py
+        copy c\mm-interop.dll dist\recognize\
+        deactivate
+        popd
+
+    - name: Build GUI app
+      run: |
+        pushd src\cs-recognition-frontend
+        .\build.bat
+        popd
+
+    - name: Create Artifact Directory
+      run: |
+        mkdir recognize\src\py-recognition
+        move src\cs-recognition-frontend\recognize-gui.exe recognize
+        move src\py-recognition\dist recognize\src\py-recognition
+
+    - name: Create Artifact Zip
+      run: Compress-Archive -Path recognize -DestinationPath "recognize.zip"
+
+    - name: Split Artifact Zip
+      run: split -d -a 1 -b 1800MB recognize.zip recognize-${{github.ref_name}}.zip.
+      shell: bash
+
+    - name: Edit and Build intaller
+      run: |
+        pushd src/cs-installer
+        echo "namespace Haru.Kei;" > Const.ci.cs
+        echo "internal partial class Const {" >> Const.ci.cs
+        echo "public const string Tag = \"${{github.ref_name}}\";" >> Const.ci.cs
+        echo "public const string FileName = \"recognize-${{github.ref_name}}.zip\";" >> Const.ci.cs
+        echo "public const int SplitCount = 2;" >> Const.ci.cs
+        echo "}" >> Const.ci.cs
+        dotnet publish -p:Configuration=Release
+        popd
+        ls src/cs-installer/bin/Release/net8.0-windows/win-x64/publish
+        mv src/cs-installer/bin/Release/net8.0-windows/win-x64/publish/cs-installer.exe setup-${{github.ref_name}}.exe
+      shell: bash # powershellの構文よくわからない
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        body: リリース:${{github.ref_name}}
+        files: |
+          setup-${{github.ref_name}}.exe
+          recognize-${{github.ref_name}}.zip.*
