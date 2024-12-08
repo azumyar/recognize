@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "bootstrap": "^5.3.3"
+  },
+  "devDependencies": {
+    "sass": "^1.81.1"
+  },
+  "scripts": {
+    "sass": "sass sass/bootstrap.scss ../../docs/bootstrap.css"
+  }
+}
