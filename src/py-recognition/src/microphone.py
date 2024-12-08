@@ -58,12 +58,12 @@ class ListenResultParam(NamedTuple):
     '''pcmのRMS値(src.mic.AudioDataのみに格納)'''
 
 class Device(NamedTuple):
-    index:int
+    device_no:int
     hostapi:str
     name:str
 
     def __str__(self) -> str:
-        return f"{self.index} : {self.name}"
+        return f"{self.device_no} : {self.name}"
 
 class Microphone:
     __BAR_COLOR_NONE = val.Console.background_index(240)

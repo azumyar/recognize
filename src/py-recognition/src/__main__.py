@@ -4,15 +4,19 @@ import os
 import sys
 import platform
 import click
-import speech_recognition
+import importlib.util
+import json
 from typing import Any, Callable, Iterable, Optional, NamedTuple
 
 from src import Logger, Enviroment, db2rms, rms2db, ilm_logger, mm_atach, mm_is_capture_device
 import src.main_run as main_run
 import src.main_test as main_test
+import src.filter_transcribe as filter_t
 import src.microphone
 import src.recognition as recognition
+import src.recognition_translate as translate_
 import src.output as output
+import src.output_subtitle as output_subtitle
 import src.microphone as microphone
 import src.val as val
 import src.google_recognizers as google
@@ -52,13 +56,10 @@ def print_mics(ctx, param, value):
     return
 
 def __available_cuda() -> str:
-    try:
-        import torch # type: ignore
-    except ImportError:
+    if importlib.util.find_spec("torch") is None:
         return "cpu"
     else:
-        return "cuda" if torch.cuda.is_available() else "cpu"
-
+        return "cuda" if val.SUPPORT_CUDA else "cpu"
 
 def __whiper_help(s:str) -> str:
     if not val.SUPPORT_WHISPER:
@@ -85,6 +86,21 @@ def __whiper_help(s:str) -> str:
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
 @click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
 #@click.option("--mic_api", default=val.MIC_API_VALUE_MME, help="--mic_nameで検索するマイクのAPIを指定します", type=click.Choice(val.ARG_CHOICE_MIC_API))
+
+@click.option("--transcribe_filter", default=None, help="変換フィルタルールファイル", type=str)
+
+@click.option("--translate", default="", help="使用する翻訳方法", type=click.Choice(val.ARG_CHOICE_TRANSLATE))
+@click.option("--translate_whisper_device", default=__available_cuda(), help=__whiper_help("(whisper)翻訳に使用する演算装置"), type=click.Choice(["cpu","cuda"]))
+@click.option("--translate_whisper_device_index", default=0, help=__whiper_help("(whisper)翻訳に使用するデバイスindex"), type=int)
+
+@click.option("--subtitle", default="", help="使用する字幕連携", type=click.Choice(val.ARG_CHOICE_SUBTITLE))
+@click.option("--subtitle_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
+@click.option("--subtitle_file_directory", default=None, help="ファイル字幕連携で保存先", type=str)
+@click.option("--subtitle_obs_host", default="localhost", help="", type=str)
+@click.option("--subtitle_obs_port", default=4455, help="OBS Web Socket APIのポート", type=int)
+@click.option("--subtitle_obs_password", default="", help="OBS Web Socket APIのパスワード", type=str)
+@click.option("--subtitle_obs_text_ja", default=None, help="字幕(ja_JP)テキストオブジェクトの名前", type=str)
+@click.option("--subtitle_obs_text_en", default=None, help="字幕(en_US)テキストオブジェクトの名前", type=str)
 
 @click.option("--mic_energy_threshold", default=None, help="互換性のため残されています", type=float)
 @click.option("--mic_db_threshold", default=0, help="設定した値より小さい音を無言として扱う閾値", type=float)
@@ -133,6 +149,19 @@ def main(
     google_duplex_parallel:bool,
     google_duplex_parallel_max:Optional[int],
     google_duplex_parallel_reduce_count:Optional[int],
+    transcribe_filter:Optional[str],
+    translate:str,
+    translate_whisper_device:str,
+    translate_whisper_device_index:int,
+    subtitle:str,
+    subtitle_truncate:float,
+    subtitle_file_directory:str,
+    subtitle_obs_host:str,
+    subtitle_obs_port:int,
+    subtitle_obs_password:str,
+    subtitle_obs_text_ja:Optional[str],
+    subtitle_obs_text_en:Optional[str],
+
     mic:Optional[int],
     mic_name:Optional[str],
     #mic_api:str,
@@ -163,7 +192,21 @@ def main(
     torch_cache:str,
     feature:str
     ) -> None:
-    from src import ilm_logger, ilm_enviroment
+    from src import ilm_logger, ilm_enviroment, enable_virtual_terminal
+
+    if enable_virtual_terminal() != True:
+        ilm_logger.error("仮想ターミナルの設定に失敗しました")
+
+    # torch/kotoba-whisperのダウンロード設定をする(torchのimport前に実施)
+    if torch_cache == "" or torch_cache == None:
+        os.environ["TORCH_HOME"] = \
+            os.environ["HUGGINGFACE_HUB_CACHE"] = \
+                f"{ilm_enviroment.root}{os.sep}.cache"
+    else:
+        os.environ["TORCH_HOME"] = \
+            os.environ["HUGGINGFACE_HUB_CACHE"] = \
+                f"{torch_cache}{os.sep}.cache"     
+
 
     cancel = CancellationObject()
     print("\033[?25l", end="") # カーソルを消す
@@ -172,6 +215,12 @@ def main(
             record_directory = ilm_enviroment.root
         else:
             os.makedirs(record_directory, exist_ok=True)
+
+        if subtitle_file_directory  is None:
+            subtitle_file_directory = ilm_enviroment.root
+        else:
+            os.makedirs(subtitle_file_directory, exist_ok=True)
+
         #sampling_rate = src.mic.Mic.update_sample_rate(mic, mic_sampling_rate) #16000
         sampling_rate = 16000
         rec = Record(record, record_file, record_directory)
@@ -185,15 +234,19 @@ def main(
                 filter_hpf)
             filters.append(filter_highPass)
         # VADフィルタの準備
-        filter_vad_inst:filter.VoiceActivityDetectorFilter = {
-            val.VAD_VALUE_GOOGLE: lambda: filter.GoogleVadFilter(
+        filter_vad_inst:filter.VoiceActivityDetectorFilter
+        if vad == val.VAD_VALUE_GOOGLE:
+            filter_vad_inst = filter.GoogleVadFilter(
                 val.MIC_SAMPLE_RATE,
-                int(vad_google_mode)),
-            val.VAD_VALUE_SILERO: lambda: filter.SileroVadFilter(
+                int(vad_google_mode))
+        elif vad == val.VAD_VALUE_SILERO:
+            import src.filter_torch as fil_torch
+            filter_vad_inst = fil_torch.SileroVadFilter(
                 val.MIC_SAMPLE_RATE,
                 vad_silero_threshold,
-                vad_silero_min_speech_duration),
-        }[vad]()
+                vad_silero_min_speech_duration)
+        else:
+            raise ValueError(f"vad:{vad} is not support")
         filters.append(filter_vad_inst)
 
         ilm_logger.print("マイクの初期化")
@@ -201,6 +254,7 @@ def main(
             val.METHOD_VALUE_WHISPER: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_WHISPER_FASTER: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
+            #val.METHOD_VALUE_WHISPER_KOTOBA_BIL: lambda: recognition.WhisperMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_GOOGLE: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
@@ -212,7 +266,7 @@ def main(
         if mp_mic is None and (not mic_name is None) and mic_name != "":
             for d in src.microphone.Microphone.query_devices():
                 if(mic_name.lower() in d.name.lower()):
-                    mp_mic = d.index
+                    mp_mic = d.device_no
                     break
             if mp_mic is None:
                 ilm_logger.info(f"マイク[{mic_name}]を検索しましたが見つかりませんでした", console=val.Console.Red, reset_console=True)
@@ -242,53 +296,83 @@ def main(
                 ilm_logger,
                 feature)
         else:
+            is_loaded_torch = False
+
             ilm_logger.print("認識モデルの初期化")
-            recognition_model:recognition.RecognitionModel = {
-                val.METHOD_VALUE_WHISPER: lambda: recognition.RecognitionModelWhisper(
-                    model=whisper_model,
-                    language=whisper_language,
-                    device=whisper_device,
-                    download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
-                val.METHOD_VALUE_WHISPER_FASTER: lambda:  recognition.RecognitionModelWhisperFaster(
-                    model=whisper_model,
-                    language=whisper_language,
-                    device=whisper_device,
-                    device_index=whisper_device_index,
-                    download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
-                val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.RecognitionModelWhisperKotoba(
-                    device=whisper_device,
-                    device_index=whisper_device_index),
-                val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
-                    sample_rate=sampling_rate,
-                    sample_width=2,
-                    convert_sample_rete=google_convert_sampling_rate,
-                    language=google_language,
-                    profanity_filter=google_profanity_filter,
-                    timeout=google_timeout if 0 < google_timeout else None,
-                    challenge=google_error_retry),
-                val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.RecognitionModelGoogleDuplex(
-                    sample_rate=sampling_rate,
-                    sample_width=2,
-                    convert_sample_rete=google_convert_sampling_rate,
-                    language=google_language,
-                    profanity_filter=google_profanity_filter,
-                    timeout=google_timeout if 0 < google_timeout else None,
-                    challenge=google_error_retry,
-                    is_parallel_run=google_duplex_parallel,
-                    parallel_max=google_duplex_parallel_max,
-                    parallel_reduce_count=google_duplex_parallel_reduce_count),
-                val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.RecognitionModelGoogleMix(
-                    sample_rate=sampling_rate,
-                    sample_width=2,
-                    convert_sample_rete=google_convert_sampling_rate,
-                    language=google_language,
-                    profanity_filter=google_profanity_filter,
-                    timeout=google_timeout if 0 < google_timeout else None,
-                    challenge=google_error_retry,
-                    parallel_max_duplex=google_duplex_parallel_max,
-                    parallel_reduce_count_duplex=google_duplex_parallel_reduce_count),
-            }[method]()
+            if method in [val.METHOD_VALUE_WHISPER, val.METHOD_VALUE_WHISPER_FASTER, val.METHOD_VALUE_WHISPER_KOTOBA]:
+                if not is_loaded_torch:
+                    ilm_logger.print("torchをロードします。この処理は時間がかかることがあります", console=val.Console.Yellow, reset_console=True)
+                    is_loaded_torch = True
+
+                import src.recognition_torch as recognition_torch
+                recognition_model:recognition.RecognitionModel = {
+                    val.METHOD_VALUE_WHISPER: lambda: recognition_torch.RecognitionModelWhisper(
+                        model=whisper_model,
+                        language=whisper_language,
+                        device=whisper_device,
+                        download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
+                    val.METHOD_VALUE_WHISPER_FASTER: lambda:  recognition_torch.RecognitionModelWhisperFaster(
+                        model=whisper_model,
+                        language=whisper_language,
+                        device=whisper_device,
+                        device_index=whisper_device_index,
+                        download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
+                    val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition_torch.RecognizeAndTranslateModelKotobaWhisper(
+                        device=whisper_device,
+                        device_index=whisper_device_index),
+                }[method]()
+            else:
+                recognition_model:recognition.RecognitionModel = {
+                    val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
+                        sample_rate=sampling_rate,
+                        sample_width=2,
+                        convert_sample_rete=google_convert_sampling_rate,
+                        language=google_language,
+                        profanity_filter=google_profanity_filter,
+                        timeout=google_timeout if 0 < google_timeout else None,
+                        challenge=google_error_retry),
+                    val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.RecognitionModelGoogleDuplex(
+                        sample_rate=sampling_rate,
+                        sample_width=2,
+                        convert_sample_rete=google_convert_sampling_rate,
+                        language=google_language,
+                        profanity_filter=google_profanity_filter,
+                        timeout=google_timeout if 0 < google_timeout else None,
+                        challenge=google_error_retry,
+                        is_parallel_run=google_duplex_parallel,
+                        parallel_max=google_duplex_parallel_max,
+                        parallel_reduce_count=google_duplex_parallel_reduce_count),
+                    val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.RecognitionModelGoogleMix(
+                        sample_rate=sampling_rate,
+                        sample_width=2,
+                        convert_sample_rete=google_convert_sampling_rate,
+                        language=google_language,
+                        profanity_filter=google_profanity_filter,
+                        timeout=google_timeout if 0 < google_timeout else None,
+                        challenge=google_error_retry,
+                        parallel_max_duplex=google_duplex_parallel_max,
+                        parallel_reduce_count_duplex=google_duplex_parallel_reduce_count),
+                }[method]()
             ilm_logger.debug(f"#認識モデルは{type(recognition_model)}を使用", reset_console=True)
+
+            if translate == "":
+                translate_model:None|translate_.TranslateModel = None
+            else:
+                ilm_logger.print("翻訳モデルの初期化")
+                if translate == method:
+                    assert(isinstance(recognition_model, translate_.TranslateModel))
+                    translate_model = recognition_model
+                else:
+                    if not is_loaded_torch:
+                        ilm_logger.print("torchをロードします。この処理は時間がかかることがあります", console=val.Console.Yellow, reset_console=True)
+                        is_loaded_torch = True
+                    import src.recognition_torch as recognition_torch
+                    translate_model = {
+                        val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition_torch.RecognizeAndTranslateModelKotobaWhisper(
+                            device=translate_whisper_device,
+                            device_index=translate_whisper_device_index),
+                    }[translate]()
+                ilm_logger.debug(f"#翻訳モデルは{type(translate_model)}を使用", reset_console=True)
 
             outputer:output.RecognitionOutputer = {
                 val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
@@ -302,18 +386,60 @@ def main(
             for f in filters:
                ilm_logger.debug(f"#{type(f)}", reset_console=True)
 
+            subtitle_ = {
+                "": lambda: output_subtitle.NopSubtitleOutputer(ilm_logger),
+                val.SUBTITLE_VALUE_FILE: lambda: output_subtitle.FileSubtitleOutputer(
+                    subtitle_file_directory,
+                    subtitle_truncate,
+                    ilm_logger),
+                val.SUBTITLE_VALUE_OBS_WS_V5: lambda: output_subtitle.ObsV5SubtitleOutputer(
+                    subtitle_obs_host,
+                    subtitle_obs_port,
+                    subtitle_obs_password,
+                    subtitle_obs_text_ja,
+                    subtitle_obs_text_en,
+                    subtitle_truncate,
+                    ilm_logger),
+            }[subtitle]()
+            ilm_logger.debug(f"#字幕連携は{type(subtitle_)}を使用", reset_console=True)
+
+            jsn = {}
+            if transcribe_filter is None:
+                filter_transcribe = filter_t.TranscribeFilter(None)
+            else:
+                ilm_logger.print("認識変換フィルタ読み込み")
+                with open(transcribe_filter, "r", encoding="utf-8") as json_file:
+                    try:
+                        jsn = json.load(json_file)
+                        filter_transcribe = filter_t.TranscribeFilter(jsn)
+                    except json.decoder.JSONDecodeError as ex:
+                        ilm_logger.error("JSONファイルの内容が不正です。読み込みをスキップします")
+                        ilm_logger.error({ex})
+                        filter_transcribe = filter_t.TranscribeFilter(None)
+                    except filter_t.JsonReadException as ex:
+                        ilm_logger.error("JSONファイルの内容が不正です。読み込みをスキップします")
+                        ilm_logger.error({ex})
+                        filter_transcribe = filter_t.TranscribeFilter(None)
+
             ilm_logger.log([
                 f"マイク: {mc.device_name}",
                 f"認識モデル: {type(recognition_model)}",
-                f"出力 = {type(outputer)}",
-                f"フィルタ = {','.join(list(map(lambda x: f'{type(x)}', filters)))}"
+                f"翻訳モデル: {type(translate_model)}",
+                f"出力: {type(outputer)}",
+                f"マイクフィルタ = {','.join(list(map(lambda x: f'{type(x)}', filters)))}",
+                f"字幕: {type(subtitle)}",
+                f"変換フィルタ: {str(jsn)}",
             ])
 
             ilm_logger.print("認識中…")
+            assert(isinstance(recognition_model, recognition.RecognitionModel))
             main_run.run(
                 mc,
                 recognition_model,
+                translate_model,
+                filter_transcribe,
                 outputer,
+                subtitle_,
                 rec,
                 ilm_enviroment,
                 cancel,
