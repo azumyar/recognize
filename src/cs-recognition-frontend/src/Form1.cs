@@ -10,6 +10,7 @@ using System.Xml.Linq;
 using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.InteropServices;
+using System.Security;
 
 namespace Haru.Kei {
 	public partial class Form1 : Form {
@@ -200,6 +201,15 @@ namespace Haru.Kei {
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Information);
 			}
+			if(!IsValidExePath(this.arg)) {
+				MessageBox.Show(
+					this,
+					"パスに不正な文字が含まれます。ゆーかねすぴれこは英数字だけのパスに配置してください。",
+					"ゆーかねすぴれこ",
+					MessageBoxButtons.OK,
+					MessageBoxIcon.Warning);
+				Application.Exit();
+			}
 		}
 
 		protected override void OnFormClosed(FormClosedEventArgs e) {
@@ -212,6 +222,31 @@ namespace Haru.Kei {
 			catch(IOException) {}
 
 			base.OnFormClosed(e);
+		}
+
+		private bool IsValidExePath(RecognizeExeArgument argument) {
+			try {
+				var path = Path.GetFullPath(argument.RecognizeExePath);
+				if(path.ToLower() != arg.RecognizeExePath.ToLower()) {
+					// exeは相対パス
+					// 作業ディレクトリがexeのディレクトリとは限らないので作り直す
+					path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, arg.RecognizeExePath);
+				} else {
+					// exeはフルパス
+				}
+
+				// ASCIIを超えた場合はfalse
+				foreach(var c in path) {
+					if(255 < c) {
+						return false;
+					}
+				}
+				return true;
+			}
+			catch(ArgumentException) { return false; }
+			catch(SecurityException) { return false; }
+			catch(NotSupportedException) { return false; }
+			catch(PathTooLongException) { return false; }
 		}
 
 		private string GenExeArguments(RecognizeExeArgument argument) {
