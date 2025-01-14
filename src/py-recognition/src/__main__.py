@@ -12,7 +12,6 @@ from src import Logger, Enviroment, db2rms, rms2db, ilm_logger, mm_atach, mm_is_
 import src.main_run as main_run
 import src.main_test as main_test
 import src.filter_transcribe as filter_t
-import src.microphone
 import src.recognition as recognition
 import src.recognition_translate as translate_
 import src.output as output
@@ -266,7 +265,7 @@ def main(
         mp_energy = mp_value(db2rms(mic_db_threshold), mic_energy_threshold)
         mp_mic = mic
         if mp_mic is None and (not mic_name is None) and mic_name != "":
-            for d in src.microphone.Microphone.query_devices():
+            for d in microphone.Microphone.query_devices():
                 if(mic_name.lower() in d.name.lower()):
                     mp_mic = d.device_no
                     break
