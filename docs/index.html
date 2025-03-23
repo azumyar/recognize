@@ -8,12 +8,12 @@
   <meta property="twitter:card" content="summary">
   <meta property="twitter:site" content="@HARUKei66494739">
   <meta property="twitter:description" content="ゆかりねっと&amp;ゆかコネNEOの音声認識代替ツール">
-  <meta property="twitter:image" content="https://azumyar.github.io//recognize/og.png">
-  <meta property="og:url" content="https://azumyar.github.io/recognize/">
+  <meta property="twitter:image" content="https://harukei66494739.github.io/recognize/og.png">
+  <meta property="og:url" content="https://harukei66494739.github.io/recognize/">
   <meta property="og:type" content="product">
   <meta property="og:title" content="ゆーかねすぴれこ">
   <meta property="og:description" content="ゆかりねっと&amp;ゆかコネNEOの音声認識代替ツール">
-  <meta property="og:image" content="https://azumyar.github.io//recognize/og.png">
+  <meta property="og:image" content="https://harukei66494739.github.io/recognize/og.png">
   <meta property="og:image:width" content="64">
   <meta property="og:image:height" content="64">
 <style>
@@ -121,7 +121,12 @@
         <h3>セットアップ！</h3>
     
         <h4 class="border-bottom border-dark-subtle my-3">新規インストール</h4>
-        <p>任意のドライブの浅い場所に好きなフォルダを作ります<p>
+        <p>任意のドライブの浅い場所に好きなフォルダを作ります。<br>
+           ※ 日本語が含まれるパス、フォルダに置くとGUIが起動しません。必ず英数字のみのパス、フォルダに配置してください。<br>
+           例)<br>
+           　OK → K:\tool\recognize<br>
+           　NG → K:\ツール\recognize<br>
+        <p>
         <img class="d-block img-fluid" src="assets/kantan-setup-01.png">
 
         <p>作成したフォルダにダウンロードしたsetup-*.exeを移動します</p>
@@ -170,7 +175,8 @@
         <p>どうですか？しゃべり終わったタイミングで認識が終了しましたか？認識できる声量が出ているとインジケータの色が緑色にそして声を認識すると水色に変化します。緑色に変わらない場合は閾値を水色に変わらない場合はノイズがうるさすぎる可能性があります。Windowsのマイクボリュームを見直してください。</p>
         <img class="d-block img-fluid" src="assets/kantan-mic-04.png">
 
-        <p>※ このオプションはゆかりねっと連携時も有効でwavで保存するので必要ない場合はFalseに設定して録音されないようにしましょう</p>
+        <p>どういう音が認識しているか確認したい場合カテゴリそのほかにある[録音]をTrueにしてテストを実行すると認識した音声データをwavファイルを保存します。これを聞いて無駄がないか確認しましょう！<br>
+          ※ このオプションはゆかりねっと連携時も有効でwavで保存するので必要ない場合はFalseに設定して録音されないようにしましょう</p>
         <img class="d-block img-fluid" src="assets/kantan-mic-05.png">
       </section>
 
@@ -209,8 +215,8 @@
       <h2 class="d-none container ms-5 mb-3">FAQ</h2>
       <section class="container ms-5 mb-5">
         <h3>発話時間とPCMのサイズが一致しません</h3>
-        <p>特定の条件下でPCMデータ末尾にフェード処理を入れPCMデータを水増しします。<br>
-          これは末尾すぐの音が認識されにくいための処置です。<br>
+        <p>特定の条件下でPCMデータに無音時間を入れPCMデータを水増しします。<br>
+          これは冒頭および末尾すぐの音が認識されにくいための処置です。<br>
           フェードデータが挿入されている場合ログレベル2以上で「末尾0.25s挿入」などが表示されます。</p>
       </section>
 
@@ -235,14 +241,17 @@
       <section class="container ms-5 mb-5">
         <h3>音声認識ランチャーのマイク一覧が出てきませんor音声認識ランチャーが立ち上がってきません</h3>
         <p>これらはアンチウィルスソフトが悪さをしている可能性があります。<br>
-          アンチウィルスソフトの除外対象にして再度ビルドを行ってみてください。</p>
-      </section>
+          アンチウィルスソフトの除外対象にして再度インストールを行ってみてください。</p>
 
-      <section class="container ms-5 mb-5">
-        <h3>ランチャーのマイクデバイスで一覧が表示されない</h3>
-        <p>ゆーかねすぴれこを深い階層に置くとGUIは生成されて本体はビルド失敗するケースがありますので、<br>
+        <p>また、ゆーかねすぴれこをパスの深い階層に置くと起動に失敗する可能性がありますので、<br>
           ゆーかねすぴれこを深い階層に置かないようにお願いします。<br>
-          浅い階層に置いて再度ビルドしてください。</p>
+          浅い階層に置いてください。</p>
+
+        <p>
+          以下は20250112より前のバージョンでの情報になります。20250112移行のバージョンでは日本語が含まれるフォルダでは起動出来ないようにしました。<br>
+          日本語が含まれるフォルダに置くと起動に失敗する事象が確認されています。起動に失敗した場合英文字のフォルダ名に変えてみてください。<br>
+          例えば、「D:\ゆーかねすぴれこ」は起動に失敗します。
+        </p>
       </section>
 
       <section class="container ms-5 mb-5">
