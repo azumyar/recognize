@@ -1,0 +1,6 @@
+{
+  "name": "recognize_docs",
+  "devDependencies": {
+    "vitepress": "^1.6.3"
+  }
+}
