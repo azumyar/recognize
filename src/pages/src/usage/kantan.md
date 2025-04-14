@@ -20,7 +20,7 @@ next: false
 作成したフォルダにダウンロードしたsetup-\*.exeを移動します。
 ![-](/images/usage/kantan-setup-02.png)
 
-setup\*.exeを実行するとコンポーネントがダウンロードされゆーかねすぴれこが構成されます。
+setup-\*.exeを実行するとコンポーネントがダウンロードされゆーかねすぴれこが構成されます。
 ![-](/images/usage/kantan-setup-03.png)
 
 結構時間かかる…！
