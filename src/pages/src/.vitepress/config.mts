@@ -21,7 +21,7 @@ export default defineConfig({
   ],
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
-    logo: "/images/logo.svg",
+    logo: "/images/logo-mini.svg",
     nav: [
       { text: "ホーム", link: "/" },
       { text: "使い方", link: "/usage/" },
