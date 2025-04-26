@@ -78,6 +78,7 @@ class Microphone:
             filter_vad:filter.VoiceActivityDetectorFilter,
             filter_highPass:filter.HighPassFilter | None,
             phase2_sec:float,
+            record_min_sec:float,
             device:int|None,
             logger:Logger) -> None:
         self.__energy_threshold = energy_threshold
@@ -87,6 +88,7 @@ class Microphone:
         self.__device = device
         self.__vad_sec = 0.5
         self.__vad_phase2_sec = phase2_sec
+        self.__record_min_sec = record_min_sec
         self.__sample_rate = val.MIC_SAMPLE_RATE
         self.__sample_width = val.MIC_SAMPLE_WIDTH
         self.__chunk_size = 1024
@@ -113,6 +115,9 @@ class Microphone:
 
     @property
     def end_insert_sec(self) -> float: return self.__recog_conf.tail_insert_duration
+
+    @property
+    def record_min_sec(self) -> float: return self.__record_min_sec
 
     @property
     def sample_rate(self) -> int: return self.__sample_rate
@@ -165,6 +170,8 @@ class Microphone:
 
                 # chunk_sizeが小さい場合VADが認識しないのでvad_secバッファをためてVADにかける
                 #print("Phase.0")
+                temp = collections.deque()
+                ph2_frames = collections.deque()
                 for _ in range(vad_list_len):
                     self.__indicate(dB, _print)
 
@@ -177,6 +184,9 @@ class Microphone:
                     en = audioop.rms(buffer, val.MIC_SAMPLE_WIDTH)
                     dB = rms2db(en)
                     frames.append((buffer, en))
+                    ph2_frames.append(buffer)
+                    if vad_phase2_len < len(ph2_frames):
+                        ph2_frames.popleft()
 
                 # 開始音検索位置
                 #print("Phase.1")
@@ -200,28 +210,42 @@ class Microphone:
                     en = audioop.rms(buffer, val.MIC_SAMPLE_WIDTH)
                     dB = rms2db(en)
                     frames.append((buffer, en))
+                    ph2_frames.append(buffer)
+                    if vad_phase2_len < len(ph2_frames):
+                        ph2_frames.popleft()
 
                 # 声が含まれなくなるまでVADにかける
                 #print("Phase.2")
                 if is_overflowed:
                     continue
                 while True:
-                    temp = []
-                    for _ in range(vad_phase2_len):
-                        _buffer, overflowed = stream.read(self.__chunk_size)
-                        if(overflowed):
-                            self.__logger.error("overflowed")
-                            break
-                        buffer = self.filter(bytes(_buffer)) # type: ignore
-                        temp.append(buffer)
-                        db = rms2db(audioop.rms(buffer, val.MIC_SAMPLE_WIDTH))
-                        self.__indicate_pahse2(db, _print)
+                    #temp = []
+                    #for _ in range(vad_phase2_len):
+                    #    _buffer, overflowed = stream.read(self.__chunk_size)
+                    #    if(overflowed):
+                    #        self.__logger.error("overflowed")
+                    #        break
+                    #    buffer = self.filter(bytes(_buffer)) # type: ignore
+                    #    temp.append(buffer)
+                    #    db = rms2db(audioop.rms(buffer, val.MIC_SAMPLE_WIDTH))
+                    #    self.__indicate_pahse2(db, _print)
 
+                    _buffer, overflowed = stream.read(self.__chunk_size)
+                    if(overflowed):
+                        self.__logger.error("overflowed")
+                        break
+                    buffer = self.filter(bytes(_buffer)) # type: ignore
+                    db = rms2db(audioop.rms(buffer, val.MIC_SAMPLE_WIDTH))
+                    self.__indicate_pahse2(db, _print)
+                    ph2_frames.append(buffer)
+                    if len(ph2_frames) < vad_phase2_len:
+                        continue
+                    elif vad_phase2_len < len(ph2_frames):
+                        ph2_frames.popleft()
 
-                    buffer = b"".join(temp)
-                    frames.append((buffer, audioop.rms(buffer, val.MIC_SAMPLE_WIDTH)))
-                    b = b"".join(map(lambda x: x[0], frames))
-                    if not self.__filter_vad.check(b[-(vad_list_len * self.__chunk_size * 2):]):
+                    frames.append((_buffer, audioop.rms(buffer, val.MIC_SAMPLE_WIDTH)))
+                    b = b"".join(ph2_frames)
+                    if not self.__filter_vad.check(b):
                        break
                 if is_overflowed:
                     continue

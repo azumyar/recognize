@@ -92,6 +92,10 @@ def run(
         log_exception:Exception | None = None
         try:
             save_wav(record, index, data, mic.sample_rate, 2, logger)
+            # 長さチェック
+            if pcm_sec < mic.record_min_sec:
+                raise recognition.TranscribeException(f"録音データが短いためスキップ({round(pcm_sec, 2)}s)")
+
             # 認識用音声データ
             if recognition_model.required_sample_rate is None or mic.sample_rate == recognition_model.required_sample_rate:
                 d = data
