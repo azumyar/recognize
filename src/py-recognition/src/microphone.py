@@ -170,8 +170,7 @@ class Microphone:
 
                 # chunk_sizeが小さい場合VADが認識しないのでvad_secバッファをためてVADにかける
                 #print("Phase.0")
-                temp = collections.deque()
-                ph2_frames = collections.deque()
+                #ph2_frames = collections.deque()
                 for _ in range(vad_list_len):
                     self.__indicate(dB, _print)
 
@@ -184,9 +183,6 @@ class Microphone:
                     en = audioop.rms(buffer, val.MIC_SAMPLE_WIDTH)
                     dB = rms2db(en)
                     frames.append((buffer, en))
-                    ph2_frames.append(buffer)
-                    if vad_phase2_len < len(ph2_frames):
-                        ph2_frames.popleft()
 
                 # 開始音検索位置
                 #print("Phase.1")
@@ -210,9 +206,6 @@ class Microphone:
                     en = audioop.rms(buffer, val.MIC_SAMPLE_WIDTH)
                     dB = rms2db(en)
                     frames.append((buffer, en))
-                    ph2_frames.append(buffer)
-                    if vad_phase2_len < len(ph2_frames):
-                        ph2_frames.popleft()
 
                 # 声が含まれなくなるまでVADにかける
                 #print("Phase.2")
@@ -237,15 +230,12 @@ class Microphone:
                     buffer = self.filter(bytes(_buffer)) # type: ignore
                     db = rms2db(audioop.rms(buffer, val.MIC_SAMPLE_WIDTH))
                     self.__indicate_pahse2(db, _print)
-                    ph2_frames.append(buffer)
-                    if len(ph2_frames) < vad_phase2_len:
-                        continue
-                    elif vad_phase2_len < len(ph2_frames):
-                        ph2_frames.popleft()
 
                     frames.append((_buffer, audioop.rms(buffer, val.MIC_SAMPLE_WIDTH)))
-                    b = b"".join(ph2_frames)
-                    if not self.__filter_vad.check(b):
+                    if len(frames) < vad_phase2_len:
+                        continue
+                    b = b"".join(map(lambda x: x[0], frames))
+                    if not self.__filter_vad.check(b[-(vad_phase2_len * self.__chunk_size * 2):]):
                        break
                 if is_overflowed:
                     continue
