@@ -1,8 +1,20 @@
 @echo off
+PATH=%PATH%;C:\Program Files\dotnet
 pushd "%~dp0"
 
-C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc /out:recognize-gui.exe /target:winexe /o+ /win32icon:App.ico src\*.cs
+dotnet clean -c Release recognize-frontend.csproj
 set r=%errorlevel%
+if %r% neq 0 goto error
+
+dotnet build -c Release recognize-frontend.csproj
+set r=%errorlevel%
+if %r% neq 0 goto error
+
+dotnet publish -c Release recognize-frontend.csproj
+set r=%errorlevel%
+if %r% neq 0 goto error
+
 popd
 
+:error
 exit /B %r%
