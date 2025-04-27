@@ -104,7 +104,7 @@ def __whiper_help(s:str) -> str:
 @click.option("--mic_energy_threshold", default=None, help="互換性のため残されています", type=float)
 @click.option("--mic_db_threshold", default=0, help="設定した値より小さい音を無言として扱う閾値", type=float)
 @click.option("--mic_pause_duration", default=0.5, help="声認識後追加でVADにかけていいく塊の秒数", type=float)
-@click.option("--mic_record_min_duration", default=0.7, help="マイクの入力がこの値より短い場合無視する秒数", type=float)
+@click.option("--mic_record_min_duration", default=0.0, help="マイクの入力がこの値より短い場合無視する秒数", type=float)
 #@click.option("--mic_sampling_rate", default=16000, help="-", type=int)
 @click.option("--mic_head_insert_duration", default=None, help="-", type=float)
 @click.option("--mic_tail_insert_duration", default=None, help="-", type=float)
