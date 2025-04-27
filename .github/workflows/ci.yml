@@ -51,7 +51,7 @@ jobs:
     - name: Create Artifact Directory
       run: |
         mkdir recognize\src\py-recognition
-        move src\cs-recognition-frontend\recognize-gui.exe recognize
+        move src\cs-recognition-frontend\bin\Release\net8.0-windows\win-x64\publish\recognize-gui.exe recognize
         move src\py-recognition\dist recognize\src\py-recognition
 
     - name: Create Artifact Zip
