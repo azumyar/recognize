@@ -29,6 +29,7 @@ webrtcvad = "*"
 sounddevice = "*"
 stable-ts = "2.16.0"
 obs-websocket-py = "*"
+python-osc = "*"
 
 [dev-packages]
 pyinstaller = "==6.13.0"
