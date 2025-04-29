@@ -82,9 +82,6 @@ def __whiper_help(s:str) -> str:
 @click.option("--google_duplex_parallel_max", default=None, help="(google_duplexのみ)複数並列リクエスト数増減時の最大並列数", type=int)
 @click.option("--google_duplex_parallel_reduce_count", default=None, help="(google_duplexのみ)増加した並列数を減少するために必要な成功数", type=int)
 @click.option("--google_tcp", default=None, help="-", type=click.Choice(["urllib", "requests"]), callback=select_google_tcp, expose_value=False, is_eager=True)
-@click.option("--mic", default=None, help="使用するマイクのindex", type=int)
-@click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
-#@click.option("--mic_api", default=val.MIC_API_VALUE_MME, help="--mic_nameで検索するマイクのAPIを指定します", type=click.Choice(val.ARG_CHOICE_MIC_API))
 
 @click.option("--transcribe_filter", default=None, help="変換フィルタルールファイル", type=str)
 
@@ -101,9 +98,13 @@ def __whiper_help(s:str) -> str:
 @click.option("--subtitle_obs_text_ja", default=None, help="字幕(ja_JP)テキストオブジェクトの名前", type=str)
 @click.option("--subtitle_obs_text_en", default=None, help="字幕(en_US)テキストオブジェクトの名前", type=str)
 
+@click.option("--mic", default=None, help="使用するマイクのindex", type=int)
+@click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
+#@click.option("--mic_api", default=val.MIC_API_VALUE_MME, help="--mic_nameで検索するマイクのAPIを指定します", type=click.Choice(val.ARG_CHOICE_MIC_API))
 @click.option("--mic_energy_threshold", default=None, help="互換性のため残されています", type=float)
 @click.option("--mic_db_threshold", default=0, help="設定した値より小さい音を無言として扱う閾値", type=float)
 @click.option("--mic_pause_duration", default=0.5, help="声認識後追加でVADにかけていいく塊の秒数", type=float)
+@click.option("--mic_record_min_duration", default=0.0, help="マイクの入力がこの値より短い場合無視する秒数", type=float)
 #@click.option("--mic_sampling_rate", default=16000, help="-", type=int)
 @click.option("--mic_head_insert_duration", default=None, help="-", type=float)
 @click.option("--mic_tail_insert_duration", default=None, help="-", type=float)
@@ -169,6 +170,7 @@ def main(
     mic_energy_threshold:Optional[float],
     mic_db_threshold:float,
     mic_pause_duration:float,
+    mic_record_min_duration:float,
     mic_head_insert_duration:Optional[float],
     mic_tail_insert_duration:Optional[float],
 
@@ -279,6 +281,7 @@ def main(
             filter_vad_inst,
             filter_highPass,
             mic_pause_duration,
+            mic_record_min_duration,
             mp_mic,
             ilm_logger)
         ilm_logger.print(f"マイクは{mc.device_name}を使用します")
