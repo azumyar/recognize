@@ -23,4 +23,8 @@
     <SelfContained>false</SelfContained>
   </PropertyGroup>
 
+  <!-- 文字列処理はNLSとする https://ufcpp.net/blog/2020/11/net5_0ga/ -->
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.Globalization.UseNls" Value="true" />
+  </ItemGroup>
 </Project>
