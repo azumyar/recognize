@@ -30,7 +30,7 @@ popd
     set /P r=
 )< build.dat
 if %r% neq 0 goto error
-(copy src\cs-recognition-frontend\recognize-gui.exe .\ 2>&1 & call echo %%^^errorlevel%% ^> build.dat) | bin\tee.exe --mask build.log
+(copy src\cs-recognition-frontend\bin\Release\net8.0-windows\win-x64\publish\recognize-gui.exe .\ 2>&1 & call echo %%^^errorlevel%% ^> build.dat) | bin\tee.exe --mask build.log
 popd
 (
     set /P r=

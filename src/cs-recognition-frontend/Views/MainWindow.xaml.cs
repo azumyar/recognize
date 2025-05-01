@@ -1,105 +1,70 @@
+using Haru.Kei.Models;
 using System;
+using System.ComponentModel;
 using System.IO;
-using System.Text;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Linq;
 using System.Collections.Generic;
-using System.Windows.Forms;
-using System.Reflection;
-using System.ComponentModel;
-using System.Xml.Linq;
-using System.Diagnostics;
-using System.Drawing;
-using System.Runtime.InteropServices;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
 using System.Security;
+using System.Windows.Interop;
+using System.Diagnostics;
 
-namespace Haru.Kei {
-	public partial class Form1 : Form {
-		[DllImport("user32.dll", CharSet = CharSet.Unicode)]
-		private static extern IntPtr SendMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
-		[DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-		private static extern uint ExtractIconEx(string pszFile, uint nIconIndex, out IntPtr phIconLarge, out IntPtr phIconSmall, uint nIcons);
-		private const int WM_SETICON = 0x0080;
-		private const int ICON_BIG = 1;
-		private const int ICON_SMALL = 0;
+namespace Haru.Kei.Views;
+
+/// <summary>
+/// Interaction logic for MainWindow.xaml
+/// </summary>
+public partial class MainWindow : Window {
+	public class ViewModel : INotifyPropertyChanged {
+		public class Command : ICommand {
+			public Action<object?>? Invoker { get; set; } = default;
+
+			public event EventHandler? CanExecuteChanged;
+			public bool CanExecute(object? parameter) => true;
+			public void Execute(object? parameter) => this.Invoker?.Invoke(parameter);
+		}
+
+		private RecognizeExeArgument? arg = default;
+		private readonly Window owner;
+		private readonly global::System.Windows.Forms.PropertyGrid propertyGrid;
 
 		private readonly string CONFIG_FILE = "frontend.conf";
 		private readonly string BAT_FILE = "custom-recognize.bat";
-		private readonly string TEMP_BAT = Path.Combine(Path.GetTempPath(), string.Format("recognize-gui-{0}.bat", Guid.NewGuid()));
+		private readonly string TEMP_BAT = global::System.IO.Path.Combine(
+			global::System.IO.Path.GetTempPath(),
+			string.Format("recognize-gui-{0}.bat", Guid.NewGuid()));
 
-		private RecognizeExeArgument arg;
-		public Form1() {
-			InitializeComponent();
+		public event PropertyChangedEventHandler? PropertyChanged;
 
-			IntPtr hIcon;
-			IntPtr hIconSmall;
-			ExtractIconEx(
-				Process.GetCurrentProcess().MainModule.FileName,
-				0,
-				out hIcon,
-				out hIconSmall,
-				1);
-			SendMessage(this.Handle, WM_SETICON, (IntPtr)ICON_BIG, hIcon);
-			SendMessage(this.Handle, WM_SETICON, (IntPtr)ICON_SMALL, hIconSmall);
+		public Command CreateBatchommand { get; } = new();
+		public Command MicTestCommand { get; } = new();
+		public Command AmbientTestCommand { get; } = new();
+		public Command CloseCommand { get; } = new();
 
-			this.batToolStripMenuItem.Click += (_, __) => {
-				try {
-					var bat = new StringBuilder()
-						.AppendLine("@echo off")
-						.AppendLine("pushd \"%~dp0\"")
-						.AppendLine()
-						.AppendFormat("\"{0}\"", this.arg.RecognizeExePath).Append(" ").AppendLine(this.GenExeArguments(this.arg))
-						.AppendLine("pause");
-					File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.BAT_FILE), bat.ToString(), Encoding.GetEncoding("Shift_JIS"));
-					MessageBox.Show(this, string.Format("{0}を作成しました！", this.BAT_FILE), "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
-				}
-				catch(System.IO.IOException) { }
-			};
-			this.testmicToolStripMenuItem.Click += (_, __) => {
-				var properties = this.arg.GetType().GetProperties();
-				try {
-					using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
-						FileName = this.arg.RecognizeExePath,
-						Arguments = string.Format("--test mic {0}", this.GenExeArguments(this.arg)),
-						UseShellExecute = true,
-					})) { }
-				}
-				catch(Exception) { }
-			};
-			testambientToolStripMenuItem.Click += (_, __) => {
-				using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
-					FileName = this.arg.RecognizeExePath,
-					Arguments = string.Format("--test mic_ambient {0}", this.GenExeArguments(this.arg)),
-					UseShellExecute = true,
-				})) { }
-			};
-			this.exitToolStripMenuItem.Click += (_, __) => this.Close();
+		public Command ConnectWhisperCommand { get; } = new();
+		public Command ConnectGoogleCommand { get; } = new();
+		public Command ConnectYukarinetteCommand { get; } = new();
+		public Command ConnectYukaConeCommand { get; } = new(); 
+		
+		public Command ExecCommand { get; } = new();
+		
+		public ViewModel(MainWindow @this) {
+			this.owner = @this;
+			propertyGrid = @this.propertyGrid;
 
-			this.whisperToolStripMenuItem.Click+= (_, __) => {
-				this.arg.ArgMethod = "kotoba_whisper";
-				this.arg.ArgHpfParamaterV2 = HpfArgGenerater.HpfParamater.強め.ToString();
-				this.arg.ArgVadParamaterV2 = "0";
-				this.propertyGrid.Refresh();
-			};
-			this.googleToolStripMenuItem.Click += (_, __) => {
-				this.arg.ArgMethod = "google_mix";
-				this.arg.ArgGoogleProfanityFilter = true;
-				this.arg.ArgHpfParamaterV2 = HpfArgGenerater.HpfParamater.無効.ToString();
-				this.arg.ArgVadParamaterV2 = "0";
-				this.propertyGrid.Refresh();
-			};
-			this.yukarinetteToolStripMenuItem.Click += (_, __) => {
-				this.arg.ArgOut = "yukarinette";
-				if(!this.arg.ArgOutYukarinette.HasValue) {
-					this.arg.ArgOutYukarinette = 49513;
-				}
-				this.propertyGrid.Refresh();
-			};
-			this.yukaconeToolStripMenuItem.Click += (_, __) => {
-				this.arg.ArgOut = "yukacone";
-				this.propertyGrid.Refresh();
-			};
-
-			this.button.Click += (_, __) => {
+			this.ExecCommand.Invoker = (_) => {
+				System.Diagnostics.Debug.Assert(this.arg is not null);
 				this.SaveConfig(this.arg);
 
 				var bat = new StringBuilder()
@@ -128,13 +93,88 @@ namespace Haru.Kei {
 
 				}
 				catch(Exception) { }
+			}; 
+			
+			this.CreateBatchommand.Invoker = (_) => {
+				System.Diagnostics.Debug.Assert(this.arg is not null);
+				try {
+					var bat = new StringBuilder()
+						.AppendLine("@echo off")
+						.AppendLine("pushd \"%~dp0\"")
+						.AppendLine()
+						.AppendFormat("\"{0}\"", this.arg.RecognizeExePath).Append(" ").AppendLine(this.GenExeArguments(this.arg))
+						.AppendLine("pause");
+					File.WriteAllText(
+						global::System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.BAT_FILE),
+						bat.ToString(),
+						Encoding.GetEncoding("Shift_JIS"));
+					MessageBox.Show(
+						this.owner,
+						string.Format("{0}を作成しました！", this.BAT_FILE),
+						"成功",
+						MessageBoxButton.OK,
+						MessageBoxImage.Information);
+				}
+				catch(System.IO.IOException) { }
+			};
+			this.MicTestCommand.Invoker = (_) => {
+				System.Diagnostics.Debug.Assert(this.arg is not null);
+				var properties = this.arg.GetType().GetProperties();
+				try {
+					using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
+						FileName = this.arg.RecognizeExePath,
+						Arguments = string.Format("--test mic {0}", this.GenExeArguments(this.arg)),
+						UseShellExecute = true,
+					})) { }
+				}
+				catch(Exception) { }
+			};
+			this.AmbientTestCommand.Invoker = (_) => {
+				System.Diagnostics.Debug.Assert(this.arg is not null);
+				using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
+					FileName = this.arg.RecognizeExePath,
+					Arguments = string.Format("--test mic_ambient {0}", this.GenExeArguments(this.arg)),
+					UseShellExecute = true,
+				})) { }
+			};
+			this.CloseCommand.Invoker = (_) => {
+				global::System.Windows.Application.Current?.Shutdown();
+			};
+
+			this.ConnectWhisperCommand.Invoker = (_) => {
+				System.Diagnostics.Debug.Assert(this.arg is not null);
+				this.arg.ArgMethod = "kotoba_whisper";
+				this.arg.ArgHpfParamaterV2 = HpfArgGenerater.HpfParamater.強め.ToString();
+				this.arg.ArgVadParamaterV2 = "0";
+				this.arg.ArgMicRecordMinDuration = 0.8f;
+				this.propertyGrid.Refresh();
+			};
+			this.ConnectGoogleCommand.Invoker = (_) => {
+				System.Diagnostics.Debug.Assert(this.arg is not null);
+				this.arg.ArgMethod = "google_mix";
+				this.arg.ArgGoogleProfanityFilter = true;
+				this.arg.ArgHpfParamaterV2 = HpfArgGenerater.HpfParamater.無効.ToString();
+				this.arg.ArgVadParamaterV2 = "0";
+				this.arg.ArgMicRecordMinDuration = null;
+				this.propertyGrid.Refresh();
+			};
+			this.ConnectYukarinetteCommand.Invoker = (_) => {
+				System.Diagnostics.Debug.Assert(this.arg is not null);
+				this.arg.ArgOut = "yukarinette";
+				if(!this.arg.ArgOutYukarinette.HasValue) {
+					this.arg.ArgOutYukarinette = 49513;
+				}
+				this.propertyGrid.Refresh();
+			};
+			this.ConnectYukaConeCommand.Invoker = (_) => {
+				System.Diagnostics.Debug.Assert(this.arg is not null);
+				this.arg.ArgOut = "yukacone";
+				this.propertyGrid.Refresh();
 			};
 		}
 
-		protected override void OnLoad(EventArgs e) {
-			base.OnLoad(e);
-
-			var convDic = new Dictionary<Type, Func<string, object>>();
+		public void OnLoaded() {
+			var convDic = new Dictionary<Type, Func<string, object?>>();
 			convDic.Add(typeof(string), (x) => x);
 			convDic.Add(typeof(bool?), (x) => {
 				bool v;
@@ -151,6 +191,7 @@ namespace Haru.Kei {
 
 			var isVesionUp = false;
 			var list = new List<Tuple<string, string>>();
+			var ver = default(int);
 			try {
 				var save = File.ReadAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.CONFIG_FILE));
 				foreach(var line in save.Replace("\r\n", "\n").Split('\n')) {
@@ -161,7 +202,6 @@ namespace Haru.Kei {
 
 
 						if(tp.Item1.ToLower() == "version") {
-							int ver;
 							if(int.TryParse(tp.Item2, out ver) && ver < RecognizeExeArgument.FormatVersion) {
 								isVesionUp = true;
 							}
@@ -169,7 +209,7 @@ namespace Haru.Kei {
 					}
 				}
 			}
-			catch(IOException) {}
+			catch(IOException) { }
 
 			var prop = typeof(RecognizeExeArgument).GetProperties().Where(x => x.CanWrite);
 			var pr = typeof(RecognizeExeArgument).GetProperty("RecognizeExePath");
@@ -194,43 +234,53 @@ namespace Haru.Kei {
 			}
 			this.propertyGrid.SelectedObject = this.arg;
 			if(isVesionUp) {
+				// マイグレ処理
+				if(ver < 2025042700) {
+					// 2025/04/27対応
+					// --mic_record_min_duration追加処理
+					this.arg.ArgMicRecordMinDuration = this.arg.ArgMethod switch {
+						"whisper" => 0.8f,
+						"faster_whisper" => 0.8f,
+						"kotoba_whisper" => 0.8f,
+						_ => null
+					};
+				}
+
 				MessageBox.Show(
-					this,
+					this.owner,
 					"設定が更新されています。内容を確認してね",
 					"ゆーかねすぴれこ",
-					MessageBoxButtons.OK,
-					MessageBoxIcon.Information);
+					MessageBoxButton.OK,
+					MessageBoxImage.Information);
 			}
 			if(!IsValidExePath(this.arg)) {
 				MessageBox.Show(
-					this,
+					this.owner,
 					"パスに不正な文字が含まれます。ゆーかねすぴれこは英数字だけのパスに配置してください。",
 					"ゆーかねすぴれこ",
-					MessageBoxButtons.OK,
-					MessageBoxIcon.Warning);
-				Application.Exit();
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning);
+				global::System.Windows.Application.Current?.Shutdown();
 			}
 		}
 
-		protected override void OnFormClosed(FormClosedEventArgs e) {
+		public void OnClosing() {
 			this.SaveConfig(this.arg);
 			try {
 				if(File.Exists(this.TEMP_BAT)) {
 					File.Delete(this.TEMP_BAT);
 				}
 			}
-			catch(IOException) {}
-
-			base.OnFormClosed(e);
+			catch(IOException) { }
 		}
 
 		private bool IsValidExePath(RecognizeExeArgument argument) {
 			try {
-				var path = Path.GetFullPath(argument.RecognizeExePath);
+				var path = global::System.IO.Path.GetFullPath(argument.RecognizeExePath);
 				if(path.ToLower() != arg.RecognizeExePath.ToLower()) {
 					// exeは相対パス
 					// 作業ディレクトリがexeのディレクトリとは限らないので作り直す
-					path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, arg.RecognizeExePath);
+					path = global::System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, arg.RecognizeExePath);
 				} else {
 					// exeはフルパス
 				}
@@ -270,7 +320,7 @@ namespace Haru.Kei {
 		private void SaveConfig(RecognizeExeArgument argument) {
 			try {
 				var save = new StringBuilder();
-				var dict = new  Dictionary<string, string>();
+				var dict = new Dictionary<string, string>();
 				foreach(var p in argument.GetType().GetProperties()) {
 					var dfattr = p.GetCustomAttribute<DefaultValueAttribute>();
 					if(dfattr != null) {
@@ -302,12 +352,42 @@ namespace Haru.Kei {
 					}
 				}
 
-				foreach(var key in  dict.Keys) {
+				foreach(var key in dict.Keys) {
 					save.Append(key).Append(":").AppendLine(dict[key]);
 				}
-				File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.CONFIG_FILE), save.ToString());
+				File.WriteAllText(global::System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.CONFIG_FILE), save.ToString());
 			}
 			catch(IOException) { }
 		}
+
+	}
+
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	private static extern nint SendMessage(nint hwnd, int msg, nint wParam, nint lParam);
+	[DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+	private static extern uint ExtractIconEx(string pszFile, uint nIconIndex, out nint phIconLarge, out nint phIconSmall, uint nIcons);
+	private const int WM_SETICON = 0x0080;
+	private const int ICON_BIG = 1;
+	private const int ICON_SMALL = 0;
+	private readonly ViewModel vm;
+
+	public MainWindow() {
+		InitializeComponent();
+
+		this.vm = new(this);
+		this.DataContext = this.vm;
+		this.Loaded += (_, _) => {;
+			var hwnd = new WindowInteropHelper(this).Handle;
+			ExtractIconEx(
+				Process.GetCurrentProcess().MainModule?.FileName ?? "",
+				0,
+				out var hIcon,
+				out var hIconSmall,
+				1);
+			SendMessage(hwnd, WM_SETICON, ICON_BIG, hIcon);
+			SendMessage(hwnd, WM_SETICON, ICON_SMALL, hIconSmall);
+			vm.OnLoaded();
+		};
+		this.Closing += (_, _) => vm.OnClosing();
 	}
 }

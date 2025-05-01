@@ -1,1 +1,1 @@
-winget install Microsoft.DotNet.SDK.8 --accept-source-agreements --accept-package-agreements --silent
+winget install Microsoft.DotNet.SDK.8 --accept-source-agreements --accept-package-agreements --silent --source winget
