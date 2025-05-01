@@ -410,7 +410,8 @@ else:
     class RecognizeAndTranslateModelKotobaWhisper(RecognitionModel, TranslateModel):
         def __init__(self, device:str, device_index:int) -> None:
             torch_dtype = torch.bfloat16 if device == "cuda" else torch.float32
-            model_kwargs:Any = {"attn_implementation": "sdpa"} if torch.cuda.is_available() else {}
+            #model_kwargs:Any = {"attn_implementation": "sdpa"} if torch.cuda.is_available() else {}
+            model_kwargs = {"attn_implementation": "flash_attention_2"} if torch.cuda.is_available() else {}
             model_kwargs["torch_dtype"] = torch_dtype
 
             if device == "cuda":
