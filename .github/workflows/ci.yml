@@ -45,7 +45,7 @@ jobs:
         pip install whl\flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl
         pip install https://huggingface.co/madbuda/triton-windows-builds/resolve/main/triton-3.0.0-cp311-cp311-win_amd64.whl?download=true
         Expand-Archive -Path bootloader\bootloader.zip -DestinationPath .venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel -Force
-        pyinstaller -n recognize --noconfirm src/__main__.py
+        pyinstaller -n recognize --noconfirm --hidden-import triton src/__main__.py
         copy c\mm-interop.dll dist\recognize\
         deactivate
         popd
