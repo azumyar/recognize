@@ -30,13 +30,18 @@ jobs:
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v1
 
+    - name: Concat flash_attn
+      run: |
+        pushd src/py-recognition/whl
+        cat flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.0 flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.1  flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.2  flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.3 flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.4 flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.5 flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.6 flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.7 flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.8 > flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl
+      shell: bash
+
     - name: Build CLI app
       run: |
         pushd src\py-recognition
         python -m venv .venv
         .venv\Scripts\activate.ps1
         pip install -r requirements.txt --no-cache-dir
-        cat whl\flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.0 whl\flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.1  whl\flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.2  whl\flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.3 whl\flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.4 whl\flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.5 whl\flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.6 whl\flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.7 whl\flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl.8 > whl\flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl
         pip install whl\flash_attn-2.7.4.post1-cp311-cp311-win_amd64.whl
         pip install https://huggingface.co/madbuda/triton-windows-builds/resolve/main/triton-3.0.0-cp311-cp311-win_amd64.whl?download=true
         Expand-Archive -Path bootloader\bootloader.zip -DestinationPath .venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel -Force
