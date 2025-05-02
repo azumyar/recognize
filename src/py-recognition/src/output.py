@@ -2,6 +2,7 @@ import os
 import json
 from websockets.sync.client import connect, ClientConnection
 from typing import Callable
+import pythonosc.udp_client as osc
 
 import src.exception as ex
 
@@ -20,6 +21,22 @@ class PrintOutputer(RecognitionOutputer):
     標準出力に出力する
     """
     pass
+
+class VrChatOutputer(RecognitionOutputer):
+    """
+    VRC OSCに字幕を出力するための機構
+    """
+    def __init__(self):
+        self.__client = osc.SimpleUDPClient("127.0.0.1", 9000)
+
+
+    def __del__(self):
+        self.__client = None
+
+    def output(self, text_ja:str, text_en:str) -> str:
+        self.__client.send_message("/chatbox/input", [text_ja, True, True])
+
+
 
 class WebSocketOutputer(RecognitionOutputer):
     """
@@ -122,8 +139,6 @@ class YukaconeOutputer(WebSocketOutputer):
             return str(port)
         else:
             return get()
-
-
 
 class IlluminateSpeechOutputer(WebSocketOutputer):
     def __init__(self, uri:str):
