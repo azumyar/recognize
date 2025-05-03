@@ -35,8 +35,7 @@ class VrChatOutputer(RecognitionOutputer):
 
     def output(self, text_ja:str, text_en:str) -> str:
         self.__client.send_message("/chatbox/input", [text_ja, True, True])
-
-
+        return text_ja
 
 class WebSocketOutputer(RecognitionOutputer):
     """
