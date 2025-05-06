@@ -104,7 +104,11 @@ def __whiper_help(s:str) -> str:
 @click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice(val.ARG_CHOICE_OUT), multiple=True)
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
 @click.option("--out_yukacone",default=None, help="ゆかコネNEOの外部連携ポートを指定", type=int)
-@click.option("--out_illuminate",default=495134, help="-",type=int)
+@click.option("--out_illuminate_exe",default="", help="-", type=str)
+@click.option("--out_illuminate_voice",default="voiceroid2", help="-", type=click.Choice(["voiceroid2", "voicepeak", "aivoice2"]))
+@click.option("--out_illuminate_client",default="", help="-", type=str)
+@click.option("--out_illuminate_launch",default=False, help="-", type=str)
+@click.option("--out_illuminate_port",default=49514, help="-",type=int)
 @click.option("--out_file_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
 @click.option("--out_file_directory", default=None, help="ファイル字幕連携で保存先", type=str)
 @click.option("--out_obs_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
@@ -168,7 +172,11 @@ def main(
     out:list[str],
     out_yukarinette:int,
     out_yukacone:Optional[int],
-    out_illuminate:int,
+    out_illuminate_exe:str,
+    out_illuminate_voice:str,
+    out_illuminate_client:str,
+    out_illuminate_launch:bool,
+    out_illuminate_port:int,
     out_file_truncate:float,
     out_file_directory:str,
     out_obs_truncate:float,
@@ -210,6 +218,8 @@ def main(
             os.environ["HUGGINGFACE_HUB_CACHE"] = \
                 f"{torch_cache}{os.sep}.cache"     
 
+    if out_illuminate_exe == "":
+        out_illuminate_exe = "" 
 
     cancel = CancellationObject()
     print("\033[?25l", end="") # カーソルを消す
@@ -381,9 +391,17 @@ def main(
             outputers:list[output.RecognitionOutputer] = []
             outputer_map = {
                 #val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
-                val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}"),
-                val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}"),
-                val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}"),
+                val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(
+                    f"ws://localhost:{out_yukarinette}"),
+                val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(
+                    f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}"),
+                val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(
+                    "localhost",
+                    out_illuminate_port,
+                    out_illuminate_exe,
+                    out_illuminate_voice,
+                    out_illuminate_client,
+                    out_illuminate_launch),
                 val.OUT_VALUE_OBS: lambda: output_subtitle.ObsV5SubtitleOutputer(
                     out_obs_host,
                     out_obs_port,

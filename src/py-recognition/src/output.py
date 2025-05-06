@@ -140,8 +140,17 @@ class YukaconeOutputer(WebSocketOutputer):
             return get()
 
 class IlluminateSpeechOutputer(WebSocketOutputer):
-    def __init__(self, uri:str):
-        super().__init__(uri, "IlluminateSpeech")
+    def __init__(
+            self,
+            host:str,
+            port:str,
+            exe_path:str,
+            exe_voice:str,
+            exe_client:str,
+            exe_lunch:bool):
+        super().__init__( f"ws://{host}:{port}", "IlluminateSpeech")
+        import click
+        #click.launch(f"{exe_path}")
 
     def output(self, text_ja:str, text_en:str) -> str:
         return self._send(json.dumps({
