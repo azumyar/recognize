@@ -14,14 +14,14 @@ using System.Reactive.Linq;
 using CommandLine;
 using System.Threading;
 using Fleck;
-using static Haru.Kei.CommandOptions;
 using Newtonsoft.Json;
 
 namespace Haru.Kei;
 
 class Logger {
+	public static Logger Current { get; } = new();
 
-	public static void Log(object s) {
+	public void Log(object s) {
 		var pid = Process.GetCurrentProcess().Id;
 		var tid = Thread.CurrentThread.ManagedThreadId;
 		var time = DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
@@ -36,6 +36,8 @@ class CommandOptions {
 		aivoice2,
 	}
 
+	[Option("master", Required = false, HelpText = "-")]
+	public int Master { get; set; }
 	[Option("port", Required = true, HelpText = "-")]
 	public int Port { get; set; }
 	[Option("voice", Required = true, HelpText = " - ")]
@@ -79,6 +81,7 @@ class Program {
 		private ApplicationCapture? capture;
 		private CancellationTokenSource cancellationSource;
 		private IDisposable wsSubscriber;
+		private IDisposable? masterMoniter = null;
 
 		private AutoResetEvent autoResetEvent = new(false);
 
@@ -92,12 +95,14 @@ class Program {
 			this.client = opt.Voice switch {
 				CommandOptions.VoiceClientType.voiceroid2 => new VoiceLink.Clients.VoiceRoid2(),
 				CommandOptions.VoiceClientType.aivoice2 => new VoiceLink.Clients.AiVoice2(),
+				CommandOptions.VoiceClientType.voicepeak => new VoiceLink.Clients.VoicePeak(),
 				_ => throw new NotImplementedException($"不正な合成音声{opt.Voice}"),
 			};
 			this.client.StartClient(this.opt.Client, this.opt.Launch);
 			this.targetProcess = this.client.ProcessId;
 			cancellationSource = new CancellationTokenSource();
 
+			// ウェブソケット
 			wsSubscriber = Observable.Create<RecognitionObject>(oo => {
 				try {
 					using var server = new WebSocketServer($"ws://127.0.0.1:{this.opt.Port}");
@@ -107,7 +112,7 @@ class Program {
 						soc = socket;
 						socket.OnMessage = message => {
 							try {
-								Logger.Log($"メッセージ受信=>{message}");
+								Logger.Current.Log($"メッセージ受信=>{message}");
 								if (message == "ping") {
 									var _ = socket.Send("pong");
 								} else {
@@ -118,13 +123,13 @@ class Program {
 								}
 							}
 							catch (Exception e) {
-								Logger.Log("WebSocketで予期しない例外");
-								Logger.Log(e);
+								Logger.Current.Log("WebSocketで予期しない例外");
+								Logger.Current.Log(e);
 							}
 						};
 					});
 					cancellationSource.Token.WaitHandle.WaitOne();
-					Logger.Log("WebSocketサーバをシャットダウンします。");
+					Logger.Current.Log("WebSocketサーバをシャットダウンします。");
 					try {
 						soc?.Send("exit").Wait();
 					}
@@ -136,11 +141,12 @@ class Program {
 			.SubscribeOn(System.Reactive.Concurrency.TaskPoolScheduler.Default)
 				.Subscribe(async x => {
 					try {
-						Logger.Log($"合成音声呼び出し開始:{x.Transcript}");
+						Logger.Current.Log($"合成音声呼び出し開始:{x.Transcript}");
 						this.autoResetEvent.Reset();
 						this.client.BeginSpeech(x.Transcript);
-						if (this.targetProcess != this.client.ProcessId) {
-							Logger.Log($"！！合成音声クライアントの再起動が確認されました");
+						if ((this.capture == null && this.targetProcess != 0)
+							|| (this.targetProcess != this.client.ProcessId)) {
+							Logger.Current.Log($"！！合成音声クライアントの再起動が確認されました");
 							this.targetProcess = this.client.ProcessId;
 							this.capture = await ApplicationCapture.Get(this.targetProcess);
 						}
@@ -149,23 +155,41 @@ class Program {
 							_ = Task.Run(() => {
 								this.capture.Wait();
 								this.capture.Stop();
-								//PostMessage(reciveWnd, YACM_CAPTURE, index, 0);
 								this.autoResetEvent.Set();
 							});
 							if (this.client.Speech(x.Transcript)) {
 								this.autoResetEvent.WaitOne();
 								this.client.EndSpeech(x.Transcript);
 							} else {
-								Logger.Log($"！！合成音声クライアントの呼び出しに失敗");
+								Logger.Current.Log($"！！合成音声クライアントの呼び出しに失敗");
 							}
 						} else {
-							Logger.Log($"！！音声キャプチャの準備ができていません。スキップします。");
+							Logger.Current.Log($"！！音声キャプチャの準備ができていません。スキップします。");
 						}
 					}
 					finally {
-						Logger.Log($"合成音声呼び出し終了:{x.Transcript}");
+						Logger.Current.Log($"合成音声呼び出し終了:{x.Transcript}");
 					}
 				});
+
+			// 親プロセスの死活監視
+			if (opt.Master != 0) {
+				try {
+					var p = Process.GetProcessById(opt.Master);
+					masterMoniter = Observable.Interval(TimeSpan.FromMilliseconds(100))
+						.Subscribe(_ => {
+							try {
+								if (p.HasExited) {
+									Logger.Current.Log("親プロセスの終了を確認しました");
+									Application.Exit();
+									masterMoniter?.Dispose();
+								}
+							}
+							catch { }
+						});
+				}
+				catch { }
+			}
 		}
 
 		protected override async void OnLoad(EventArgs e) {
@@ -182,10 +206,11 @@ class Program {
 
 		protected override void OnFormClosed(FormClosedEventArgs e) {
 			base.OnFormClosed(e);
+			cancellationSource.Cancel();
 			Application.Exit();
 		}
 	}
-	private const string MapNameCapture = "yarukizero-net-yukarinette.audio-capture";
+
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
 	private static extern nint CreateFileMapping(nint hFile, nint lpFileMappingAttributes, int flProtect, int dwMaximumSizeHigh, int dwMaximumSizeLow, string lpName);
 	[DllImport("kernel32.dll")]
@@ -193,20 +218,10 @@ class Program {
 	[DllImport("kernel32.dll")]
 	private static extern nint UnmapViewOfFile(nint hFileMappingObject);
 
-	private const int PAGE_READWRITE = 0x04;
-	private const int FILE_MAP_READ = 0x00000004;
-	private const int ERROR_ALREADY_EXISTS = 183;
 
 
 	[STAThread]
 	static int Main(string[] args) {
-		/*
-		var s = Console.ReadLine();
-		if (string.IsNullOrEmpty(s)) {
-			return;
-		}
-		*/
-
 		var result = Parser.Default.ParseArguments<CommandOptions>(args);
 		if (result.Tag == ParserResultType.Parsed) {
 			var parsed = (Parsed<CommandOptions>)result;
@@ -227,274 +242,13 @@ class Program {
 #if DEBUG
 		ApplicationConfiguration.Initialize();
 		Application.Run(new MessageForm(new CommandOptions() {
+			Master = 129036,
 			Port = 49514,
-			Voice = VoiceClientType.voiceroid2,
+			Voice = CommandOptions.VoiceClientType.voiceroid2,
 			Client = @"C:\Program Files (x86)\AHS\VOICEROID2\VoiceroidEditor.exe",
 			Launch = true
 		}));
 #endif
 		return 1;
-
-		/*
-
-		VoiceLink.IVoiceClient client = new VoiceLink.Clients.VoiceRoid2();
-		/*
-		ApplicationConfiguration.Initialize();
-		Application.Run(new MessageForm());
-		
-		client.StartClient(
-			//targetExe: @"C:\Program Files\AI\AIVoice2\AIVoice2Editor\aivoice.exe",
-			targetExe: @"C:\Program Files (x86)\AHS\VOICEROID2\VoiceroidEditor.exe",
-			isLaunch: true
-			);
-		client.BeginSpeech(s);
-		client.Speech(s);
-
-
-
-
-		var path = @"C:\Program Files\VOICEPEAK\voicepeak.exe".ToLower();
-		*/
-	}
-
-
-    static
-	AutomationElement? Get(string targetProcessPath) {
-		foreach (var p in Process.GetProcesses()) {
-			try {
-				if (p.MainModule?.FileName?.ToLower() == targetProcessPath) {
-                    /*
-					var guid = new Guid("{618736e0-3c3d-11cf-810c-00aa00389b71}");
-					OleApi.AccessibleObjectFromWindow(
-						p.MainWindowHandle,
-						0,
-						ref guid,
-						out var obj);
-					if (obj is Accessibility.IAccessible acc) {
-						return acc;
-					}
-                    */
-                    return AutomationElement.FromHandle(p.MainWindowHandle);
-				}
-			}
-			catch (Exception e) when (
-				(e is Win32Exception)
-				|| (e is InvalidOperationException)) { }
-		}
-        return null;
 	}
 }
-
-//namespace Haru.Kei.Interop;
-
-public static class OleApi {
-	[DllImport("oleacc.dll")]
-	public static extern uint AccessibleObjectFromWindow(
-        nint hwnd,
-        int dwObjectID,
-        ref Guid riid,
-        [MarshalAs(UnmanagedType.IUnknown)][Out] out object? ppvObject);
-
-	// Token: 0x0600005C RID: 92
-	[DllImport("oleacc.dll")]
-	public static extern uint AccessibleChildren(
-        Accessibility.IAccessible paccContainer,
-        int iChildStart,
-        int cChildren,
-        [In][Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] object[] rgvarChildren,
-        out int pcObtained);
-}
-
-[StructLayout(LayoutKind.Sequential)]
-public struct VARIANT {
-	public ushort vt;
-	public ushort r0;
-	public ushort r1;
-	public ushort r2;
-	public long ptr0;
-	public long ptr1;
-}
-
-[Guid("618736E0-3C3D-11CF-810C-00AA00389B71")]
-[ComImport]
-public interface IAccessible {
-    uint get_accParent(
-        [Out] out nint ppdispParent
-        );
-    uint get_accChildCount(
-		[Out] out int pcountChildren
-        );
-	uint get_accChild(
-        [In] VARIANT varChild,
-        [Out] out nint ppdispChild
-		);
-
-    //[return: MarshalAs(UnmanagedType.BStr)]
-	uint get_accName(
-		[In] VARIANT varChild,
-		[Out]/*[MarshalAs(UnmanagedType.BStr)]*/out nint pszName
-		);
-
-	uint get_accValue(
-		[In] VARIANT varChild,
-		[Out]/* [MarshalAs(UnmanagedType.BStr)] */ out nint pszValue
-        );
-	uint get_accDescription(
-		[In] VARIANT varChild,
-		[Out]/* [MarshalAs(UnmanagedType.BStr)] */ out nint pszDescription
-		);
-	uint get_accRole(
-		[In] VARIANT varChild,
-		[Out] out VARIANT pvarRole
-		);
-	uint get_accState(
-		[In] VARIANT varChild,
-		[Out] out VARIANT pvarState
-		);
-	uint get_accHelp(
-		[In] VARIANT varChild,
-		[Out]/* [MarshalAs(UnmanagedType.BStr)] */ out nint pszHelp
-		);
-	uint get_accHelpTopic(
-		[Out]/* [MarshalAs(UnmanagedType.BStr)] */ out nint pszHelpFile,
-		[Optional][In] VARIANT varChild,
-		[Out] out int pidTopic
-		);
-	uint get_accKeyboardShortcut(
-		[In] VARIANT varChild,
-		[Out]/* [MarshalAs(UnmanagedType.BStr)] */ out nint pszKeyboardShortcut
-		);
-	uint get_accFocus(
-		[Out] out VARIANT pvarChild
-		);
-	uint get_accSelection(
-		[Out] out VARIANT pvarChildren
-		);
-	uint get_accDefaultAction(
-		[Optional][In] VARIANT varChild,
-		[Out]/* [MarshalAs(UnmanagedType.BStr)] */ out nint pszDefaultAction);
-	uint accSelect(
-		[In] int flagsSelect,
-		[Optional][In] VARIANT varChild
-		);
-	uint accLocation(
-        [Out] out int pxLeft,
-        [Out] out int pyTop,
-        [Out] out int pcxWidth,
-        [Out] out int pcyHeight,
-        [Optional][In] VARIANT varChild
-		);
-	uint accNavigate(
-        [In] int navDir,
-        [Optional][In] VARIANT varStart,
-        [Out] out VARIANT pvarEndUpAt
-		);
-	uint accHitTest(
-        [In] int xLeft,
-        [In] int yTop,
-        [Out] out VARIANT pvarChild
-		);
-	uint accDoDefaultAction(
-        [Optional][In] VARIANT varChild
-		);
-	uint put_accName(
-        [Optional][In] VARIANT varChild,
-        [In][MarshalAs(UnmanagedType.BStr)] string szName
-		);
-	uint put_accValue(
-		[Optional][In] VARIANT varChild,
-		[In][MarshalAs(UnmanagedType.BStr)] string szValue
-	);
-}
-#if false
-    MIDL_INTERFACE("618736e0-3c3d-11cf-810c-00aa00389b71")
-    IAccessible : public IDispatch
-    {
-    public:
-        virtual /* [id][propget][hidden] */ HRESULT STDMETHODCALLTYPE get_accParent( 
-            /* [retval][out] */ __RPC__deref_out_opt IDispatch **ppdispParent) = 0;
-        
-        virtual /* [id][propget][hidden] */ HRESULT STDMETHODCALLTYPE get_accChildCount( 
-            /* [retval][out] */ __RPC__out long *pcountChildren) = 0;
-        
-        virtual /* [id][propget][hidden] */ HRESULT STDMETHODCALLTYPE get_accChild( 
-            /* [in] */ VARIANT varChild,
-            /* [retval][out] */ __RPC__deref_out_opt IDispatch **ppdispChild) = 0;
-        
-        virtual /* [id][propget][hidden] */ HRESULT STDMETHODCALLTYPE get_accName( 
-            /* [optional][in] */ VARIANT varChild,
-            /* [retval][out] */ __RPC__deref_out_opt BSTR *pszName) = 0;
-        
-        virtual /* [id][propget][hidden] */ HRESULT STDMETHODCALLTYPE get_accValue( 
-            /* [optional][in] */ VARIANT varChild,
-            /* [retval][out] */ __RPC__deref_out_opt BSTR *pszValue) = 0;
-        
-        virtual /* [id][propget][hidden] */ HRESULT STDMETHODCALLTYPE get_accDescription( 
-            /* [optional][in] */ VARIANT varChild,
-            /* [retval][out] */ __RPC__deref_out_opt BSTR *pszDescription) = 0;
-        
-        virtual /* [id][propget][hidden] */ HRESULT STDMETHODCALLTYPE get_accRole( 
-            /* [optional][in] */ VARIANT varChild,
-            /* [retval][out] */ __RPC__out VARIANT *pvarRole) = 0;
-        
-        virtual /* [id][propget][hidden] */ HRESULT STDMETHODCALLTYPE get_accState( 
-            /* [optional][in] */ VARIANT varChild,
-            /* [retval][out] */ __RPC__out VARIANT *pvarState) = 0;
-        
-        virtual /* [id][propget][hidden] */ HRESULT STDMETHODCALLTYPE get_accHelp( 
-            /* [optional][in] */ VARIANT varChild,
-            /* [retval][out] */ __RPC__deref_out_opt BSTR *pszHelp) = 0;
-        
-        virtual /* [id][propget][hidden] */ HRESULT STDMETHODCALLTYPE get_accHelpTopic( 
-            /* [out] */ __RPC__deref_out_opt BSTR *pszHelpFile,
-            /* [optional][in] */ VARIANT varChild,
-            /* [retval][out] */ __RPC__out long *pidTopic) = 0;
-        
-        virtual /* [id][propget][hidden] */ HRESULT STDMETHODCALLTYPE get_accKeyboardShortcut( 
-            /* [optional][in] */ VARIANT varChild,
-            /* [retval][out] */ __RPC__deref_out_opt BSTR *pszKeyboardShortcut) = 0;
-        
-        virtual /* [id][propget][hidden] */ HRESULT STDMETHODCALLTYPE get_accFocus( 
-            /* [retval][out] */ __RPC__out VARIANT *pvarChild) = 0;
-        
-        virtual /* [id][propget][hidden] */ HRESULT STDMETHODCALLTYPE get_accSelection( 
-            /* [retval][out] */ __RPC__out VARIANT *pvarChildren) = 0;
-        
-        virtual /* [id][propget][hidden] */ HRESULT STDMETHODCALLTYPE get_accDefaultAction( 
-            /* [optional][in] */ VARIANT varChild,
-            /* [retval][out] */ __RPC__deref_out_opt BSTR *pszDefaultAction) = 0;
-        
-        virtual /* [id][hidden] */ HRESULT STDMETHODCALLTYPE accSelect( 
-            /* [in] */ long flagsSelect,
-            /* [optional][in] */ VARIANT varChild) = 0;
-        
-        virtual /* [id][hidden] */ HRESULT STDMETHODCALLTYPE accLocation( 
-            /* [out] */ __RPC__out long *pxLeft,
-            /* [out] */ __RPC__out long *pyTop,
-            /* [out] */ __RPC__out long *pcxWidth,
-            /* [out] */ __RPC__out long *pcyHeight,
-            /* [optional][in] */ VARIANT varChild) = 0;
-        
-        virtual /* [id][hidden] */ HRESULT STDMETHODCALLTYPE accNavigate( 
-            /* [in] */ long navDir,
-            /* [optional][in] */ VARIANT varStart,
-            /* [retval][out] */ __RPC__out VARIANT *pvarEndUpAt) = 0;
-        
-        virtual /* [id][hidden] */ HRESULT STDMETHODCALLTYPE accHitTest( 
-            /* [in] */ long xLeft,
-            /* [in] */ long yTop,
-            /* [retval][out] */ __RPC__out VARIANT *pvarChild) = 0;
-        
-        virtual /* [id][hidden] */ HRESULT STDMETHODCALLTYPE accDoDefaultAction( 
-            /* [optional][in] */ VARIANT varChild) = 0;
-        
-        virtual /* [id][propput][hidden] */ HRESULT STDMETHODCALLTYPE put_accName( 
-            /* [optional][in] */ VARIANT varChild,
-            /* [in] */ __RPC__in BSTR szName) = 0;
-        
-        virtual /* [id][propput][hidden] */ HRESULT STDMETHODCALLTYPE put_accValue( 
-            /* [optional][in] */ VARIANT varChild,
-            /* [in] */ __RPC__in BSTR szValue) = 0;
-        
-    };
-#endif
