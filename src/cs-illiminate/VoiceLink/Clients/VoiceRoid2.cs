@@ -53,7 +53,6 @@ public class VoiceRoid2 : IVoiceClient {
 			*/
 			return false;
 		}
-
 		Interop.AccessibleObjectFromWindow(
 			h,
 			0,
@@ -70,7 +69,7 @@ public class VoiceRoid2 : IVoiceClient {
 				if (obj1.Length != c) {
 					return false;
 				}
-				if(c != 7) {
+				if(c < 3) {
 					return false;
 				}
 
@@ -80,17 +79,16 @@ public class VoiceRoid2 : IVoiceClient {
 				if (obj2.Length != c) {
 					return false;
 				}
-				if (c != 9) {
+				if (c < 3) {
 					return false;
 				}
-
 				var acc3 = (Accessibility.IAccessible)obj2[3];
 				obj3 = new object[acc3.accChildCount];
 				Interop.AccessibleChildren(acc3, 0, obj3.Length, obj3, out c);
 				if (obj3.Length != c) {
 					return false;
 				}
-				if (c != 7) {
+				if (c < 2) {
 					return false;
 				}
 
@@ -139,9 +137,26 @@ public class VoiceRoid2 : IVoiceClient {
 			return false;
 		}
 
-		this.TextBox.accValue[0] = text;
-		this.PlayButton.accDoDefaultAction(0);
-		return true;
+		var sucessed = false;
+		for (int i = 0; i < 3; i++) {
+			try {
+				this.TextBox.accValue[0] = text;
+				sucessed = true;
+				break;
+			}
+			catch (COMException e) {
+				// 0x80040200が確認されている
+				Console.WriteLine("％％例外％％");
+				Console.WriteLine(e);
+				Thread.Sleep(100);
+			}
+		}
+		if (sucessed) {
+			this.PlayButton.accDoDefaultAction(0);
+			return true;
+		}else {
+			return false;
+		}
 	}
 
 	public void EndSpeech(string text) {
