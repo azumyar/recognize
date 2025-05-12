@@ -3,6 +3,7 @@ import json
 from websockets.sync.client import connect, ClientConnection
 from typing import Callable
 import pythonosc.udp_client as osc
+import subprocess
 
 import src.exception as ex
 
@@ -148,9 +149,14 @@ class IlluminateSpeechOutputer(WebSocketOutputer):
             exe_voice:str,
             exe_client:str,
             exe_lunch:bool):
-        super().__init__( f"ws://{host}:{port}", "IlluminateSpeech")
-        import click
-        #click.launch(f"{exe_path}")
+        super().__init__( f"ws://{host}:{port}", "Illuminate")
+        subprocess.Popen([
+            exe_path,
+             f"--master", f"{os.getpid()}",
+             f"--port", f"{port}",
+             f"--voice", exe_voice,
+             f"--client", exe_client,
+        ])
 
     def output(self, text_ja:str, text_en:str) -> str:
         return self._send(json.dumps({

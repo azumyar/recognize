@@ -8,9 +8,10 @@ import obswebsocket
 import obswebsocket.exceptions
 import websocket._exceptions
 
+from src.output import RecognitionOutputer
 from src import Logger
 
-class SubtitleOutputer:
+class SubtitleOutputer(RecognitionOutputer):
     def __init__(self, truncate_sec:float, logger:Logger):
         self.__prv_time = 0
         self.__truncate_sec = truncate_sec
