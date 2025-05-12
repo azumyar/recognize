@@ -21,11 +21,32 @@ namespace Haru.Kei;
 class Logger {
 	public static Logger Current { get; } = new();
 
+	private Stream? _stream;
+	private string? _filePath;
+
 	public void Log(object s) {
+		var st = Get();
 		var pid = Process.GetCurrentProcess().Id;
 		var tid = Thread.CurrentThread.ManagedThreadId;
 		var time = DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
-		Console.WriteLine($"{time}[{pid}][{tid}]{s}");
+		//Console.WriteLine($"{time}[{pid}][{tid}]{s}");
+		st.Write(System.Text.Encoding.UTF8.GetBytes($"{time}[{pid}][{tid}]{s}\r\n"));
+		st.Flush();
+	}
+
+	public void SetTarget(string? filePath) {
+		this._filePath = filePath;
+	}
+
+	private Stream Get() {
+		if(this._stream == null) {
+			if ((this._filePath == null) || !File.Exists(this._filePath)) {
+				this._stream = new FileStream(Path.Combine(AppContext.BaseDirectory, "illuminate.log"), FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
+			} else {
+				this._stream = new FileStream(this._filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
+			}
+		}
+		return this._stream;
 	}
 }
 
@@ -43,9 +64,17 @@ class CommandOptions {
 	[Option("voice", Required = true, HelpText = " - ")]
 	public VoiceClientType Voice { get; set; }
 	[Option("client", Required = true, HelpText = "-")]
-	public string Client { get; set; }
+	public string Client { get; set; } = "";
 	[Option("launch", Required = false, HelpText = "-")]
 	public bool Launch { get; set; }
+
+	[Option("log_dir", Required = false, HelpText = "-")]
+	public string LogDir { get; set; } = "";
+	/*
+	[Option("log_", Required = false, HelpText = "-")]
+	public bool Launch { get; set; }
+	*/
+
 }
 
 public record class RecognitionObject {
@@ -110,6 +139,7 @@ class Program {
 					IWebSocketConnection? soc = null;
 					server.Start(socket => {
 						soc = socket;
+						Logger.Current.Log("WebSocketサーバが起動しました");
 						socket.OnMessage = message => {
 							try {
 								Logger.Current.Log($"メッセージ受信=>{message}");
@@ -191,11 +221,31 @@ class Program {
 				catch { }
 			}
 		}
+		[DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+		private static extern uint ExtractIconEx(string pszFile, uint nIconIndex, out nint phIconLarge, out nint phIconSmall, uint nIcons);
+		private NotifyIcon notifyIcon = new();
 
 		protected override async void OnLoad(EventArgs e) {
 			base.OnLoad(e);
+
+			var menu = new ContextMenuStrip();
+			// 表示メニュー項目の追加
+			var mItem = new ToolStripMenuItem("終了");
+			mItem.Click += (_, _) => { Application.Exit(); };
+			menu.Items.Add(mItem);
+
+			ExtractIconEx(
+				Process.GetCurrentProcess().MainModule?.FileName ?? "",
+				0,
+				out var hIcon,
+				out var hIconSmall,
+				1);
+			this.notifyIcon.Text = "illuminate";
+			this.notifyIcon.Icon = System.Drawing.Icon.FromHandle(hIcon);
+			this.notifyIcon.ContextMenuStrip = menu;
+			this.notifyIcon.Visible = true;
+
 			ApplicationCapture.UiInitilize();
-			//PostMessage(reciveWnd, YACM_STARTUP, 0, this.Handle);
 			var _ = Task.Run(async () => {
 				this.capture = await ApplicationCapture.Get(this.targetProcess);
 				this.isInit = true;
@@ -207,6 +257,7 @@ class Program {
 		protected override void OnFormClosed(FormClosedEventArgs e) {
 			base.OnFormClosed(e);
 			cancellationSource.Cancel();
+			notifyIcon.Dispose();
 			Application.Exit();
 		}
 	}
@@ -226,6 +277,11 @@ class Program {
 		if (result.Tag == ParserResultType.Parsed) {
 			var parsed = (Parsed<CommandOptions>)result;
 			if (parsed != null) {
+				AppDomain.CurrentDomain.UnhandledException += (_, e) => {
+					Logger.Current.Log("致命的なエラー");
+					Logger.Current.Log(e.ExceptionObject);
+				};
+
 				ApplicationConfiguration.Initialize();
 				Application.Run(new MessageForm(parsed.Value));
 				return 0;
@@ -236,7 +292,6 @@ class Program {
 			var notParsed = (NotParsed<Options>)result;
 			// 処理
 			*/
-			Console.WriteLine("コマンドが不正");
 		}
 
 #if DEBUG
