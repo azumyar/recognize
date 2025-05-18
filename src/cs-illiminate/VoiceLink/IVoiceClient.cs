@@ -13,6 +13,6 @@ public interface IVoiceClient {
 
 	public void BeginSpeech(string text);
 
-	public bool Speech(string text);
+	public void Speech(string text);
 	public void EndSpeech(string text);
 }

@@ -62,11 +62,11 @@ public class AiVoice2 : IVoiceClient {
 		}
 	}
 
-	public bool Speech(string text) {
+	public void Speech(string text) {
 		// キーボードフォーカス握るウインドウに差し替え
 		var aivoiceTarget = Interop.FindWindowEx(this.hAiVoice, 0, "FLUTTERVIEW", "FLUTTERVIEW");
 		if(aivoiceTarget == 0) {
-			return false;
+			throw new VoiceLinkException();
 		}
 
 		// 文字入力
@@ -80,7 +80,6 @@ public class AiVoice2 : IVoiceClient {
 
 		// 再生
 		Util.PlatformClick(aivoiceTarget, 475, 45);
-		return true;
 	}
 
 	public void EndSpeech(string text) {

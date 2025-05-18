@@ -15,6 +15,8 @@ using CommandLine;
 using System.Threading;
 using Fleck;
 using Newtonsoft.Json;
+using System.Windows.Threading;
+using VoiceLink;
 
 namespace Haru.Kei;
 
@@ -168,34 +170,56 @@ class Program {
 				finally { }
 				return System.Reactive.Disposables.Disposable.Empty;
 			}) .ObserveOn(this.SpeechScheduler)
-			.SubscribeOn(System.Reactive.Concurrency.TaskPoolScheduler.Default)
+				.SubscribeOn(System.Reactive.Concurrency.TaskPoolScheduler.Default)
 				.Subscribe(async x => {
+					if (SynchronizationContext.Current == null) {
+						SynchronizationContext.SetSynchronizationContext(
+							new DispatcherSynchronizationContext());
+					}
 					try {
 						Logger.Current.Log($"合成音声呼び出し開始:{x.Transcript}");
 						this.autoResetEvent.Reset();
-						this.client.BeginSpeech(x.Transcript);
-						if ((this.capture == null && this.targetProcess != 0)
-							|| (this.targetProcess != this.client.ProcessId)) {
-							Logger.Current.Log($"！！合成音声クライアントの再起動が確認されました");
-							this.targetProcess = this.client.ProcessId;
-							this.capture = await ApplicationCapture.Get(this.targetProcess);
+						try {
+							this.client.BeginSpeech(x.Transcript);
 						}
-						if (this.capture != null) {
-							this.capture.Start();
-							_ = Task.Run(() => {
-								this.capture.Wait();
-								this.capture.Stop();
-								this.autoResetEvent.Set();
-							});
-							if (this.client.Speech(x.Transcript)) {
-								this.autoResetEvent.WaitOne();
-								this.client.EndSpeech(x.Transcript);
-							} else {
-								Logger.Current.Log($"！！合成音声クライアントの呼び出しに失敗");
+						catch(VoiceLinkException e) {
+							Logger.Current.Log($"！！合成音声クライアントの読み上げ準備に失敗しました");
+							Logger.Current.Log($"{e}");
+							return;
+						}
+
+						try {
+							if ((this.capture == null && this.targetProcess != 0)
+								|| (this.targetProcess != this.client.ProcessId)) {
+								Logger.Current.Log($"！！合成音声クライアントの再起動が確認されました");
+								this.targetProcess = this.client.ProcessId;
+								this.capture = await ApplicationCapture.Get(this.targetProcess);
 							}
-						} else {
-							Logger.Current.Log($"！！音声キャプチャの準備ができていません。スキップします。");
+							if (this.capture != null) {
+								this.capture.Start();
+								_ = Task.Run(() => {
+									this.capture.Wait();
+									this.capture.Stop();
+									this.autoResetEvent.Set();
+								});
+								this.client.Speech(x.Transcript);
+								this.autoResetEvent.WaitOne();
+							} else {
+								Logger.Current.Log($"！！音声キャプチャの準備ができていません。スキップします。");
+							}
 						}
+						catch (VoiceLinkException e) {
+							Logger.Current.Log($"！！合成音声クライアントの呼び出しに失敗");
+							Logger.Current.Log($"{e}");
+						}
+						finally {
+							try {
+								this.capture?.Stop();
+								this.client.EndSpeech(x.Transcript);
+							}
+							catch (VoiceLinkException) { }
+						}
+
 					}
 					finally {
 						Logger.Current.Log($"合成音声呼び出し終了:{x.Transcript}");

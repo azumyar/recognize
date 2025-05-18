@@ -56,7 +56,7 @@ public class VoicePeak : IVoiceClient {
 		}
 	}
 
-	public bool Speech(string text) {
+	public void Speech(string text) {
 		var len = text.Length;
 		Util.PlatformClick(this.hVoicePeak, 400, 140);
 		foreach (var c in text) {
@@ -70,7 +70,6 @@ public class VoicePeak : IVoiceClient {
 		// フォーカスを削除してカーソルのWM_PAINTを抑制する
 		Util.PlatformClick(this.hVoicePeak, this.targetWidth / 2 + 160, 20);
 		Util.PlatformClick(this.hVoicePeak, this.targetWidth / 2 + 200, 20);
-		return true;
 	}
 
 
