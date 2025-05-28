@@ -28,14 +28,13 @@
     </i:Interaction.Triggers>
     <prism:Dialog.WindowStyle>
         <Style TargetType="Window">
-            <Setter Property="ResizeMode" Value="CanResizeWithGrip" />
+            <Setter Property="ResizeMode" Value="NoResize" />
             <Setter Property="ShowInTaskbar" Value="False" />
             <Setter Property="SizeToContent" Value="WidthAndHeight" />
-            <Setter Property="Width" Value="320" />
-            <Setter Property="Height" Value="320" />
+            <Setter Property="Title" Value="ルール編集" />
         </Style>
     </prism:Dialog.WindowStyle>
-    <Border Padding="8">
+    <Border Padding="8" MinWidth="420" MinHeight="280">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
