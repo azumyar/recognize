@@ -128,9 +128,13 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                        <Button
-                            Grid.Column="0" Grid.Row="1"
-                            Content="フィルタ追加">
+                        <Button Grid.Column="0" Grid.Row="1">
+                            <Button.Content>
+                                <TextBlock>
+                                    <Run FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolFilter}" />
+                                    <Run Text="フィルタ追加"/>
+                                </TextBlock>
+                            </Button.Content>
                             <i:Interaction.Triggers>
                                 <i:EventTrigger EventName="Click">
                                     <ri:EventToReactiveCommand Command="{Binding DataContext.FilterAddClickCommand, Mode=OneWay, ElementName=root}" />
@@ -162,9 +166,13 @@
                                             </StackPanel>
 
                                             <StackPanel Grid.Row="2" Orientation="Horizontal">
-                                                <Button
-                                                    Content="ルール追加"
-                                                    >
+                                                <Button Padding="8,0,8,0">
+                                                    <Button.Content>
+                                                        <TextBlock>
+                                                            <Run FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolPage}" />
+                                                            <Run Text="ルール追加"/>
+                                                        </TextBlock>
+                                                    </Button.Content>
                                                     <i:Interaction.Triggers>
                                                         <i:EventTrigger EventName="Click">
                                                             <ri:EventToReactiveCommand Command="{Binding DataContext.RuleAddClickCommand, Mode=OneWay, ElementName=root}" />
@@ -217,18 +225,20 @@
                                                                     <TextBlock Text="{Binding Dst.Value, Mode=OneWay}" />
                                                                     <TextBlock Text="&quot;" />
                                                                 </StackPanel>
-                                                                <Button
-                                                                    Grid.Column="1"
-                                                                    Content="編">
+                                                                <Button Grid.Column="1">
+                                                                    <Button.Content>
+                                                                        <TextBlock FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolEdit}" />
+                                                                    </Button.Content>
                                                                     <i:Interaction.Triggers>
                                                                         <i:EventTrigger EventName="Click">
                                                                             <ri:EventToReactiveCommand Command="{Binding DataContext.RuleEditClickCommand, Mode=OneWay, ElementName=root}" />
                                                                         </i:EventTrigger>
                                                                     </i:Interaction.Triggers>
                                                                 </Button>
-                                                                <Button
-                                                                    Grid.Column="2"
-                                                                    Content="削">
+                                                                <Button Grid.Column="2">
+                                                                    <Button.Content>
+                                                                        <TextBlock FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolDelete}" />
+                                                                    </Button.Content>
                                                                     <i:Interaction.Triggers>
                                                                         <i:EventTrigger EventName="Click">
                                                                             <ri:EventToReactiveCommand Command="{Binding DataContext.RuleRemoveClickCommand, Mode=OneWay, ElementName=root}" />

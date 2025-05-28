@@ -5,6 +5,11 @@
     xmlns:local="clr-namespace:Haru.Kei"
     xmlns:prism="http://prismlibrary.com/">
     <prism:PrismApplication.Resources>
-
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Resources/FontSymbol.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <FontFamily x:Key="SymbolFont">Segoe Fluent Icons,Segoe MDL2 Assets,Segoe UI Symbol</FontFamily>
+        </ResourceDictionary>
     </prism:PrismApplication.Resources>
 </prism:PrismApplication>
