@@ -167,8 +167,11 @@ internal class RecognizeExeArgument {
 	protected const string categoryModel = "01.認識モデル";
 	protected const string categoryTranslate = "02.翻訳モデル";
 	protected const string categoryMic = "03.マイク";
-	protected const string categoryOut = "04.出力";
-	protected const string categorySubtitle = "05.字幕";
+	protected const string categoryOutYukarinette = "04a.ゆかりねっとと連携";
+	protected const string categoryOutYukacone = "04b.ゆかコネNEOと連携";
+	protected const string categoryOutVoiceroid = "04c.ボイロ連携";
+	protected const string categoryOutObs = "04d.OBS字幕連携";
+	protected const string categoryOutVrc = "04e.VRC字幕連携";
 
 	[Browsable(false)]
 	[Save(IsRestore = false)]
@@ -292,29 +295,36 @@ internal class RecognizeExeArgument {
 	public string ArgHpfParamaterV2 { get; set; }
 
 
-	[Category(categoryOut)]
-	[DisplayName("認識結果出力先")]
-	[Description("認識結果出力先")]
-	[DefaultValue("")]
-	[TypeConverter(typeof(ArgOutConverter))]
-	[ArgAttribute("--out")]
-	public string ArgOut { get; set; }
-	[Category(categoryOut)]
+	[Category(categoryOutYukarinette)]
+	[DisplayName("ゆかりねっとと連携")]
+	[Description("ゆかりねっとと連携を行います")]
+	[DefaultValue(null)]
+	[ArgAttribute("--out yukarinette")]
+	public bool? ArgOutWithYukarinette { get; set; }
+	[Category(categoryOutYukarinette)]
 	[DisplayName("ゆかりねっと外部連携ポート")]
 	[Description("ゆかりねっとの外部連携ポートを指定します")]
 	[DefaultValue(null)]
-	[ArgAttribute("--out_yukarinette", TargetProperty = "ArgOut", TargetValue = "yukarinette")]
+	[ArgAttribute("--out_yukarinette", TargetProperty = "ArgOutWithYukarinette", TargetValue = "true")]
 	public int? ArgOutYukarinette { get; set; }
+
+	[Category(categoryOutYukacone)]
+	[DisplayName("ゆかりねっとと連携")]
+	[Description("ゆかりねっとと連携を行います")]
+	[DefaultValue(null)]
+	[ArgAttribute("--out yukakone")]
+	public bool? ArgOutWithYukacone { get; set; }
+
 	[DisplayName("ゆかコネNEO外部連携ポート")]
 	[DefaultValue(null)]
-	[Category(categoryOut)]
+	[Category(categoryOutYukacone)]
 	[Description("ゆかコネNEOのウェブソケットポートを指定します。\r\n通常自動的に取得するため必要ありません")]
-	[ArgAttribute("--out_yukacone", TargetProperty = "ArgOut", TargetValue = "yukacone")]
+	[ArgAttribute("--out_yukacone", TargetProperty = "ArgOutWithYukacone", TargetValue = "true")]
 	public int? ArgOutYukacone { get; set; }
 
 	[DisplayName("字幕連携")]
 	[DefaultValue(null)]
-	[Category(categorySubtitle)]
+	[Category(categoryOutObs)]
 	[Description("字幕連携先を指定します")]
 	[TypeConverter(typeof(ArgSubtitleConverter))]
 	[ArgAttribute("--subtitle")]
@@ -322,21 +332,21 @@ internal class RecognizeExeArgument {
 
 	[DisplayName("字幕時間[秒]")]
 	[DefaultValue(null)]
-	[Category(categorySubtitle)]
+	[Category(categoryOutObs)]
 	[Description("字幕の表示時間を指定します。0秒を指定すると字幕は消去されません。")]
 	[ArgAttribute("--subtitle_truncate")]
 	public float? ArgSubtitleTruncate { get; set; }
 
 	[DisplayName("Web Socket ポート(OBS)")]
 	[DefaultValue(null)]
-	[Category(categorySubtitle)]
+	[Category(categoryOutObs)]
 	[Description("OBSのWeb Socketポートを指定します")]
 	[ArgAttribute("--subtitle_obs_port", TargetProperty = "ArgSubtitle", TargetValue = "obs")]
 	public int? ArgSubtitlePort { get; set; }
 
 	[DisplayName("Web Socket パスワード(OBS)")]
 	[DefaultValue(null)]
-	[Category(categorySubtitle)]
+	[Category(categoryOutObs)]
 	[Description("OBSのWeb Socketパスワードを指定します")]
 	[ArgAttribute("--subtitle_obs_password", TargetProperty = "ArgSubtitle", TargetValue = "obs")]
 	public string ArgSubtitlePassword { get; set; }
@@ -350,7 +360,7 @@ internal class RecognizeExeArgument {
 	*/
 	[DisplayName("英語字幕テキストソース(OBS)")]
 	[DefaultValue(null)]
-	[Category(categorySubtitle)]
+	[Category(categoryOutObs)]
 	[Description("英語字幕を表示するOBSテキストソースを指定します")]
 	[ArgAttribute("--subtitle_obs_text_en", TargetProperty = "ArgSubtitle", TargetValue = "obs")]
 	public string ArgSubtitleObsTextEn { get; set; }
