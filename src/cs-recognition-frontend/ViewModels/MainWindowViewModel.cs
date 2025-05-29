@@ -38,8 +38,6 @@ public class MainWindowViewModel : BindableBase {
 		global::System.IO.Path.GetTempPath(),
 		string.Format("recognize-gui-{0}.bat", Guid.NewGuid()));
 
-	public event PropertyChangedEventHandler? PropertyChanged;
-
 	public ReactiveProperty<Models.Filter> Filter { get; } = new(initialValue: new());
 
 	public Command CreateBatchommand { get; } = new();
@@ -59,6 +57,7 @@ public class MainWindowViewModel : BindableBase {
 	public ReactiveCommand ClosingCommand { get; } = new();
 
 	public ReactiveCommand<RoutedEventArgs> FilterAddClickCommand { get; } = new();
+	public ReactiveCommand<RoutedEventArgs> FilterRemoveClickCommand { get; } = new();
 	public ReactiveCommand<RoutedEventArgs> RuleAddClickCommand { get; } = new();
 	public ReactiveCommand<RoutedEventArgs> RuleEditClickCommand { get; } = new();
 	public ReactiveCommand<RoutedEventArgs> RuleRemoveClickCommand { get; } = new();
@@ -81,6 +80,7 @@ public class MainWindowViewModel : BindableBase {
 		this.LoadedCommand.Subscribe(async x => await this.OnLoaded(x));
 		this.ClosingCommand.Subscribe(() => this.OnClosing());
 		this.FilterAddClickCommand.Subscribe(_ => this.OnFilterAdd());
+		this.FilterRemoveClickCommand.Subscribe(x => this.OnFilterRemove(x));
 		this.RuleAddClickCommand.Subscribe(x => this.OnRuleAdd(x));
 		this.RuleEditClickCommand.Subscribe(x => this.OnRuleEdit(x));
 		this.RuleRemoveClickCommand.Subscribe(x => this.OnRuleRemove(x));
@@ -321,6 +321,12 @@ public class MainWindowViewModel : BindableBase {
 		var f = new Models.FilterItem();
 		f.Name.Value = "新規フィルタ";
 		this.Filter.Value.Filters?.Add(f);
+	}
+
+	public void OnFilterRemove(RoutedEventArgs e) {
+		if(e.Source is FrameworkElement el && el.DataContext is Models.FilterItem item) {
+			this.Filter.Value.Filters?.Remove(item);
+		}
 	}
 
 	public void OnRuleAdd(RoutedEventArgs e) {

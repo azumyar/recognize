@@ -101,28 +101,47 @@
                             x:Name="filter_listbox"
                             Grid.Column="0" Grid.Row="0"
                             SelectionMode="Single"
+                            HorizontalContentAlignment="Stretch"
                             ItemsSource="{Binding Filter.Value.Filters, Mode=OneWay}"
                             SelectedItem="{Binding SelectedFilterItem.Value, Mode=TwoWay}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Padding="4">
+                                    <Border Padding="0,4,0,4">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="24" />
                                             </Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="4" />
                                                 <RowDefinition Height="Auto" />
                                             </Grid.RowDefinitions>
-                                            <TextBlock
-                                                Grid.Column="0" Grid.Row="0"
-                                                Text="{Binding Name.Value, Mode=OneWay}" />
+                                            <TextBlock Grid.Column="0" Grid.Row="0" MaxWidth="120">
+                                                <Run FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolFilter}" />
+                                                <Run Text="{Binding Name.Value, Mode=OneWay}" />
+                                            </TextBlock>
                                             <CheckBox
                                                 Grid.Column="0" Grid.Row="2"
+                                                HorizontalAlignment="Left"
                                                 IsChecked="{Binding Enable.Value, Mode=TwoWay}"
                                                 Content="有効"
                                                 />
+                                            <Button
+                                                Grid.Column="1"
+                                                Grid.Row="0" Grid.RowSpan="3"
+                                                Width="24" Height="24"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Top">
+                                                <Button.Content>
+                                                    <TextBlock FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolDelete}" />
+                                                </Button.Content>
+                                                <i:Interaction.Triggers>
+                                                    <i:EventTrigger EventName="Click">
+                                                        <ri:EventToReactiveCommand Command="{Binding DataContext.FilterRemoveClickCommand, Mode=OneWay, ElementName=root}" />
+                                                    </i:EventTrigger>
+                                                </i:Interaction.Triggers>
+                                            </Button>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
