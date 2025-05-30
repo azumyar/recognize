@@ -85,6 +85,162 @@
                 </Border>
             </TabItem>
             <TabItem Header="フィルタ"  Padding="16,2,16,2">
+                <TabItem.Resources>
+                    <local:FilterTemplateSelector
+                        x:Key="TemplateSelectorKey"
+                        SummaryDataTemplate="SummaryTemplateKey"
+                        FilterDataTemplate="FilterTemplateKey"
+                        />
+                    <DataTemplate  x:Key="SummaryTemplateKey">
+                        <Border>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="36" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock
+                                    Grid.Row="0"
+                                    Text="ここにフィルタの説明を書く"
+                                    />
+
+                                <TextBlock
+                                    Grid.Row="1"
+                                    VerticalAlignment="Center"
+                                    Text="←ボタンをクリックしてフィルタを追加"
+                                    />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+
+                    <DataTemplate x:Key="FilterTemplateKey">
+                        <Border>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="48" />
+                                    <RowDefinition Height="4" />
+                                    <RowDefinition Height="36" />
+                                    <RowDefinition Height="4" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <StackPanel>
+                                    <TextBlock
+                                        Text="フィルタ名"
+                                        />
+                                    <TextBox
+                                         Text="{Binding SelectedItem.Name.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ElementName=filter_listbox}"
+                                        />
+                                </StackPanel>
+
+                                <Grid Grid.Row="2">
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="92" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="92" />
+                                        <ColumnDefinition Width="4" />
+                                        <ColumnDefinition Width="92" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button>
+                                        <Button.Content>
+                                            <TextBlock>
+                                                <Run FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolPage}" />
+                                                <Run Text="ルール追加"/>
+                                            </TextBlock>
+                                        </Button.Content>
+                                        <i:Interaction.Triggers>
+                                            <i:EventTrigger EventName="Click">
+                                                <ri:EventToReactiveCommand Command="{Binding DataContext.RuleAddClickCommand, Mode=OneWay, ElementName=root}" />
+                                            </i:EventTrigger>
+                                        </i:Interaction.Triggers>
+                                    </Button>
+
+                                    <Button Grid.Column="2">
+                                        <Button.Content>
+                                            <TextBlock>
+                                                <Run Text="__(仮配置)保存__" />
+                                            </TextBlock>
+                                        </Button.Content>
+                                        <i:Interaction.Triggers>
+                                            <i:EventTrigger EventName="Click">
+                                                <ri:EventToReactiveCommand Command="{Binding DataContext.___SaveCommand, Mode=OneWay, ElementName=root}" />
+                                            </i:EventTrigger>
+                                        </i:Interaction.Triggers>
+                                    </Button>
+                                    <Button Grid.Column="4" IsEnabled="False">
+                                        <Button.Content>
+                                            <TextBlock>
+                                                <Run FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolSave}" />
+                                                <Run Text="バックアップ" />
+                                            </TextBlock>
+                                        </Button.Content>
+
+                                    </Button>
+                                </Grid>
+
+                                <ListBox
+                                    Grid.Row="4"
+                                    ItemsSource="{Binding Rules, Mode=OneWay}"
+                                    HorizontalContentAlignment="Stretch">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="32" />
+                                                        <ColumnDefinition Width="32" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="32" />
+                                                    </Grid.RowDefinitions>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock Text="ルール：" />
+                                                        <TextBlock Text="{Binding Rule.Value, Mode=OneWay}" />
+                                                        <TextBlock Text="/" />
+
+                                                        <TextBlock Text="アクション：" />
+                                                        <TextBlock Text="{Binding Action.Value, Mode=OneWay}" />
+                                                        <TextBlock Text="/" />
+
+                                                        <TextBlock Text="入力文字列：&quot;" />
+                                                        <TextBlock Text="{Binding Src.Value, Mode=OneWay}" />
+                                                        <TextBlock Text="&quot;/" />
+
+                                                        <TextBlock Text="変換文字列：&quot;" />
+                                                        <TextBlock Text="{Binding Dst.Value, Mode=OneWay}" />
+                                                        <TextBlock Text="&quot;" />
+                                                    </StackPanel>
+                                                    <Button Grid.Column="1">
+                                                        <Button.Content>
+                                                            <TextBlock FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolEdit}" />
+                                                        </Button.Content>
+                                                        <i:Interaction.Triggers>
+                                                            <i:EventTrigger EventName="Click">
+                                                                <ri:EventToReactiveCommand Command="{Binding DataContext.RuleEditClickCommand, Mode=OneWay, ElementName=root}" />
+                                                            </i:EventTrigger>
+                                                        </i:Interaction.Triggers>
+                                                    </Button>
+                                                    <Button Grid.Column="2">
+                                                        <Button.Content>
+                                                            <TextBlock FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolDelete}" />
+                                                        </Button.Content>
+                                                        <i:Interaction.Triggers>
+                                                            <i:EventTrigger EventName="Click">
+                                                                <ri:EventToReactiveCommand Command="{Binding DataContext.RuleRemoveClickCommand, Mode=OneWay, ElementName=root}" />
+                                                            </i:EventTrigger>
+                                                        </i:Interaction.Triggers>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </TabItem.Resources>
+                
                 <Border Padding="4">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -163,116 +319,11 @@
 
                         <ContentControl
                             Grid.Column="2" Grid.Row="0" Grid.RowSpan="2"
-                            Content="{Binding SelectedItem, Mode=OneWay, ElementName=filter_listbox}">
-                            <ContentControl.ContentTemplate>
-                                <DataTemplate>
-                                    <Border>
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="48" />
-                                                <RowDefinition Height="4" />
-                                                <RowDefinition Height="36" />
-                                                <RowDefinition Height="4" />
-                                                <RowDefinition Height="*" />
-                                            </Grid.RowDefinitions>
-                                            <StackPanel>
-                                                <TextBlock
-                                                    Text="フィルタ名"
-                                                    />
-                                                <TextBox
-                                                    Text="{Binding SelectedItem.Name.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ElementName=filter_listbox}"
-                                                />
-                                            </StackPanel>
+                            Content="{Binding SelectedItem, Mode=OneWay, ElementName=filter_listbox}"
+                            ContentTemplateSelector="{StaticResource TemplateSelectorKey}">
+                            <ContentControl.Resources>
 
-                                            <StackPanel Grid.Row="2" Orientation="Horizontal">
-                                                <Button Padding="8,0,8,0">
-                                                    <Button.Content>
-                                                        <TextBlock>
-                                                            <Run FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolPage}" />
-                                                            <Run Text="ルール追加"/>
-                                                        </TextBlock>
-                                                    </Button.Content>
-                                                    <i:Interaction.Triggers>
-                                                        <i:EventTrigger EventName="Click">
-                                                            <ri:EventToReactiveCommand Command="{Binding DataContext.RuleAddClickCommand, Mode=OneWay, ElementName=root}" />
-                                                        </i:EventTrigger>
-                                                    </i:Interaction.Triggers>
-                                                </Button>
-
-                                                <Button
-                                                    Content="__(仮配置)保存__"
-                                                    Margin="8,0,0,0"
-                                                    >
-                                                    <i:Interaction.Triggers>
-                                                        <i:EventTrigger EventName="Click">
-                                                            <ri:EventToReactiveCommand Command="{Binding DataContext.___SaveCommand, Mode=OneWay, ElementName=root}" />
-                                                        </i:EventTrigger>
-                                                    </i:Interaction.Triggers>
-                                                </Button>
-                                            </StackPanel>
-
-                                            <ListBox
-                                                Grid.Row="4"
-                                                ItemsSource="{Binding Rules, Mode=OneWay}"
-                                                HorizontalContentAlignment="Stretch">
-                                                <ListBox.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Border>
-                                                            <Grid>
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="*" />
-                                                                    <ColumnDefinition Width="32" />
-                                                                    <ColumnDefinition Width="32" />
-                                                                </Grid.ColumnDefinitions>
-                                                                <Grid.RowDefinitions>
-                                                                    <RowDefinition Height="32" />
-                                                                </Grid.RowDefinitions>
-                                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                                    <TextBlock Text="ルール：" />
-                                                                    <TextBlock Text="{Binding Rule.Value, Mode=OneWay}" />
-                                                                    <TextBlock Text="/" />
-
-                                                                    <TextBlock Text="アクション：" />
-                                                                    <TextBlock Text="{Binding Action.Value, Mode=OneWay}" />
-                                                                    <TextBlock Text="/" />
-
-                                                                    <TextBlock Text="入力文字列：&quot;" />
-                                                                    <TextBlock Text="{Binding Src.Value, Mode=OneWay}" />
-                                                                    <TextBlock Text="&quot;/" />
-
-                                                                    <TextBlock Text="変換文字列：&quot;" />
-                                                                    <TextBlock Text="{Binding Dst.Value, Mode=OneWay}" />
-                                                                    <TextBlock Text="&quot;" />
-                                                                </StackPanel>
-                                                                <Button Grid.Column="1">
-                                                                    <Button.Content>
-                                                                        <TextBlock FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolEdit}" />
-                                                                    </Button.Content>
-                                                                    <i:Interaction.Triggers>
-                                                                        <i:EventTrigger EventName="Click">
-                                                                            <ri:EventToReactiveCommand Command="{Binding DataContext.RuleEditClickCommand, Mode=OneWay, ElementName=root}" />
-                                                                        </i:EventTrigger>
-                                                                    </i:Interaction.Triggers>
-                                                                </Button>
-                                                                <Button Grid.Column="2">
-                                                                    <Button.Content>
-                                                                        <TextBlock FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolDelete}" />
-                                                                    </Button.Content>
-                                                                    <i:Interaction.Triggers>
-                                                                        <i:EventTrigger EventName="Click">
-                                                                            <ri:EventToReactiveCommand Command="{Binding DataContext.RuleRemoveClickCommand, Mode=OneWay, ElementName=root}" />
-                                                                        </i:EventTrigger>
-                                                                    </i:Interaction.Triggers>
-                                                                </Button>
-                                                            </Grid>
-                                                        </Border>
-                                                    </DataTemplate>
-                                                </ListBox.ItemTemplate>
-                                            </ListBox>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ContentControl.ContentTemplate>
+                            </ContentControl.Resources>
                         </ContentControl>
                     </Grid>
                 </Border>

@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Reflection;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using Haru.Kei.Models;
 using Haru.Kei.Views;
@@ -84,6 +86,12 @@ public class MainWindowViewModel : BindableBase {
 		this.RuleAddClickCommand.Subscribe(x => this.OnRuleAdd(x));
 		this.RuleEditClickCommand.Subscribe(x => this.OnRuleEdit(x));
 		this.RuleRemoveClickCommand.Subscribe(x => this.OnRuleRemove(x));
+
+		this.SelectedFilterItem.Subscribe(x => {
+			if((x == null) && (this.Filter.Value.Filters?.FirstOrDefault() is Models.FilterItem it)) {
+				this.SelectedFilterItem.Value = it;
+			}
+		});
 
 		this.___SaveCommand.Subscribe(() => {
 			var json = Newtonsoft.Json.JsonConvert.SerializeObject(this.Filter.Value);
@@ -321,6 +329,7 @@ public class MainWindowViewModel : BindableBase {
 		var f = new Models.FilterItem();
 		f.Name.Value = "新規フィルタ";
 		this.Filter.Value.Filters?.Add(f);
+		this.SelectedFilterItem.Value = f;
 	}
 
 	public void OnFilterRemove(RoutedEventArgs e) {
@@ -462,4 +471,3 @@ public class MainWindowViewModel : BindableBase {
 	}
 
 }
-
