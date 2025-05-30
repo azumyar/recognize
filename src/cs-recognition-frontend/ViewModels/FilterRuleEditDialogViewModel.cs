@@ -5,8 +5,10 @@ using Reactive.Bindings;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Haru.Kei.ViewModels;
 internal class FilterRuleEditDialogViewModel : BindableBase, IDialogAware {
@@ -19,8 +21,15 @@ internal class FilterRuleEditDialogViewModel : BindableBase, IDialogAware {
 	public ReactiveProperty<bool> RuleWordAllValue { get; } = new(initialValue: false);
 	public ReactiveProperty<bool> RuleRegexValue { get; } = new(initialValue: false);
 	public ReactiveProperty<string> Src { get; } = new(initialValue: "");
-	public ReactiveProperty<string> Dst { get; } = new(initialValue: "");
+	public ReactiveProperty<string> DstReplace { get; } = new(initialValue: "");
+	public ReactiveProperty<string> DstMask { get; } = new(initialValue: "*");
 
+
+	public ReactiveProperty<bool> SrcError { get; }
+	public ReactiveProperty<Visibility> SrcErrorVisibility { get; }
+	public ReactiveProperty<bool> DstError { get; }
+	public ReactiveProperty<Visibility> DstErrorVisibility { get; }
+	public ReactiveProperty<bool> OkButtonEnabled { get; }
 
 	public ReactiveCommand OkClickCommand { get; } = new();
 	public ReactiveCommand CancelClickCommand { get; } = new();
@@ -37,6 +46,28 @@ internal class FilterRuleEditDialogViewModel : BindableBase, IDialogAware {
 	private const string RuleValueRegex = "regex";
 
 	public FilterRuleEditDialogViewModel() {
+		this.SrcError = this.Src.Select(x => !string.IsNullOrEmpty(x)).ToReactiveProperty();
+		this.SrcErrorVisibility = this.SrcError.Select(x => x switch {
+			true => Visibility.Hidden,
+			_ => Visibility.Visible
+		}).ToReactiveProperty();
+		this.DstError = this.ActionReplaceValue.CombineLatest(
+			this.DstReplace, this.DstMask,
+			(x, _, yy) => {
+				if(!x) {
+					return !string.IsNullOrEmpty(yy);
+				} else {
+					return true;
+				}
+			}).ToReactiveProperty();
+		this.DstErrorVisibility = this.DstError.Select(x => x switch {
+			true => Visibility.Hidden,
+			_ => Visibility.Visible
+		}).ToReactiveProperty();
+		this.OkButtonEnabled = this.SrcError
+			.CombineLatest(this.DstError, (p1, p2) => p1 && p1)
+			.ToReactiveProperty();
+
 		this.OkClickCommand.Subscribe(() => {
 			var ret = new DialogResult(ButtonResult.OK);
 			var action = "mask";
@@ -54,12 +85,10 @@ internal class FilterRuleEditDialogViewModel : BindableBase, IDialogAware {
 				rule = "regex";
 			}
 			var src = this.Src.Value;
-			var dst = this.Dst.Value;
-			if(this.RuleWordValue.Value || this.RuleWordAllValue.Value) {
-				if(string.IsNullOrEmpty(dst)) {
-					dst = "*";
-				}
-			}
+			var dst = (this.RuleWordValue.Value || this.RuleWordAllValue.Value) switch {
+				true => this.DstMask.Value,
+				_ => this.DstReplace.Value,
+			};
 			var rp = this.input ?? new Models.FilterRule();
 			rp.Action.Value = action;
 			rp.Rule.Value = rule;
@@ -115,7 +144,11 @@ internal class FilterRuleEditDialogViewModel : BindableBase, IDialogAware {
 				break;
 			}
 			this.Src.Value = this.input.Src.Value ?? "";
-			this.Dst.Value = this.input.Dst.Value ?? "";
+			if(this.ActionReplaceValue.Value) {
+				this.DstReplace.Value = this.input.Dst.Value ?? "";
+			} else {
+				this.DstMask.Value = this.input.Dst.Value ?? "*";
+			}
 		}
 	}
 	public void OnDialogClosed() {
