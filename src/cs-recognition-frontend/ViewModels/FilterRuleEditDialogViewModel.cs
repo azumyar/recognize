@@ -85,7 +85,7 @@ internal class FilterRuleEditDialogViewModel : BindableBase, IDialogAware {
 				rule = "regex";
 			}
 			var src = this.Src.Value;
-			var dst = (this.RuleWordValue.Value || this.RuleWordAllValue.Value) switch {
+			var dst = (this.ActionMaskValue.Value || this.ActionMaskAllValue.Value) switch {
 				true => this.DstMask.Value,
 				_ => this.DstReplace.Value,
 			};
