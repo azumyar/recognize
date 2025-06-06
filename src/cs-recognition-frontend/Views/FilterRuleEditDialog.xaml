@@ -31,89 +31,88 @@
             <Setter Property="ResizeMode" Value="NoResize" />
             <Setter Property="ShowInTaskbar" Value="False" />
             <Setter Property="SizeToContent" Value="WidthAndHeight" />
-            <Setter Property="Title" Value="ルール編集" />
         </Style>
     </prism:Dialog.WindowStyle>
     <Border
         Padding="8"
-        MinWidth="420" MinHeight="280"
-        Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+        Width="420" Height="360"
+        Background="White">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="4" />
+                <ColumnDefinition Width="8" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="24" />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="4" />
+                <RowDefinition Height="8" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="16" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="4" />
-                <RowDefinition Height="Auto" />
+                <RowDefinition Height="72" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <TextBlock
-                Grid.Column="0" Grid.Row="0"
-                Text="アクション"
-                />
-            <StackPanel Grid.Column="2" Grid.Row="0">
-                <RadioButton
+            <GroupBox
+                Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="0"
+                Header="アクション">
+                <StackPanel Margin="8">
+                    <RadioButton
                     IsChecked="{Binding ActionMaskValue.Value, Mode=TwoWay}"
-                    Content="先頭を残すマスク"
+                    Content="先頭意外マスク"
                     GroupName="a"
                     />
-                <RadioButton
+                    <RadioButton
                     IsChecked="{Binding ActionMaskAllValue.Value, Mode=TwoWay}"
-                    Content="一致全文マスク"
+                    Content="全部をマスク"
                     GroupName="a"
                     />
-                <RadioButton
+                    <RadioButton
                     IsChecked="{Binding ActionReplaceValue.Value, Mode=TwoWay}"
                     Content="置き換え"
                     GroupName="a">
-                    <i:Interaction.Triggers>
-                        <i:DataTrigger Binding="{Binding ActionReplaceValue.Value}" Comparison="Equal" Value="true">
-                            <i:ChangePropertyAction TargetName="dstReplace" PropertyName="Visibility" Value="Visible" />
-                            <i:ChangePropertyAction TargetName="dstMask" PropertyName="Visibility" Value="Hidden" />
-                        </i:DataTrigger>
-                        <i:DataTrigger Binding="{Binding ActionReplaceValue.Value}" Comparison="Equal" Value="false">
-                            <i:ChangePropertyAction TargetName="dstReplace" PropertyName="Visibility" Value="Hidden" />
-                            <i:ChangePropertyAction TargetName="dstMask" PropertyName="Visibility" Value="Visible" />
-                        </i:DataTrigger>                    
-                    </i:Interaction.Triggers>
-                </RadioButton>
-            </StackPanel>
+                        <i:Interaction.Triggers>
+                            <i:DataTrigger Binding="{Binding ActionReplaceValue.Value}" Comparison="Equal" Value="true">
+                                <i:ChangePropertyAction TargetName="dstReplace" PropertyName="Visibility" Value="Visible" />
+                                <i:ChangePropertyAction TargetName="dstMask" PropertyName="Visibility" Value="Hidden" />
+                            </i:DataTrigger>
+                            <i:DataTrigger Binding="{Binding ActionReplaceValue.Value}" Comparison="Equal" Value="false">
+                                <i:ChangePropertyAction TargetName="dstReplace" PropertyName="Visibility" Value="Hidden" />
+                                <i:ChangePropertyAction TargetName="dstMask" PropertyName="Visibility" Value="Visible" />
+                            </i:DataTrigger>
+                        </i:Interaction.Triggers>
+                    </RadioButton>
+                </StackPanel>
+            </GroupBox>
 
-            <TextBlock
-                Grid.Column="0" Grid.Row="2"
-                Text="ルール"
-                />
-            <StackPanel Grid.Column="2" Grid.Row="2">
-                <RadioButton
+            <GroupBox
+                Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="2"
+                Header="検索条件">
+                <StackPanel Margin="8">
+                    <RadioButton
                     IsChecked="{Binding RuleWordValue.Value, Mode=TwoWay}"
                     Content="単語一致検索"
                     GroupName="b"
                     />
-                <RadioButton
+                    <RadioButton
                     IsChecked="{Binding RuleWordAllValue.Value, Mode=TwoWay}"
                     Content="全文一致検索"
                     GroupName="b"
                     />
-                <RadioButton
+                    <RadioButton
                     IsChecked="{Binding RuleRegexValue.Value, Mode=TwoWay}"
                     Content="正規表現検索"
                     GroupName="b"
                     />
-            </StackPanel>
+                </StackPanel>
+            </GroupBox>
 
             <TextBlock
                 Grid.Column="0" Grid.Row="4"
-                Text="検索パターン"
+                Text="検索文字"
                 />
             <TextBox
                 Grid.Column="2" Grid.Row="4"                
@@ -137,11 +136,19 @@
                 x:Name="dstReplace"
                 Grid.Column="2" Grid.Row="6"
                 Text="{Binding DstReplace.Value, Mode=TwoWay}"
+                AcceptsReturn="False"
+                TextWrapping="Wrap"
+                HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Visible"
                 />
             <TextBox
                 x:Name="dstMask"
                 Grid.Column="2" Grid.Row="6"
                 Text="{Binding DstMask.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                AcceptsReturn="False"
+                TextWrapping="Wrap"
+                HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Visible"
                 />
             <TextBlock
                 Grid.Column="3" Grid.Row="6"

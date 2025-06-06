@@ -12,6 +12,7 @@ using System.Windows;
 
 namespace Haru.Kei.ViewModels;
 internal class FilterRuleEditDialogViewModel : BindableBase, IDialogAware {
+	public string Title { get { return "ルール編集"; } }
 	public InteractionMessenger Messenger { get; } = new();
 
 	public ReactiveProperty<bool> ActionMaskValue { get; } = new(initialValue: true);
