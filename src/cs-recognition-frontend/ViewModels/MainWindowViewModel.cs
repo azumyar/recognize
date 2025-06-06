@@ -21,17 +21,7 @@ using Reactive.Bindings;
 namespace Haru.Kei.ViewModels;
 
 public class MainWindowViewModel : BindableBase {
-	public class Command : ICommand {
-		public Action<object?>? Invoker { get; set; } = default;
-
-		public event EventHandler? CanExecuteChanged;
-		public bool CanExecute(object? parameter) => true;
-		public void Execute(object? parameter) => this.Invoker?.Invoke(parameter);
-	}
-
 	public static string ConfirmationKey = "Confirmation";
-
-
 
 	private readonly string CONFIG_FILE = "frontend.conf";
 	private readonly string FILTER_FILE = "frontend-filter.conf";
@@ -42,17 +32,17 @@ public class MainWindowViewModel : BindableBase {
 
 	public ReactiveProperty<Models.Filter> Filter { get; } = new(initialValue: new());
 
-	public Command CreateBatchommand { get; } = new();
-	public Command MicTestCommand { get; } = new();
-	public Command AmbientTestCommand { get; } = new();
-	public Command CloseCommand { get; } = new();
+	public ReactiveCommand CreateBatchommand { get; } = new();
+	public ReactiveCommand MicTestCommand { get; } = new();
+	public ReactiveCommand AmbientTestCommand { get; } = new();
+	public ReactiveCommand CloseCommand { get; } = new();
 
-	public Command ConnectWhisperCommand { get; } = new();
-	public Command ConnectGoogleCommand { get; } = new();
-	public Command ConnectYukarinetteCommand { get; } = new();
-	public Command ConnectYukaConeCommand { get; } = new();
+	public ReactiveCommand ConnectWhisperCommand { get; } = new();
+	public ReactiveCommand ConnectGoogleCommand { get; } = new();
+	public ReactiveCommand ConnectYukarinetteCommand { get; } = new();
+	public ReactiveCommand ConnectYukaConeCommand { get; } = new();
 
-	public Command ExecCommand { get; } = new();
+	public ReactiveCommand ExecCommand { get; } = new();
 
 
 	public ReactiveCommand<RoutedEventArgs> LoadedCommand { get; } = new();
@@ -103,7 +93,7 @@ public class MainWindowViewModel : BindableBase {
 		});
 
 
-		this.ExecCommand.Invoker = (_) => {
+		this.ExecCommand.Subscribe(() => {
 			System.Diagnostics.Debug.Assert(this.arg is not null);
 			this.SaveConfig(this.arg);
 
@@ -125,9 +115,9 @@ public class MainWindowViewModel : BindableBase {
 
 			}
 			catch(Exception) { }
-		};
+		});
 
-		this.CreateBatchommand.Invoker = async (_) => {
+		this.CreateBatchommand.Subscribe(async () => {
 			System.Diagnostics.Debug.Assert(this.arg is not null);
 			try {
 				var bat = new StringBuilder()
@@ -151,8 +141,8 @@ public class MainWindowViewModel : BindableBase {
 				});
 			}
 			catch(System.IO.IOException) { }
-		};
-		this.MicTestCommand.Invoker = (_) => {
+		});
+		this.MicTestCommand.Subscribe(() => {
 			System.Diagnostics.Debug.Assert(this.arg is not null);
 			var properties = this.arg.GetType().GetProperties();
 			try {
@@ -163,28 +153,28 @@ public class MainWindowViewModel : BindableBase {
 				})) { }
 			}
 			catch(Exception) { }
-		};
-		this.AmbientTestCommand.Invoker = (_) => {
+		});
+		this.AmbientTestCommand.Subscribe((_) => {
 			System.Diagnostics.Debug.Assert(this.arg is not null);
 			using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
 				FileName = this.arg.RecognizeExePath,
 				Arguments = string.Format("--test mic_ambient {0}", this.GenExeArguments(this.arg)),
 				UseShellExecute = true,
 			})) { }
-		};
-		this.CloseCommand.Invoker = (_) => {
+		});
+		this.CloseCommand.Subscribe((_) => {
 			global::System.Windows.Application.Current?.Shutdown();
-		};
+		});
 
-		this.ConnectWhisperCommand.Invoker = (_) => {
+		this.ConnectWhisperCommand.Subscribe(() => {
 			System.Diagnostics.Debug.Assert(this.arg is not null);
 			this.arg.ArgMethod = "kotoba_whisper";
 			this.arg.ArgHpfParamaterV2 = HpfArgGenerater.HpfParamater.強め.ToString();
 			this.arg.ArgVadParamaterV2 = "0";
 			this.arg.ArgMicRecordMinDuration = 0.8f;
 			this.propertyGrid.Refresh();
-		};
-		this.ConnectGoogleCommand.Invoker = (_) => {
+		});
+		this.ConnectGoogleCommand.Subscribe((_) => {
 			System.Diagnostics.Debug.Assert(this.arg is not null);
 			this.arg.ArgMethod = "google_mix";
 			this.arg.ArgGoogleProfanityFilter = true;
@@ -192,20 +182,20 @@ public class MainWindowViewModel : BindableBase {
 			this.arg.ArgVadParamaterV2 = "0";
 			this.arg.ArgMicRecordMinDuration = null;
 			this.propertyGrid.Refresh();
-		};
-		this.ConnectYukarinetteCommand.Invoker = (_) => {
+		});
+		this.ConnectYukarinetteCommand.Subscribe((_) => {
 			System.Diagnostics.Debug.Assert(this.arg is not null);
 			this.arg.ArgOutWithYukarinette = true;
 			if(!this.arg.ArgOutYukarinette.HasValue) {
 				this.arg.ArgOutYukarinette = 49513;
 			}
 			this.propertyGrid.Refresh();
-		};
-		this.ConnectYukaConeCommand.Invoker = (_) => {
+		});
+		this.ConnectYukaConeCommand.Subscribe(() => {
 			System.Diagnostics.Debug.Assert(this.arg is not null);
 			this.arg.ArgOutWithYukacone = true;
 			this.propertyGrid.Refresh();
-		};
+		});
 	}
 
 	public async Task OnLoaded(RoutedEventArgs e) {
