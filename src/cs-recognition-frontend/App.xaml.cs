@@ -33,14 +33,6 @@ public partial class App : PrismApplication {
 		base.ConfigureViewModelLocator();
 
 		ViewModelLocationProvider.Register<Views.MainWindow, ViewModels.MainWindowViewModel>();
-
-		/*
-		ViewModelLocationProvider.Register<Windows.ConfigWindow, ViewModels.ConfigWindowViewModel>();
-		ViewModelLocationProvider.Register<Controls.FutabaViewer, ViewModels.FutabaViewerViewModel>();
-		ViewModelLocationProvider.Register<Controls.FutabaCatalogViewer, ViewModels.FutabaCatalogViewerViewModel>();
-		ViewModelLocationProvider.Register<Controls.FutabaMediaViewer, ViewModels.FutabaMediaViewerViewModel>();
-		*/
-
 		containerRegistry.RegisterDialog<Views.FilterRuleEditDialog>();
 		containerRegistry.RegisterInstance(this.Container);
 	}

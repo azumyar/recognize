@@ -84,6 +84,67 @@
                     </WindowsFormsHost>
                 </Border>
             </TabItem>
+
+            <TabItem Header="ボイロ連携" Padding="16,2,16,2">
+                <Border Margin="8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="64" />
+                            <ColumnDefinition Width="24" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="24" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <CheckBox
+                            Grid.Column="0" Grid.ColumnSpan="5" Grid.Row="0"
+                            HorizontalAlignment="Left"
+                            Content="連携する"
+                            />
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="2"
+                            Text="連携ボイロ"
+                            />
+                        <ComboBox
+                            Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="2"
+                            SelectedIndex="0">
+                            <ComboBoxItem>VOICEROID2</ComboBoxItem>
+                        </ComboBox>
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="4"
+                            Text="合成音声パス"
+                            />
+                        <TextBox
+                            Grid.Column="2" Grid.Row="4"
+                            />
+                        <Button
+                            Grid.Column="3" Grid.Row="4"
+                            Content="選択"
+                            />
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="6"
+                            Text="illiminateパス"
+                            />
+                        <TextBox
+                            Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="6"
+                            />
+
+                    </Grid>
+                </Border>
+            </TabItem>
+
             <TabItem Header="フィルタ"  Padding="16,2,16,2">
                 <TabItem.Resources>
                     <local:FilterTemplateSelector
