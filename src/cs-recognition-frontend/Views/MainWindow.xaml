@@ -12,7 +12,7 @@
     xmlns:wf="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
     mc:Ignorable="d"
     Title="ゆーかねすぴれこランチャー"
-    Height="480" Width="820"
+    Height="720" Width="820"
     Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
 
     <i:Interaction.Triggers>
@@ -65,27 +65,258 @@
                 <MenuItem Header="ゆかコネNEOと連携"  Command="{Binding ConnectYukaConeCommand}"/>
             </MenuItem>
         </Menu>
-        <TabControl Grid.Row="1" TabStripPlacement="Left" Margin="4,0,0,0">
-            <TabControl.Resources>
-                <Style TargetType="{x:Type TabItem}">
-                    <Setter Property="LayoutTransform">
-                        <Setter.Value>
-                            <TransformGroup>
-                                <RotateTransform Angle="90"/>
-                            </TransformGroup>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-            </TabControl.Resources>
-            <TabItem Header="基本" Padding="16,2,16,2">
-                <Border >
-                    <WindowsFormsHost Grid.Row="1">
-                        <wf:PropertyGrid x:Name="propertyGrid" />
-                    </WindowsFormsHost>
+        <TabControl Grid.Row="1" Margin="0,8,0,0">
+            <TabItem Header="モデル" Padding="16,2,16,2">
+                <Border Margin="8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="24" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="24" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="0"
+                            Text="認識モデル"
+                            />
+                        <ComboBox
+                            Grid.Column="2" Grid.Row="0"
+                            SelectedIndex="1"
+                            >
+                            <ComboBoxItem>kotoba_whisper</ComboBoxItem>
+                            <ComboBoxItem>googole_mix</ComboBoxItem>
+                        </ComboBox>
+                    </Grid>
                 </Border>
             </TabItem>
 
-            <TabItem Header="ボイロ連携" Padding="16,2,16,2">
+            <TabItem Header="マイク" Padding="16,2,16,2">
+                <Border Margin="8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="24" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="24" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="0"
+                            Text="デバイス"
+                            />
+                        <Grid
+                            Grid.Column="2" Grid.Row="0"
+                            >
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="64" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox />
+                            <Button
+                                Grid.Column="1"
+                                Content="再読み込み"
+                                />
+                        </Grid>
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="2"
+                            Text="環境音境界値[dB]"
+                            />
+                        <TextBox
+                            Grid.Column="2" Grid.Row="2"                            
+                            />
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="4"
+                            Text="入力無視秒数[秒]"
+                            />
+                        <TextBox
+                            Grid.Column="2" Grid.Row="4"                            
+                            />
+
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="6"
+                            Text="雑音判定の積極性"
+                            />
+                        <ComboBox
+                            Grid.Column="2" Grid.Row="6"                            
+                            >
+                            <ComboBoxItem></ComboBoxItem>
+                            <ComboBoxItem>0</ComboBoxItem>
+                            <ComboBoxItem>1</ComboBoxItem>
+                            <ComboBoxItem>2</ComboBoxItem>
+                            <ComboBoxItem>3</ComboBoxItem>
+                        </ComboBox>
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="8"
+                            Text="HPFの強さ"
+                            />
+                        <ComboBox
+                            Grid.Column="2" Grid.Row="8"                            
+                            >
+                            <ComboBoxItem></ComboBoxItem>
+                            <ComboBoxItem>無効</ComboBoxItem>
+                            <ComboBoxItem>弱い</ComboBoxItem>
+                            <ComboBoxItem>普通</ComboBoxItem>
+                            <ComboBoxItem>強め</ComboBoxItem>
+                        </ComboBox>
+
+                    </Grid>
+                </Border>
+            </TabItem>
+
+            <TabItem Header="ゆかりねっと" Padding="16,2,16,2">
+                <Border Margin="8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="24" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="24" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <CheckBox
+                            Grid.Column="0" Grid.ColumnSpan="3"
+                            HorizontalAlignment="Left"
+                            Content="ゆかりねっとと連携"
+                            />
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="2"
+                            Text="外部連携ポート"
+                            />
+                        <TextBox
+                            Grid.Column="2" Grid.Row="2"                            
+                            />
+
+                        <CheckBox
+                            Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="4"
+                            HorizontalAlignment="Left"
+                            Content="ゆかコネNEOと連携"
+                            />
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="6"
+                            Text="外部連携ポート"
+                            />
+                        <TextBox
+                            Grid.Column="2" Grid.Row="6"                            
+                            />
+                    </Grid>
+                </Border>
+            </TabItem>
+
+            <TabItem Header="字幕" Padding="16,2,16,2">
+                <Border Margin="8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="24" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="24" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <CheckBox
+                            Grid.Column="0" Grid.ColumnSpan="3"
+                            HorizontalAlignment="Left"
+                            Content="OBS字幕を使用する"
+                            />
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="2"
+                            Text="字幕時間(秒)"
+                            />
+                        <TextBox
+                            Grid.Column="2" Grid.Row="2"                            
+                            />
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="4"
+                            Text="日本語字幕用テキストソース"
+                            />
+                        <TextBox
+                            Grid.Column="2" Grid.Row="4"                            
+                            />
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="6"
+                            Text="翻訳字幕用テキストソース"
+                            />
+                        <TextBox
+                            Grid.Column="2" Grid.Row="6"                            
+                            />
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="8"
+                            Text="Webソケットポート"
+                            />
+                        <TextBox
+                            Grid.Column="2" Grid.Row="8"                            
+                            />
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="10"
+                            Text="Webソケットパスワード"
+                            />
+                        <TextBox
+                            Grid.Column="2" Grid.Row="10"                            
+                            />
+
+                        <CheckBox
+                            Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="12"
+                            HorizontalAlignment="Left"
+                            Content="VRC OSC字幕を使用する"
+                            />
+                    </Grid>
+                </Border>
+            </TabItem>
+
+            <TabItem Header="合成音声" Padding="16,2,16,2">
                 <Border Margin="8">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -108,7 +339,7 @@
                         <CheckBox
                             Grid.Column="0" Grid.ColumnSpan="5" Grid.Row="0"
                             HorizontalAlignment="Left"
-                            Content="連携する"
+                            Content="合成音声でおしゃべりする"
                             />
 
                         <TextBlock
@@ -140,7 +371,6 @@
                         <TextBox
                             Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="6"
                             />
-
                     </Grid>
                 </Border>
             </TabItem>
@@ -387,6 +617,14 @@
                             </ContentControl.Resources>
                         </ContentControl>
                     </Grid>
+                </Border>
+            </TabItem>
+
+            <TabItem Header="詳細" Padding="16,2,16,2">
+                <Border >
+                    <WindowsFormsHost Grid.Row="1">
+                        <wf:PropertyGrid x:Name="propertyGrid" />
+                    </WindowsFormsHost>
                 </Border>
             </TabItem>
         </TabControl>
