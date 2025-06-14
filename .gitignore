@@ -7,6 +7,7 @@ packages/
 Record/*
 bin/tee.exe
 src/py-recognition/.venv
+src/cs-illiminate/dist/
 *.csproj.user
 build.log
 recognize-gui.exe

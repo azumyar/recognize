@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35931.197 d17.13
+VisualStudioVersion = 17.13.35931.197
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "test", "test\test.csproj", "{8AA7E1D8-CCA3-471A-B9AB-6EC5ADD0A1D6}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoiceLink", "VoiceLink\VoiceLink.csproj", "{2B08AD51-6D87-4FF1-B319-9392F909E8D2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "illiminate", "illiminate\illiminate.csproj", "{52641D59-779F-63CC-D826-95335DD2EF58}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,14 +13,14 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{8AA7E1D8-CCA3-471A-B9AB-6EC5ADD0A1D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8AA7E1D8-CCA3-471A-B9AB-6EC5ADD0A1D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8AA7E1D8-CCA3-471A-B9AB-6EC5ADD0A1D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8AA7E1D8-CCA3-471A-B9AB-6EC5ADD0A1D6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{2B08AD51-6D87-4FF1-B319-9392F909E8D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2B08AD51-6D87-4FF1-B319-9392F909E8D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2B08AD51-6D87-4FF1-B319-9392F909E8D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2B08AD51-6D87-4FF1-B319-9392F909E8D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52641D59-779F-63CC-D826-95335DD2EF58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52641D59-779F-63CC-D826-95335DD2EF58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52641D59-779F-63CC-D826-95335DD2EF58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52641D59-779F-63CC-D826-95335DD2EF58}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

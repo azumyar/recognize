@@ -24,6 +24,11 @@ popd
 )< build.dat
 if %r% neq 0 goto error
 
+(call src\cs-illiminate\build.bat 2>&1 & call echo %%^^errorlevel%% ^> build.dat) | bin\tee.exe --mask build.log
+popd
+(
+    set /P r=
+)< build.dat
 (call src\cs-recognition-frontend\build.bat 2>&1 & call echo %%^^errorlevel%% ^> build.dat) | bin\tee.exe --mask build.log
 popd
 (

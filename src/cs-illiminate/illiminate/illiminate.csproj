@@ -10,10 +10,11 @@
 
   <PropertyGroup>
     <ApplicationIcon>App.ico</ApplicationIcon>
-    <AssemblyName>test</AssemblyName>
+    <AssemblyName>illiminate</AssemblyName>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <PublishDir>..\dist</PublishDir>
     <OutputType>WinExe</OutputType>
     <DebugType>none</DebugType>
     <PublishReadyToRun>true</PublishReadyToRun>
