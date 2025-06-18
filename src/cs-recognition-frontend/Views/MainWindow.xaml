@@ -122,9 +122,9 @@
                         </Grid.RowDefinitions>
 
                         <TextBlock
-                            Grid.Column="0" Grid.Row="0"
-                            Text="デバイス"
-                            />
+                            Grid.Column="0" Grid.Row="0">
+                            <Run Text="デバイス" />
+                        </TextBlock>
                         <Grid
                             Grid.Column="2" Grid.Row="0"
                             >
@@ -139,51 +139,73 @@
                                 />
                         </Grid>
 
-                        <TextBlock
-                            Grid.Column="0" Grid.Row="2"
-                            Text="環境音境界値[dB]"
-                            />
+                        <TextBlock Grid.Column="0" Grid.Row="2">
+                            <Run Text="環境音境界値[dB]" />
+                            <Run
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="環境音ではないと判断する音圧の境界値。デフォルトでは0.0が設定されています。お使いのマイクによって感度は異なります" />
+                        </TextBlock>
                         <TextBox
-                            Grid.Column="2" Grid.Row="2"                            
+                            Grid.Column="2" Grid.Row="2" 
+                            Text="{Binding ConfigBinder.MicrophoneThresholdDbBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            />
+                        <TextBlock
+                            Grid.Column="3" Grid.Row="2"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Foreground="Red"
+                            FontFamily="{StaticResource SymbolFont}" 
+                            Text="{StaticResource FontSymbolError}"
+                            Visibility="{Binding ConfigBinder.MicrophoneThresholdDbError.Value, Mode=OneWay}"
                             />
 
-                        <TextBlock
-                            Grid.Column="0" Grid.Row="4"
-                            Text="入力無視秒数[秒]"
-                            />
+                        <TextBlock Grid.Column="0" Grid.Row="4">
+                            <Run Text="入力無視秒数[秒]" />
+                            <Run
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="この秒数未満の入力は無視します。デフォルトでは0.0が設定されています。お使いのマイクによって感度は異なります。" />
+                        </TextBlock>
                         <TextBox
                             Grid.Column="2" Grid.Row="4"                            
+                            Text="{Binding ConfigBinder.MicrophoneRecordMinDurationBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
-
-
                         <TextBlock
-                            Grid.Column="0" Grid.Row="6"
-                            Text="雑音判定の積極性"
+                            Grid.Column="3" Grid.Row="4"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Foreground="Red"
+                            FontFamily="{StaticResource SymbolFont}" 
+                            Text="{StaticResource FontSymbolError}"
+                            Visibility="{Binding ConfigBinder.MicrophoneRecordMinDurationError.Value, Mode=OneWay}"
                             />
+
+                        <TextBlock Grid.Column="0" Grid.Row="6">
+                            <Run Text="雑音判定の積極性" />
+                            <Run
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="VADフィルタの強度を設定します。数値が大きくなるほど積極的に雑音判定します" />
+                        </TextBlock>
                         <ComboBox
-                            Grid.Column="2" Grid.Row="6"                            
-                            >
-                            <ComboBoxItem></ComboBoxItem>
-                            <ComboBoxItem>0</ComboBoxItem>
-                            <ComboBoxItem>1</ComboBoxItem>
-                            <ComboBoxItem>2</ComboBoxItem>
-                            <ComboBoxItem>3</ComboBoxItem>
-                        </ComboBox>
-
-                        <TextBlock
-                            Grid.Column="0" Grid.Row="8"
-                            Text="HPFの強さ"
+                            Grid.Column="2" Grid.Row="6"
+                            ItemsSource="{Binding ConfigBinder.VadGoogleParamatersBinder, Mode=OneWay}"
+                            SelectedIndex="{Binding ConfigBinder.VadGoogleParamaterIndex.Value, Mode=TwoWay}"
                             />
+
+                        <TextBlock Grid.Column="0" Grid.Row="8">
+                            <Run Text="HPFの強さ" />
+                            <Run
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="HPFフィルタの強度を設定します。google音声認識を使用する場合無効を推奨します" />
+                        </TextBlock>
                         <ComboBox
                             Grid.Column="2" Grid.Row="8"                            
-                            >
-                            <ComboBoxItem></ComboBoxItem>
-                            <ComboBoxItem>無効</ComboBoxItem>
-                            <ComboBoxItem>弱い</ComboBoxItem>
-                            <ComboBoxItem>普通</ComboBoxItem>
-                            <ComboBoxItem>強め</ComboBoxItem>
-                        </ComboBox>
-
+                            ItemsSource="{Binding ConfigBinder.HpfParamatersBinder, Mode=OneWay}"
+                            SelectedIndex="{Binding ConfigBinder.HpfParamaterIndex.Value, Mode=TwoWay}"
+                            />
                     </Grid>
                 </Border>
             </TabItem>

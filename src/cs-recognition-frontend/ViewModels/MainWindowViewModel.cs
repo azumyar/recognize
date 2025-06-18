@@ -63,9 +63,11 @@ public class MainWindowViewModel : BindableBase {
 
 	public InteractionMessenger Messenger { get; } = new();
 
-	private RecognizeExeArgument? arg = default;
 	private global::System.Windows.Forms.PropertyGrid? propertyGrid;
 	private readonly IDialogService dialogService;
+
+	public Models.Config Config { get; private set; }
+	public Models.ConfigBinder ConfigBinder { get; private set; }
 
 	public MainWindowViewModel(IDialogService dialogService) {
 		this.dialogService = dialogService;
@@ -94,6 +96,7 @@ public class MainWindowViewModel : BindableBase {
 
 
 		this.ExecCommand.Subscribe(() => {
+			/*
 			System.Diagnostics.Debug.Assert(this.arg is not null);
 			this.SaveConfig(this.arg);
 
@@ -115,9 +118,11 @@ public class MainWindowViewModel : BindableBase {
 
 			}
 			catch(Exception) { }
+			*/
 		});
 
 		this.CreateBatchommand.Subscribe(async () => {
+			/*
 			System.Diagnostics.Debug.Assert(this.arg is not null);
 			try {
 				var bat = new StringBuilder()
@@ -141,8 +146,10 @@ public class MainWindowViewModel : BindableBase {
 				});
 			}
 			catch(System.IO.IOException) { }
+			*/
 		});
 		this.MicTestCommand.Subscribe(() => {
+			/*
 			System.Diagnostics.Debug.Assert(this.arg is not null);
 			var properties = this.arg.GetType().GetProperties();
 			try {
@@ -153,135 +160,39 @@ public class MainWindowViewModel : BindableBase {
 				})) { }
 			}
 			catch(Exception) { }
+			*/
 		});
 		this.AmbientTestCommand.Subscribe((_) => {
+			/*
 			System.Diagnostics.Debug.Assert(this.arg is not null);
 			using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
 				FileName = this.arg.RecognizeExePath,
 				Arguments = string.Format("--test mic_ambient {0}", this.GenExeArguments(this.arg)),
 				UseShellExecute = true,
 			})) { }
+			*/
 		});
 		this.CloseCommand.Subscribe((_) => {
 			global::System.Windows.Application.Current?.Shutdown();
 		});
 
 		this.ConnectWhisperCommand.Subscribe(() => {
-			System.Diagnostics.Debug.Assert(this.arg is not null);
-			this.arg.ArgMethod = "kotoba_whisper";
-			this.arg.ArgHpfParamaterV2 = HpfArgGenerater.HpfParamater.強め.ToString();
-			this.arg.ArgVadParamaterV2 = "0";
-			this.arg.ArgMicRecordMinDuration = 0.8f;
-			this.propertyGrid.Refresh();
 		});
 		this.ConnectGoogleCommand.Subscribe((_) => {
-			System.Diagnostics.Debug.Assert(this.arg is not null);
-			this.arg.ArgMethod = "google_mix";
-			this.arg.ArgGoogleProfanityFilter = true;
-			this.arg.ArgHpfParamaterV2 = HpfArgGenerater.HpfParamater.無効.ToString();
-			this.arg.ArgVadParamaterV2 = "0";
-			this.arg.ArgMicRecordMinDuration = null;
-			this.propertyGrid.Refresh();
 		});
 		this.ConnectYukarinetteCommand.Subscribe((_) => {
-			System.Diagnostics.Debug.Assert(this.arg is not null);
-			this.arg.ArgOutWithYukarinette = true;
-			if(!this.arg.ArgOutYukarinette.HasValue) {
-				this.arg.ArgOutYukarinette = 49513;
-			}
-			this.propertyGrid.Refresh();
 		});
 		this.ConnectYukaConeCommand.Subscribe(() => {
-			System.Diagnostics.Debug.Assert(this.arg is not null);
-			this.arg.ArgOutWithYukacone = true;
-			this.propertyGrid.Refresh();
 		});
+
+		this.Config = new();
+		this.ConfigBinder = new(this.Config);
 	}
 
 	public async Task OnLoaded(RoutedEventArgs e) {
 		this.propertyGrid = ((MainWindow)e.Source).propertyGrid;
-
-		var convDic = new Dictionary<Type, Func<string, object?>>();
-		convDic.Add(typeof(string), (x) => x);
-		convDic.Add(typeof(bool?), (x) => {
-			bool v;
-			return bool.TryParse(x, out v) ? (object)v : null;
-		});
-		convDic.Add(typeof(int?), (x) => {
-			int v;
-			return int.TryParse(x, out v) ? (object)v : null;
-		});
-		convDic.Add(typeof(float?), (x) => {
-			float v;
-			return float.TryParse(x, out v) ? (object)v : null;
-		});
-
-		var isVesionUp = false;
-		var list = new List<Tuple<string, string>>();
-		var ver = default(int);
-		try {
-			var save = File.ReadAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.CONFIG_FILE));
-			foreach(var line in save.Replace("\r\n", "\n").Split('\n')) {
-				var c = line.IndexOf(':');
-				if(0 < c) {
-					var tp = new Tuple<string, string>(line.Substring(0, c), line.Substring(c + 1));
-					list.Add(tp);
-
-
-					if(tp.Item1.ToLower() == "version") {
-						if(int.TryParse(tp.Item2, out ver) && ver < RecognizeExeArgument.FormatVersion) {
-							isVesionUp = true;
-						}
-					}
-				}
-			}
-		}
-		catch(IOException) { }
-
-		var prop = typeof(RecognizeExeArgument).GetProperties().Where(x => x.CanWrite);
-		var pr = typeof(RecognizeExeArgument).GetProperty("RecognizeExePath");
-		var exe = list.Where(x => x.Item1 == pr.Name).FirstOrDefault();
-		this.arg = RecognizeExeArgumentEx.Init((exe != null) ? exe.Item2 : (string)pr.GetCustomAttribute<DefaultValueAttribute>().Value);
-		foreach(var tp in list) {
-			var p = prop.Where(x => x.Name == tp.Item1).FirstOrDefault();
-			if(p != null) {
-				var svattr = p.GetCustomAttribute<SaveAttribute>();
-				if((svattr != null) && !svattr.IsRestore) {
-					continue;
-				}
-
-				Func<string, object> f;
-				if(convDic.TryGetValue(p.PropertyType, out f)) {
-					var v = f(tp.Item2);
-					if(v != null) {
-						p.SetValue(this.arg, v);
-					}
-				}
-			}
-		}
-		this.propertyGrid.SelectedObject = this.arg;
-		if(isVesionUp) {
-			// マイグレ処理
-			if(ver < 2025042700) {
-				// 2025/04/27対応
-				// --mic_record_min_duration追加処理
-				this.arg.ArgMicRecordMinDuration = this.arg.ArgMethod switch {
-					"whisper" => 0.8f,
-					"faster_whisper" => 0.8f,
-					"kotoba_whisper" => 0.8f,
-					_ => null
-				};
-			}
-			await Messenger.RaiseAsync(new ConfirmationMessage(
-				"設定が更新されています。内容を確認してね",
-				"ゆーかねすぴれこ",
-				ConfirmationKey) {
-
-				Button = MessageBoxButton.OK,
-				Image = MessageBoxImage.Information,
-			});
-		}
-		if(!IsValidExePath(this.arg)) {
+		this.propertyGrid.SelectedObject = this.Config.Extra;
+		if(!IsValidExePath(this.Config)) {
 			await Messenger.RaiseAsync(new ConfirmationMessage(
 				"パスに不正な文字が含まれます。ゆーかねすぴれこは英数字だけのパスに配置してください。",
 				"ゆーかねすぴれこ",
@@ -306,7 +217,7 @@ public class MainWindowViewModel : BindableBase {
 	}
 
 	public void OnClosing() {
-		this.SaveConfig(this.arg);
+		//this.SaveConfig(this.arg);
 		try {
 			if(File.Exists(this.TEMP_BAT)) {
 				File.Delete(this.TEMP_BAT);
@@ -374,13 +285,17 @@ public class MainWindowViewModel : BindableBase {
 	}
 
 
-	private bool IsValidExePath(RecognizeExeArgument argument) {
+	private bool IsValidExePath(Models.Config argument) {
+		if(string.IsNullOrEmpty( argument.Extra.RecognizeExePath)) {
+			return true;
+		}
+
 		try {
-			var path = global::System.IO.Path.GetFullPath(argument.RecognizeExePath);
-			if(path.ToLower() != arg.RecognizeExePath.ToLower()) {
+			var path = global::System.IO.Path.GetFullPath(argument.Extra.RecognizeExePath);
+			if(path.ToLower() != Config.Extra.RecognizeExePath.ToLower()) {
 				// exeは相対パス
 				// 作業ディレクトリがexeのディレクトリとは限らないので作り直す
-				path = global::System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, arg.RecognizeExePath);
+				path = global::System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Config.Extra.RecognizeExePath);
 			} else {
 				// exeはフルパス
 			}
@@ -401,6 +316,7 @@ public class MainWindowViewModel : BindableBase {
 
 	private string GenExeArguments(RecognizeExeArgument argument) {
 		var araguments = new StringBuilder();
+		/*
 		foreach(var p in argument.GetType().GetProperties()) {
 			var att = p.GetCustomAttribute<ArgAttribute>();
 			if(att != null) {
@@ -414,50 +330,11 @@ public class MainWindowViewModel : BindableBase {
 			araguments.Append(" ")
 				.Append(argument.ExtraArgument);
 		}
+		*/
 		return araguments.ToString();
 	}
 
 	private void SaveConfig(RecognizeExeArgument argument) {
-		try {
-			var save = new StringBuilder();
-			var dict = new Dictionary<string, string>();
-			foreach(var p in argument.GetType().GetProperties()) {
-				var dfattr = p.GetCustomAttribute<DefaultValueAttribute>();
-				if(dfattr != null) {
-					var pv = p.GetValue(this.arg, null);
-					var dv = dfattr.Value;
-					if((pv != null) && !pv.Equals(dv)) {
-						var svattr = p.GetCustomAttribute<SaveAttribute>();
-						if((svattr != null) && !svattr.IsSave) {
-							continue;
-						}
-						dict.Add(p.Name, pv.ToString());
-						continue;
-					}
-					//if((dv != null) && !dv.Equals(pv)) {
-					//	save.Append(p.Name).Append(":").AppendLine(pv.ToString());
-					//	continue;
-					//}
-				}
-			}
-
-			foreach(var p in argument.GetType().GetProperties()) {
-				var svattr = p.GetCustomAttribute<SaveAttribute>();
-				var pv = p.GetValue(this.arg, null);
-				if((pv != null) && (svattr != null) && svattr.IsSave) {
-					if(!dict.ContainsKey(p.Name)) {
-						dict.Add(p.Name, pv.ToString());
-						continue;
-					}
-				}
-			}
-
-			foreach(var key in dict.Keys) {
-				save.Append(key).Append(":").AppendLine(dict[key]);
-			}
-			File.WriteAllText(global::System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.CONFIG_FILE), save.ToString());
-		}
-		catch(IOException) { }
 	}
 
 }
