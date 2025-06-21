@@ -248,6 +248,7 @@ public class Config {
 		// 絶対パスに変換してillminateパス
 		if(this.IsUsedIlluminate) {
 			opt.Append($"--out \"illuminate\" ");
+			opt.Append($"--out_illuminate_exe \"{this.Extra.IlluminateExePath}\" ");
 			opt.Append($"--out_illuminate_voice \"voiceroid2\" ");
 			opt.Append($"--out_illuminate_client \"{this.IlluminateClient}\" ");
 		}
