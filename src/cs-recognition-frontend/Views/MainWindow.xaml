@@ -79,9 +79,11 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="8" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="24" />
+                            <RowDefinition Height="8" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="24" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
@@ -91,11 +93,63 @@
                             />
                         <ComboBox
                             Grid.Column="2" Grid.Row="0"
-                            SelectedIndex="1"
-                            >
-                            <ComboBoxItem>kotoba_whisper</ComboBoxItem>
-                            <ComboBoxItem>googole_mix</ComboBoxItem>
-                        </ComboBox>
+                            ItemsSource="{Binding ConfigBinder.TranscribeModelsBinder, Mode=OneWay}"
+                            SelectedIndex="{Binding ConfigBinder.TranscribeModeIndex.Value, Mode=TwoWay}"
+                            />
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="2"
+                            Visibility="{Binding ConfigBinder.GoogleItemVisibility.Value, Mode=OneWay}">
+                            <Run Text="音声認識言語" />
+                        </TextBlock>
+                        <TextBox
+                            Grid.Column="2" Grid.Row="2" 
+                            Visibility="{Binding ConfigBinder.GoogleItemVisibility.Value, Mode=OneWay}"
+                            Text="{Binding ConfigBinder.GoogleLanguageBinding.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            />
+                        
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="4"
+                            Visibility="{Binding ConfigBinder.GoogleItemVisibility.Value, Mode=OneWay}">
+                            <Run Text="APIタイムアウト時間[秒]" />
+                        </TextBlock>
+                        <TextBox
+                            Grid.Column="2" Grid.Row="4" 
+                            Visibility="{Binding ConfigBinder.GoogleItemVisibility.Value, Mode=OneWay}"
+                            Text="{Binding ConfigBinder.GoogleTimeoutBinding.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            />
+                        <!--
+                        <TextBlock
+                            Grid.Column="3" Grid.Row="2"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Foreground="Red"
+                            FontFamily="{StaticResource SymbolFont}" 
+                            Text="{StaticResource FontSymbolError}"
+                            Visibility="{Binding ConfigBinder.MicrophoneThresholdDbError.Value, Mode=OneWay}"
+                            />
+                        -->
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="6"
+                            Visibility="{Binding ConfigBinder.GoogleItemVisibility.Value, Mode=OneWay}">
+                            <Run Text="冒とくフィルタ" />
+                        </TextBlock>
+                        <CheckBox
+                            Grid.Column="2" Grid.Row="6" 
+                            Visibility="{Binding ConfigBinder.GoogleItemVisibility.Value, Mode=OneWay}"
+                            IsChecked="{Binding ConfigBinder.GoogleProfanityFilterBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            Content="使用する"
+                            />
+
+                        <TextBlock Grid.Column="0" Grid.Row="9">
+                            <Run Text="冒とく翻訳モデル" />
+                        </TextBlock>
+                        <ComboBox
+                            Grid.Column="2" Grid.Row="8"
+                            ItemsSource="{Binding ConfigBinder.TranslateModelsBinder, Mode=OneWay}"
+                            SelectedIndex="{Binding ConfigBinder.TranslateModelIndex.Value, Mode=TwoWay}"
+                            />
                     </Grid>
                 </Border>
             </TabItem>
@@ -132,10 +186,14 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="64" />
                             </Grid.ColumnDefinitions>
-                            <ComboBox />
+                            <ComboBox
+                                ItemsSource="{Binding ConfigBinder.MicDevicesBinder, Mode=OneWay}"
+                                SelectedIndex="{Binding ConfigBinder.MicDeviceIndex.Value, Mode=TwoWay}"
+                                />
                             <Button
                                 Grid.Column="1"
                                 Content="再読み込み"
+                                IsEnabled="False"
                                 />
                         </Grid>
 
@@ -380,19 +438,22 @@
                             />
                         <TextBox
                             Grid.Column="2" Grid.Row="4"
+                            Text="{Binding ConfigBinder.IlluminateClientBinding.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
                         <Button
                             Grid.Column="3" Grid.Row="4"
                             Content="選択"
-                            />
-
-                        <TextBlock
-                            Grid.Column="0" Grid.Row="6"
-                            Text="illiminateパス"
-                            />
-                        <TextBox
-                            Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="6"
-                            />
+                            >
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="Click">
+                                    <l:OpenFileDialogInteractionMessageAction>
+                                        <l:DirectInteractionMessage CallbackCommand="{Binding IlluminateClientClickCommand}">
+                                            <l:OpeningFileSelectionMessage Filter="すべてのファイル(*.*)|*.*" Title="合成音声を選択" MultiSelect="False"/>
+                                        </l:DirectInteractionMessage>
+                                    </l:OpenFileDialogInteractionMessageAction>
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                        </Button>
                     </Grid>
                 </Border>
             </TabItem>

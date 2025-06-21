@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using Accessibility;
 using Newtonsoft.Json;
 using Reactive.Bindings;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
@@ -49,7 +50,15 @@ public class ReactiveCollectionConverter<T> : JsonConverter {
 
 public class Config {
 
-	public ReactiveProperty<string> TranscribeModel { get; set; } = new(initialValue: "");
+	public string TranscribeModel { get; set; } = "";
+
+	public string GoogleLanguage { get; set; } = "";
+
+	public float? GoogleTimeout { get; set; }
+
+	public bool GoogleProfanityFilter { get; set; }
+
+	public string TranslateModel { get; set; } = "";
 
 	// マイク
 	public int? Microphone { get; set; } = null;
@@ -68,6 +77,12 @@ public class Config {
 	// ゆかこね連携
 	public bool IsUsedYukaCone { get; set; } = false;
 	public int? YukaConePort { get; set; } = null;
+
+
+	public bool IsUsedIlluminate { get; set; } = false;
+	public string IlluminateVoice { get; set; } = "voiceroid2";
+	public string IlluminateClient { get; set; } = "";
+
 
 	[TypeConverter(typeof(DefinitionOrderTypeConverter))]
 	public class RecognizeExeArgument {
@@ -116,7 +131,7 @@ public class Config {
 		[DisplayName("illiminate.exeパス")]
 		[Description("illiminate.exeのパスをフルパスまたは相対パスで指定")]
 		[DefaultValue(@".\src\\cs-illiminate\dist\illiminate.exe")]
-		public string IlliminateExePath { get; set; }
+		public string IlluminateExePath { get; set; }
 
 		[DisplayName("ログレベル")]
 		[Description("コンソールに出すログ出力レベルを設定します")]
@@ -181,13 +196,93 @@ public class Config {
 	}
 
 	public RecognizeExeArgument Extra { get; private set; } = new();
+
+
+
+	public readonly string TranscribeModelWhisper = "kotoba_whisper";
+	public readonly string TranscribeModelGoogle = "google_mix";
+	public string ToCommandOption() {
+		static StringBuilder arg<T>(StringBuilder opt, string name, T? val) {
+			if(val switch {
+				string v => !string.IsNullOrEmpty(v),
+				var v => v != null,
+			}) {
+				if(val is bool v1) {
+					if(v1) {
+						return opt.Append($"{name} ");
+					}
+				} else {
+					return opt.Append($"{name} \"{val}\" ");
+				}
+			}
+			return opt;
+		}
+
+		var opt = new StringBuilder();
+		if(!string.IsNullOrEmpty(this.TranscribeModel)) {
+			opt.Append($"--method \"{this.TranscribeModel}\" ");
+			if(this.TranscribeModel == TranscribeModelGoogle) {
+				arg(opt, "--google_language", this.GoogleLanguage);
+				arg(opt, "--google_timeout", this.GoogleTimeout);
+				arg(opt, "--google_profanity_filter", this.GoogleProfanityFilter);
+			}
+		}
+		arg(opt, "--translate", this.TranslateModel);
+
+		arg(opt, "--mic", this.Microphone);
+		arg(opt, "--mic_db_threshold", this.MicrophoneThresholdDb);
+		arg(opt, "--mic_record_min_duration", this.MicrophoneRecordMinDuration);
+		arg(opt, "--vad_google_mode", this.VadGoogleParamater);
+		arg(opt, "--filter_hpf", this.HpfParamater);
+
+		if(this.IsUsedYukarinette) {
+			opt.Append($"--out \"yukarinette\" ");
+			arg(opt, "--out_yukarinette", this.YukatinettePort);
+
+		}
+		if(this.IsUsedYukaCone) {
+			opt.Append($"--out \"yukacone\" ");
+			arg(opt, "--out_yukacone", this.YukaConePort);
+		}
+
+		// 絶対パスに変換してillminateパス
+		if(this.IsUsedIlluminate) {
+			opt.Append($"--out \"illuminate\" ");
+			opt.Append($"--out_illuminate_voice \"voiceroid2\" ");
+			opt.Append($"--out_illuminate_client \"{this.IlluminateClient}\" ");
+		}
+
+		arg(opt, "--verbose", this.Extra.ArgVerbose);
+		arg(opt, "--log_directory", this.Extra.ArgLogDirectory);
+		if(this.Extra.ArgRecord.HasValue) {
+			if(this.Extra.ArgRecord.Value) {
+				opt.Append($"--record ");
+				arg(opt, "--record_file", this.Extra.ArgRecordFile);
+				arg(opt, "--record_directory", this.Extra.ArgRecordDirectory);
+			}
+		}
+		arg(opt, "--torch_cache", this.Extra.ArgTorchCache);
+		
+		if(!string.IsNullOrEmpty(this.Extra.ExtraArgument)) {
+			opt.Append(this.Extra.ExtraArgument);
+		}
+		return opt.ToString();
+	}
 }
 
 
 public class ConfigBinder : INotifyPropertyChanged {
 	public event PropertyChangedEventHandler? PropertyChanged;
 
-
+	private readonly string[] TranscribeModels = {
+		"設定しない",
+		"AI音声認識",
+		"google音声認識",
+	};
+	private readonly string[] TranslateModels = {
+		"設定しない",
+		"AI翻訳",
+	};
 	private readonly string[] VadGoogleParamaters = {
 		"設定しない",
 		"0",
@@ -203,7 +298,20 @@ public class ConfigBinder : INotifyPropertyChanged {
 		"強め",
 	};
 
+	// モデル
+	public ReactiveCollection<string> TranscribeModelsBinder { get; }
+	public ReactiveProperty<int> TranscribeModeIndex { get; }
+	public ReactiveProperty<string> GoogleLanguageBinding { get; }
+	public ReactiveProperty<string> GoogleTimeoutBinding { get; set; }
+	public ReactiveProperty<bool> GoogleProfanityFilterBinder { get; set; }
+	public ReactiveCollection<string> TranslateModelsBinder { get; set; }
+	public ReactiveProperty<int> TranslateModelIndex { get; }
+	public ReactiveProperty<Visibility> GoogleItemVisibility { get; }
+	public ReactiveProperty<Visibility> GoogleTimeoutError { get; }
+
 	// マイク
+	public ReactiveCollection<string> MicDevicesBinder { get; }
+	public ReactiveProperty<int> MicDeviceIndex { get; }
 	public ReactiveProperty<string> MicrophoneThresholdDbBinder { get; }
 	public ReactiveProperty<string> MicrophoneRecordMinDurationBinder { get; }
 	public ReactiveCollection<string> VadGoogleParamatersBinder { get; }
@@ -223,9 +331,58 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public ReactiveProperty<string> YukaConePortBinding { get; }
 	public ReactiveProperty<Visibility> YukaConePortError { get; }
 
+	// ボイロ連携
+	public ReactiveProperty<bool> IsUsedIlluminateBinding { get; }
+	//public ReactiveProperty<string> IlluminateVoiceBinding { get; }
+	public ReactiveProperty<string> IlluminateClientBinding { get; }
+
 
 	public ConfigBinder(Config config) {
-		// マイクタブ
+		// モデル
+		this.TranscribeModelsBinder = new();
+		this.TranscribeModelsBinder.AddRangeOnScheduler(TranscribeModels);
+		this.TranscribeModeIndex = new(initialValue: config.TranscribeModel switch {
+			"kotoba_whisper" => 1,
+			"google_mix" => 2,
+			_ => 0
+		});
+		this.TranscribeModeIndex.Subscribe(x => config.TranscribeModel = x switch {
+			1 => "kotoba_whisper",
+			2 => "google_mix",
+			_ => ""
+		});
+		this.GoogleLanguageBinding = new(initialValue: config.GoogleLanguage);
+		this.GoogleLanguageBinding.Subscribe(x => config.GoogleLanguage = x);
+		this.GoogleTimeoutBinding = new(initialValue: this.ToString(config.GoogleTimeout));
+		this.GoogleTimeoutBinding.Subscribe(x => config.GoogleTimeout = this.ToFloat(x));
+		this.GoogleProfanityFilterBinder = new(initialValue: config.GoogleProfanityFilter);
+
+		this.TranslateModelsBinder = new();
+		this.TranslateModelsBinder.AddRangeOnScheduler(TranslateModels);
+		this.TranslateModelIndex = new(initialValue: config.TranslateModel switch {
+			"kotoba_whisper" => 1,
+			_ => 0
+		});
+		this.TranslateModelIndex.Subscribe(x => config.TranslateModel = x switch {
+			1 => "kotoba_whisper",
+			_ => "",
+		});
+
+		this.GoogleItemVisibility = this.TranscribeModeIndex
+			.Select(x => x switch {
+				2 => Visibility.Visible,
+				_ => Visibility.Hidden,
+			}).ToReactiveProperty();
+		this.GoogleTimeoutError = this.GoogleTimeoutBinding
+			.Select(x => this.ToFloatError(x))
+			.ToReactiveProperty();
+
+		// マイク
+		this.MicDevicesBinder = new();
+		this.MicDeviceIndex = new(initialValue: config.Microphone switch {
+			int v => v + 1,
+			_ => 0
+		});
 		this.MicrophoneThresholdDbBinder = new(initialValue: this.ToString(config.MicrophoneThresholdDb));
 		this.MicrophoneThresholdDbBinder.Subscribe(x => {
 			config.MicrophoneThresholdDb = this.ToFloat(x);
@@ -243,8 +400,18 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.HpfParamatersBinder = new();
 		this.HpfParamatersBinder.AddRangeOnScheduler(this.HpfParamaters);
 		this.HpfParamaterIndex = new(initialValue: config.HpfParamater switch {
-			int v => v + 1,
+			int v when (0 <= v) && (v < 80) => 1,
+			int v when (80 <= v) && (v < 120) => 2,
+			int v when (120 <= v) && (v < 200) => 3,
+			int v when (200 <= v) => 4,
 			_ => 0
+		});
+		this.HpfParamaterIndex.Subscribe(x => config.HpfParamater = x switch {
+			1 => 0,
+			2 => 80,
+			3 => 120,
+			4 => 200,
+			_ => null
 		});
 		this.MicrophoneThresholdDbError = this.MicrophoneThresholdDbBinder
 			.Select(x => this.ToFloatError(x))
@@ -261,13 +428,23 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.YukarinettePortError = this.YukarinettePortBinding
 			.Select(x => ToIntError(x))
 			.ToReactiveProperty();
-		/*
-	// ゆかこね連携
-	public ReactiveProperty<bool> IsUsedYukaConeBinding { get; }
-	public ReactiveProperty<int?> YukaConePortBinding { get; }
-	public ReactiveProperty<Visibility> YukaConePortError { get; }
-		*/
-}
+
+		this.IsUsedYukaConeBinding = new(initialValue: config.IsUsedYukaCone);
+		this.IsUsedYukaConeBinding.Subscribe(x => config.IsUsedYukaCone = x);
+		this.YukaConePortBinding = new(initialValue: ToString(config.YukaConePort));
+		this.YukaConePortBinding.Subscribe(x => config.YukaConePort = ToInt(x));
+		this.YukaConePortError = this.YukaConePortBinding
+			.Select(x => ToIntError(x))
+			.ToReactiveProperty();
+
+		// ボイロ連携
+		this.IsUsedIlluminateBinding = new(initialValue: config.IsUsedIlluminate);
+		this.IsUsedIlluminateBinding.Subscribe(x => config.IsUsedIlluminate = x);
+		//this.IlluminateVoiceBinding = new(initialValue: config.IsUsedIlluminate);
+		//this.IlluminateVoiceBinding.Subscribe(x => config.IsUsedIlluminate = x);
+		this.IlluminateClientBinding = new(initialValue: config.IlluminateClient);
+		this.IlluminateClientBinding.Subscribe(x => config.IlluminateClient = x);
+	}
 
 	private string ToString<T>(T v) {
 		if (v == null) {

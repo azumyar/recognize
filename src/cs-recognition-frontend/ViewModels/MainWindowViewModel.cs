@@ -14,6 +14,7 @@ using System.Windows.Input;
 using Haru.Kei.Models;
 using Haru.Kei.Views;
 using Livet.Messaging;
+using Livet.Messaging.IO;
 using Prism.Dialogs;
 using Prism.Mvvm;
 using Reactive.Bindings;
@@ -48,6 +49,9 @@ public class MainWindowViewModel : BindableBase {
 	public ReactiveCommand<RoutedEventArgs> LoadedCommand { get; } = new();
 	public ReactiveCommand ClosingCommand { get; } = new();
 
+
+	public ReactiveCommand<OpeningFileSelectionMessage> IlluminateClientClickCommand { get; } = new();	
+
 	public ReactiveCommand<RoutedEventArgs> FilterAddClickCommand { get; } = new();
 	public ReactiveCommand<RoutedEventArgs> FilterRemoveClickCommand { get; } = new();
 	public ReactiveCommand<RoutedEventArgs> RuleAddClickCommand { get; } = new();
@@ -73,6 +77,7 @@ public class MainWindowViewModel : BindableBase {
 		this.dialogService = dialogService;
 		this.LoadedCommand.Subscribe(async x => await this.OnLoaded(x));
 		this.ClosingCommand.Subscribe(() => this.OnClosing());
+		this.IlluminateClientClickCommand.Subscribe(x => this.OnIlluminateClientClick(x));
 		this.FilterAddClickCommand.Subscribe(_ => this.OnFilterAdd());
 		this.FilterRemoveClickCommand.Subscribe(x => this.OnFilterRemove(x));
 		this.RuleAddClickCommand.Subscribe(x => this.OnRuleAdd(x));
@@ -96,14 +101,13 @@ public class MainWindowViewModel : BindableBase {
 
 
 		this.ExecCommand.Subscribe(() => {
-			/*
-			System.Diagnostics.Debug.Assert(this.arg is not null);
-			this.SaveConfig(this.arg);
+			System.Diagnostics.Debug.Assert(this.Config is not null);
+			//this.SaveConfig(this.arg);
 
 			var bat = new StringBuilder()
 				.AppendLine("@echo off")
 				.AppendLine()
-				.AppendFormat("\"{0}\"", this.arg.RecognizeExePath).Append(" ").AppendLine(this.GenExeArguments(this.arg))
+				.AppendFormat("\"{0}\"", this.Config.Extra.RecognizeExePath).Append(" ").AppendLine(this.Config.ToCommandOption())
 				.AppendLine("if %ERRORLEVEL% neq 0 (")
 				.AppendLine("  pause")
 				.AppendLine(")");
@@ -118,18 +122,16 @@ public class MainWindowViewModel : BindableBase {
 
 			}
 			catch(Exception) { }
-			*/
 		});
 
 		this.CreateBatchommand.Subscribe(async () => {
-			/*
-			System.Diagnostics.Debug.Assert(this.arg is not null);
+			System.Diagnostics.Debug.Assert(this.Config is not null);
 			try {
 				var bat = new StringBuilder()
 					.AppendLine("@echo off")
 					.AppendLine("pushd \"%~dp0\"")
 					.AppendLine()
-					.AppendFormat("\"{0}\"", this.arg.RecognizeExePath).Append(" ").AppendLine(this.GenExeArguments(this.arg))
+					.AppendFormat("\"{0}\"", this.Config.Extra.RecognizeExePath).Append(" ").AppendLine(this.Config.ToCommandOption())
 					.AppendLine("pause");
 				File.WriteAllText(
 					global::System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.BAT_FILE),
@@ -146,7 +148,6 @@ public class MainWindowViewModel : BindableBase {
 				});
 			}
 			catch(System.IO.IOException) { }
-			*/
 		});
 		this.MicTestCommand.Subscribe(() => {
 			/*
@@ -187,9 +188,31 @@ public class MainWindowViewModel : BindableBase {
 
 		this.Config = new();
 		this.ConfigBinder = new(this.Config);
+
+		try {
+			if(File.Exists(this.Config.Extra.RecognizeExePath)) {
+				this.ConfigBinder.MicDevicesBinder.Clear();
+				this.ConfigBinder.MicDevicesBinder.Add("設定しない");
+				using(var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
+					FileName = this.Config.Extra.RecognizeExePath,
+					Arguments = "--print_mics",
+					RedirectStandardOutput = true,
+					UseShellExecute = false,
+					WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+					CreateNoWindow = true,
+				})) {
+					string s;
+					while((s = p.StandardOutput.ReadLine()) != null) {
+						this.ConfigBinder.MicDevicesBinder.Add(s);
+					}
+					p.WaitForExit();
+				}
+			}
+		}
+		catch(Exception) { }
 	}
 
-	public async Task OnLoaded(RoutedEventArgs e) {
+	private async Task OnLoaded(RoutedEventArgs e) {
 		this.propertyGrid = ((MainWindow)e.Source).propertyGrid;
 		this.propertyGrid.SelectedObject = this.Config.Extra;
 		if(!IsValidExePath(this.Config)) {
@@ -216,7 +239,7 @@ public class MainWindowViewModel : BindableBase {
 		}
 	}
 
-	public void OnClosing() {
+	private void OnClosing() {
 		//this.SaveConfig(this.arg);
 		try {
 			if(File.Exists(this.TEMP_BAT)) {
@@ -226,20 +249,26 @@ public class MainWindowViewModel : BindableBase {
 		catch(IOException) { }
 	}
 
-	public void OnFilterAdd() {
+	private void OnIlluminateClientClick(OpeningFileSelectionMessage e) { 
+		if(e.Response?.FirstOrDefault() is string file) {
+			this.ConfigBinder.IlluminateClientBinding.Value = file;
+		}
+	}
+
+	private void OnFilterAdd() {
 		var f = new Models.FilterItem();
 		f.Name.Value = "新規フィルタ";
 		this.Filter.Value.Filters?.Add(f);
 		this.SelectedFilterItem.Value = f;
 	}
 
-	public void OnFilterRemove(RoutedEventArgs e) {
+	private void OnFilterRemove(RoutedEventArgs e) {
 		if(e.Source is FrameworkElement el && el.DataContext is Models.FilterItem item) {
 			this.Filter.Value.Filters?.Remove(item);
 		}
 	}
 
-	public void OnRuleAdd(RoutedEventArgs e) {
+	private void OnRuleAdd(RoutedEventArgs e) {
 		if(this.SelectedFilterItem.Value != null) {
 			var parameters = new DialogParameters();
 			this.dialogService.ShowDialog(nameof(Views.FilterRuleEditDialog), parameters, dialogResult => {
@@ -252,7 +281,7 @@ public class MainWindowViewModel : BindableBase {
 		}
 	}
 
-	public void OnRuleEdit(RoutedEventArgs e) {
+	private void OnRuleEdit(RoutedEventArgs e) {
 		if(e.Source is FrameworkElement el && el.DataContext is Models.FilterRule rule) {
 			if(this.SelectedFilterItem.Value != null) {
 				var index = this.SelectedFilterItem.Value.Rules?.Select((x, i) => (V: x, I: i))
@@ -276,7 +305,7 @@ public class MainWindowViewModel : BindableBase {
 	}
 
 
-	public void OnRuleRemove(RoutedEventArgs e) {
+	private void OnRuleRemove(RoutedEventArgs e) {
 		if(e.Source is FrameworkElement el && el.DataContext is Models.FilterRule rule) {
 			if(this.SelectedFilterItem.Value != null) {
 				this.SelectedFilterItem.Value.Rules?.Remove(rule);
