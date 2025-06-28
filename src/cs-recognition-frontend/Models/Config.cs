@@ -172,6 +172,13 @@ public class Config {
 
 	public readonly string TranscribeModelWhisper = "kotoba_whisper";
 	public readonly string TranscribeModelGoogle = "google_mix";
+
+	public readonly string VoiroVoiceRoid = "";
+	public readonly string VoiroVoiceRoid2 = "voiceroid2";
+	public readonly string VoiroAiVoice = "aivoice";
+	public readonly string VoiroAiVoice2 = "aivoice2";
+	public readonly string VoiroVoicePeak = "voicepeak";
+
 	public string ToCommandOption() {
 		static StringBuilder arg<T>(StringBuilder opt, string name, T? val) {
 			if(val switch {
@@ -232,8 +239,13 @@ public class Config {
 		// 絶対パスに変換してillminateパス
 		if(this.IsUsedIlluminate) {
 			opt.Append($"--out \"illuminate\" ");
-			opt.Append($"--out_illuminate_exe \"{this.Extra.IlluminateExePath}\" ");
-			opt.Append($"--out_illuminate_voice \"voiceroid2\" ");
+			if(Helpers.Util.IsFullPath(this.Extra.IlluminateExePath)) {
+				var p = Path.Combine(AppContext.BaseDirectory, this.Extra.IlluminateExePath);
+				opt.Append($"--out_illuminate_exe \"{p}\" ");
+			} else {
+				opt.Append($"--out_illuminate_exe \"{this.Extra.IlluminateExePath}\" ");
+			}
+			opt.Append($"--out_illuminate_voice \"{VoiroVoiceRoid2}\" ");
 			opt.Append($"--out_illuminate_client \"{this.IlluminateClient}\" ");
 		}
 
