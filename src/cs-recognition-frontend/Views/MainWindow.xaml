@@ -578,7 +578,6 @@
                         <TextBlock
                             Grid.Column="0" Grid.Row="10"
                             FontSize="{DynamicResource YsrFontSize}"
-                            Text="{Binding ConfigBinder.ObsSubtitlePasswordBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             >
                             <Run Text="Webソケットパスワード" />
                             <Run
