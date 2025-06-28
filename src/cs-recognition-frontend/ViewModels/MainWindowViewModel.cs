@@ -25,6 +25,7 @@ public class MainWindowViewModel : BindableBase {
 	public static string ConfirmationKey = "Confirmation";
 
 	private readonly string CONFIG_FILE = "frontend.conf";
+	private readonly string CONFIG2_FILE = "frontend.dev.v250628.conf";
 	private readonly string FILTER_FILE = "frontend-filter.conf";
 	private readonly string BAT_FILE = "custom-recognize.bat";
 	private readonly string TEMP_BAT = global::System.IO.Path.Combine(
@@ -61,10 +62,6 @@ public class MainWindowViewModel : BindableBase {
 	public ReactiveProperty<Models.FilterItem?> SelectedFilterItem { get; } = new();
 
 
-	// 一時的実装
-	public ReactiveCommand ___SaveCommand { get; } = new();
-
-
 	public InteractionMessenger Messenger { get; } = new();
 
 	private global::System.Windows.Forms.PropertyGrid? propertyGrid;
@@ -90,19 +87,9 @@ public class MainWindowViewModel : BindableBase {
 			}
 		});
 
-		this.___SaveCommand.Subscribe(() => {
-			var json = Newtonsoft.Json.JsonConvert.SerializeObject(this.Filter.Value);
-
-			try {
-				System.IO.File.WriteAllText(System.IO.Path.Combine(AppContext.BaseDirectory, this.FILTER_FILE), json);
-			}
-			catch { }
-		});
-
-
 		this.ExecCommand.Subscribe(() => {
 			System.Diagnostics.Debug.Assert(this.Config is not null);
-			//this.SaveConfig(this.arg);
+			this.SaveConfig();
 
 			var bat = new StringBuilder()
 				.AppendLine("@echo off")
@@ -186,7 +173,20 @@ public class MainWindowViewModel : BindableBase {
 		this.ConnectYukaConeCommand.Subscribe(() => {
 		});
 
-		this.Config = new();
+		try {
+			if(File.Exists(this.CONFIG2_FILE)) {
+				var json = File.ReadAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.CONFIG2_FILE));
+				this.Config = Newtonsoft.Json.JsonConvert.DeserializeObject<Models.Config>(json) switch {
+					Models.Config v => v,
+					_ => new Config(),
+				};
+			} else {
+				this.Config = new();
+			}
+		}
+		catch(Exception) {
+			this.Config = new();
+		}
 		this.ConfigBinder = new(this.Config);
 
 		try {
@@ -201,8 +201,8 @@ public class MainWindowViewModel : BindableBase {
 					WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
 					CreateNoWindow = true,
 				})) {
-					string s;
-					while((s = p.StandardOutput.ReadLine()) != null) {
+					string? s;
+					while((s = p?.StandardOutput?.ReadLine()) != null) {
 						this.ConfigBinder.MicDevicesBinder.Add(s);
 					}
 					p.WaitForExit();
@@ -240,7 +240,7 @@ public class MainWindowViewModel : BindableBase {
 	}
 
 	private void OnClosing() {
-		//this.SaveConfig(this.arg);
+		this.SaveConfig();
 		try {
 			if(File.Exists(this.TEMP_BAT)) {
 				File.Delete(this.TEMP_BAT);
@@ -363,7 +363,20 @@ public class MainWindowViewModel : BindableBase {
 		return araguments.ToString();
 	}
 
-	private void SaveConfig(RecognizeExeArgument argument) {
-	}
+	private void SaveConfig() {
+		static bool json(string fileName, object o) {
+			try {
+				System.IO.File.WriteAllText(
+					System.IO.Path.Combine(AppContext.BaseDirectory, fileName),
+					Newtonsoft.Json.JsonConvert.SerializeObject(o));
+				return true;
+			}
+			catch {
+				return false;
+			}
+		}
 
+		json(this.CONFIG2_FILE, this.Config);
+		json(this.FILTER_FILE, this.Filter.Value);
+	}
 }

@@ -760,6 +760,7 @@
                                         </i:Interaction.Triggers>
                                     </Button>
 
+                                    <!--
                                     <Button Grid.Column="2">
                                         <Button.Content>
                                             <TextBlock
@@ -774,6 +775,7 @@
                                             </i:EventTrigger>
                                         </i:Interaction.Triggers>
                                     </Button>
+                                    -->
                                     <Button Grid.Column="4" IsEnabled="False">
                                         <Button.Content>
                                             <TextBlock
