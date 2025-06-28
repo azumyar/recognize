@@ -106,7 +106,6 @@ public class MainWindowViewModel : BindableBase {
 					WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory,
 					UseShellExecute = true,
 				})) { }
-
 			}
 			catch(Exception) { }
 		});
@@ -137,28 +136,23 @@ public class MainWindowViewModel : BindableBase {
 			catch(System.IO.IOException) { }
 		});
 		this.MicTestCommand.Subscribe(() => {
-			/*
-			System.Diagnostics.Debug.Assert(this.arg is not null);
-			var properties = this.arg.GetType().GetProperties();
+			System.Diagnostics.Debug.Assert(this.Config is not null);
 			try {
 				using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
-					FileName = this.arg.RecognizeExePath,
-					Arguments = string.Format("--test mic {0}", this.GenExeArguments(this.arg)),
+					FileName = this.Config.Extra.RecognizeExePath,
+					Arguments = string.Format("--test mic {0}", this.Config.ToCommandOption()),
 					UseShellExecute = true,
 				})) { }
 			}
 			catch(Exception) { }
-			*/
 		});
 		this.AmbientTestCommand.Subscribe((_) => {
-			/*
-			System.Diagnostics.Debug.Assert(this.arg is not null);
+			System.Diagnostics.Debug.Assert(this.Config is not null);
 			using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
-				FileName = this.arg.RecognizeExePath,
-				Arguments = string.Format("--test mic_ambient {0}", this.GenExeArguments(this.arg)),
+				FileName = this.Config.Extra.RecognizeExePath,
+				Arguments = string.Format("--test mic_ambient {0}", this.Config.ToCommandOption()),
 				UseShellExecute = true,
 			})) { }
-			*/
 		});
 		this.CloseCommand.Subscribe((_) => {
 			global::System.Windows.Application.Current?.Shutdown();
@@ -320,14 +314,10 @@ public class MainWindowViewModel : BindableBase {
 		}
 
 		try {
-			var path = global::System.IO.Path.GetFullPath(argument.Extra.RecognizeExePath);
-			if(path.ToLower() != Config.Extra.RecognizeExePath.ToLower()) {
-				// exeは相対パス
-				// 作業ディレクトリがexeのディレクトリとは限らないので作り直す
-				path = global::System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Config.Extra.RecognizeExePath);
-			} else {
-				// exeはフルパス
-			}
+			var path = Helpers.Util.IsFullPath(argument.Extra.RecognizeExePath) switch {
+				true => argument.Extra.RecognizeExePath,
+				false => global::System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Config.Extra.RecognizeExePath) // 作業ディレクトリがexeのディレクトリとは限らないので作り直す
+			};
 
 			// ASCIIを超えた場合はfalse
 			foreach(var c in path) {
@@ -341,26 +331,6 @@ public class MainWindowViewModel : BindableBase {
 		catch(SecurityException) { return false; }
 		catch(NotSupportedException) { return false; }
 		catch(PathTooLongException) { return false; }
-	}
-
-	private string GenExeArguments(RecognizeExeArgument argument) {
-		var araguments = new StringBuilder();
-		/*
-		foreach(var p in argument.GetType().GetProperties()) {
-			var att = p.GetCustomAttribute<ArgAttribute>();
-			if(att != null) {
-				var opt = att.Generate(p.GetValue(this.arg, null), this.arg);
-				if(!string.IsNullOrEmpty(opt)) {
-					araguments.Append(" ").Append(opt);
-				}
-			}
-		}
-		if(!string.IsNullOrEmpty(argument.ExtraArgument)) {
-			araguments.Append(" ")
-				.Append(argument.ExtraArgument);
-		}
-		*/
-		return araguments.ToString();
 	}
 
 	private void SaveConfig() {
