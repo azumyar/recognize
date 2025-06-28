@@ -190,7 +190,11 @@ public class Config {
 						return opt.Append($"{name} ");
 					}
 				} else {
-					return opt.Append($"{name} \"{val}\" ");
+					if($"{val}".ToString().Last() == '\\') {
+						return opt.Append($"{name} \"{val}\\\" ");
+					} else {
+						return opt.Append($"{name} \"{val}\" ");
+					}
 				}
 			}
 			return opt;
@@ -213,7 +217,7 @@ public class Config {
 		arg(opt, "--vad_google_mode", this.VadGoogleParamater);
 		arg(opt, "--filter_hpf", this.HpfParamater);
 
-		//opt.Append($"--out \"print\" ");
+		opt.Append($"--out \"print\" "); // ないと本体が起動しないのでいったん付与する
 		if(this.IsUsedYukarinette) {
 			opt.Append($"--out \"yukarinette\" ");
 			arg(opt, "--out_yukarinette", this.YukatinettePort);
@@ -241,12 +245,12 @@ public class Config {
 			opt.Append($"--out \"illuminate\" ");
 			if(Helpers.Util.IsFullPath(this.Extra.IlluminateExePath)) {
 				var p = Path.Combine(AppContext.BaseDirectory, this.Extra.IlluminateExePath);
-				opt.Append($"--out_illuminate_exe \"{p}\" ");
+				arg(opt, "--out_illuminate_exe", p);
 			} else {
-				opt.Append($"--out_illuminate_exe \"{this.Extra.IlluminateExePath}\" ");
+				arg(opt, "--out_illuminate_exe", this.Extra.IlluminateExePath);
 			}
-			opt.Append($"--out_illuminate_voice \"{VoiroVoiceRoid2}\" ");
-			opt.Append($"--out_illuminate_client \"{this.IlluminateClient}\" ");
+			arg(opt, "--out_illuminate_voice", VoiroVoiceRoid2);
+			arg(opt, "--out_illuminate_client", this.IlluminateClient);
 		}
 
 		arg(opt, "--verbose", this.Extra.ArgVerbose);
@@ -263,6 +267,7 @@ public class Config {
 		if(!string.IsNullOrEmpty(this.Extra.ExtraArgument)) {
 			opt.Append(this.Extra.ExtraArgument);
 		}
+
 		return opt.ToString();
 	}
 }
