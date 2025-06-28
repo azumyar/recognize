@@ -78,6 +78,14 @@ public class Config {
 	public bool IsUsedYukaCone { get; set; } = false;
 	public int? YukaConePort { get; set; } = null;
 
+	// 字幕
+	public bool IsUsedObsSubtitle { get; set; } = false;
+	public float? ObsSubtitleTruncate { get; set; } = null;
+	public string ObsSubtitleTextJp { get; set; } = "";
+	public string ObsSubtitleTextEn { get; set; } = "";
+	public int? ObsSubtitlePort { get; set; } = null;
+	public string ObsSubtitlePassword { get; set; } = "";
+	public bool IsUsedVrcSubtitle { get; set; } = false;
 
 	public bool IsUsedIlluminate { get; set; } = false;
 	public string IlluminateVoice { get; set; } = "voiceroid2";
@@ -125,61 +133,61 @@ public class Config {
 		[DisplayName("recognize.exeパス")]
 		[Description("recognize.exeのパスをフルパスまたは相対パスで指定")]
 		[DefaultValue(@".\src\\py-recognition\dist\recognize\recognize.exe")]
-		public string RecognizeExePath { get; set; }
+		public string RecognizeExePath { get; set; } = "";
 
 		[Category(categoryOutput)]
 		[DisplayName("illiminate.exeパス")]
 		[Description("illiminate.exeのパスをフルパスまたは相対パスで指定")]
 		[DefaultValue(@".\src\\cs-illiminate\dist\illiminate.exe")]
-		public string IlluminateExePath { get; set; }
+		public string IlluminateExePath { get; set; } = "";
 
 		[DisplayName("ログレベル")]
 		[Description("コンソールに出すログ出力レベルを設定します")]
 		[DefaultValue("")]
 		[TypeConverter(typeof(ArgVerboseConverter))]
 		[ArgAttribute("--verbose")]
-		public string ArgVerbose { get; set; }
+		public string ArgVerbose { get; set; } = "";
 
 		/* 設定できないほうがいい気がするので保留
 		[DisplayName("ログファイル名")]
 		[Description("ログファイル名を指定します")]
 		[DefaultValue("")]
 		[ArgAttribute("--log_file")]
-		public string ArgLogFile { get; set; }
+		public string ArgLogFile { get; set; } = "";
 		*/
 
 		[DisplayName("ログファイル出力先")]
 		[Description("ログファイル出力先フォルダパスを指定します")]
 		[DefaultValue("")]
 		[ArgAttribute("--log_directory")]
-		public string ArgLogDirectory { get; set; }
+		public string ArgLogDirectory { get; set; } = "";
 
 		[DisplayName("録音")]
 		[DefaultValue(null)]
 		[Description("録音データを保存する場合trueにします")]
 		[ArgAttribute("--record", IsFlag = true)]
-		public bool? ArgRecord { get; set; }
+		public bool? ArgRecord { get; set; } = null;
 
 		[DisplayName("録音ファイル名")]
 		[Description("録音ファイル名を指定します。最終的なファイル名は{指定ファイル名}-{連番}.wavになります。")]
 		[DefaultValue("record")]
 		[ArgAttribute("--record_file", TargetProperty = "ArgRecord", TargetValue = "true", IgnoreCase = true)]
-		public string ArgRecordFile { get; set; }
+		public string ArgRecordFile { get; set; } = "";
 
 		[DisplayName("録音格納先")]
 		[Description("録音ファイル出力先フォルダパスを指定します")]
 		[ArgAttribute("--record_directory", TargetProperty = "ArgRecord", TargetValue = "true", IgnoreCase = true)]
-		public string ArgRecordDirectory { get; set; }
+		public string ArgRecordDirectory { get; set; } = "";
 
 		[DisplayName("AIファイル格納先")]
 		[Description("AIファイル格納ルートフォルダパスを指定します。このパスの配下に.cacheディレクトリが作られます。")]
 		[ArgAttribute("--torch_cache")]
-		public string ArgTorchCache { get; set; }
+		public string ArgTorchCache { get; set; } = "";
 
 		[DisplayName("自由記入欄")]
 		[Description("入力した文字列はコマンド引数末尾に追加されます")]
 		[DefaultValue("")]
-		public string ExtraArgument { get; set; }
+		public string ExtraArgument { get; set; } = "";
 
 		public RecognizeExeArgument() {
 			foreach(var p in this.GetType().GetProperties()) {
@@ -196,8 +204,6 @@ public class Config {
 	}
 
 	public RecognizeExeArgument Extra { get; private set; } = new();
-
-
 
 	public readonly string TranscribeModelWhisper = "kotoba_whisper";
 	public readonly string TranscribeModelGoogle = "google_mix";
@@ -235,14 +241,27 @@ public class Config {
 		arg(opt, "--vad_google_mode", this.VadGoogleParamater);
 		arg(opt, "--filter_hpf", this.HpfParamater);
 
+		//opt.Append($"--out \"print\" ");
 		if(this.IsUsedYukarinette) {
 			opt.Append($"--out \"yukarinette\" ");
 			arg(opt, "--out_yukarinette", this.YukatinettePort);
-
 		}
 		if(this.IsUsedYukaCone) {
 			opt.Append($"--out \"yukacone\" ");
 			arg(opt, "--out_yukacone", this.YukaConePort);
+		}
+
+		if(this.IsUsedObsSubtitle) {
+			opt.Append($"--out \"obs\" ");
+			arg(opt, "--out_obs_truncate", this.ObsSubtitleTruncate);
+			arg(opt, "--out_obs_port", this.ObsSubtitlePort);
+			arg(opt, "--out_obs_password", this.ObsSubtitlePassword);
+			arg(opt, "--out_obs_text_ja", this.ObsSubtitleTextJp);
+			arg(opt, "--out_obs_text_en", this.ObsSubtitleTextEn);
+		}
+
+		if(this.IsUsedVrcSubtitle) {
+			opt.Append($"--out \"vrc\" ");
 		}
 
 		// 絶対パスに変換してillminateパス
@@ -331,6 +350,18 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public ReactiveProperty<bool> IsUsedYukaConeBinding { get; }
 	public ReactiveProperty<string> YukaConePortBinding { get; }
 	public ReactiveProperty<Visibility> YukaConePortError { get; }
+
+	// 字幕
+	public ReactiveProperty<bool> IsUsedObsSubtitleBinder { get; }
+	public ReactiveProperty<string> ObsSubtitleTruncateBinder { get; }
+	public ReactiveProperty<string> ObsSubtitleTextJpBinder { get; }
+	public ReactiveProperty<string> ObsSubtitleTextEnBinder { get; }
+	public ReactiveProperty<string> ObsSubtitlePortBinder { get; }
+	public ReactiveProperty<string> ObsSubtitlePasswordBinder { get; }
+	public ReactiveProperty<bool> IsUsedVrcSubtitleBinder { get; }
+	public ReactiveProperty<Visibility> ObsSubtitleTruncateError { get; }
+	public ReactiveProperty<Visibility> ObsSubtitlePortError { get; }
+
 
 	// ボイロ連携
 	public ReactiveProperty<bool> IsUsedIlluminateBinding { get; }
@@ -437,6 +468,28 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.YukaConePortError = this.YukaConePortBinding
 			.Select(x => ToIntError(x))
 			.ToReactiveProperty();
+
+		// 字幕
+		this.IsUsedObsSubtitleBinder = new(initialValue: config.IsUsedObsSubtitle);
+		this.IsUsedObsSubtitleBinder.Subscribe(x => config.IsUsedObsSubtitle = x);
+		this.ObsSubtitleTruncateBinder = new(initialValue: ToString(config.ObsSubtitleTruncate));
+		this.ObsSubtitleTruncateBinder.Subscribe(x => config.ObsSubtitleTruncate = ToFloat(x));
+		this.ObsSubtitleTruncateError = this.ObsSubtitleTruncateBinder
+			.Select(x => ToFloatError(x))
+			.ToReactiveProperty();
+		this.ObsSubtitleTextJpBinder = new(initialValue: config.ObsSubtitleTextJp);
+		this.ObsSubtitleTextJpBinder.Subscribe(x => config.ObsSubtitleTextJp = x);
+		this.ObsSubtitleTextEnBinder = new(initialValue: config.ObsSubtitleTextEn);
+		this.ObsSubtitleTextEnBinder.Subscribe(x => config.ObsSubtitleTextEn = x);
+		this.ObsSubtitlePortBinder = new(initialValue: ToString(config.ObsSubtitlePort));
+		this.ObsSubtitlePortBinder.Subscribe(x => config.ObsSubtitlePort = ToInt(x));
+		this.ObsSubtitlePortError = this.ObsSubtitlePortBinder
+			.Select(x => ToIntError(x))
+			.ToReactiveProperty();
+		this.ObsSubtitlePasswordBinder = new(initialValue: config.ObsSubtitlePassword);
+		this.ObsSubtitlePasswordBinder.Subscribe(x => config.ObsSubtitlePassword = x);
+		this.IsUsedVrcSubtitleBinder = new(initialValue: config.IsUsedVrcSubtitle);
+		this.IsUsedVrcSubtitleBinder.Subscribe(x => config.IsUsedVrcSubtitle = x);
 
 		// ボイロ連携
 		this.IsUsedIlluminateBinding = new(initialValue: config.IsUsedIlluminate);

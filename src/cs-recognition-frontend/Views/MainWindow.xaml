@@ -65,15 +65,15 @@
                 <MenuItem Header="ゆかコネNEOと連携"  Command="{Binding ConnectYukaConeCommand}"/>
             </MenuItem>
         </Menu>
-        <TabControl Grid.Row="1" Margin="0,8,0,0">
+        <TabControl Grid.Row="1" Margin="0,8,0,0" FontSize="{DynamicResource YsrFontSize}">
             <TabItem Header="モデル" Padding="16,2,16,2">
                 <Border Margin="8">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="48" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="24" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -89,33 +89,70 @@
 
                         <TextBlock
                             Grid.Column="0" Grid.Row="0"
-                            Text="認識モデル"
-                            />
+                            FontSize="{DynamicResource YsrFontSize}"
+                            >
+                            <Run Text="認識モデル" />
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="-" />
+                        </TextBlock>
                         <ComboBox
-                            Grid.Column="2" Grid.Row="0"
+                            Grid.Column="3" Grid.Row="0"
                             ItemsSource="{Binding ConfigBinder.TranscribeModelsBinder, Mode=OneWay}"
                             SelectedIndex="{Binding ConfigBinder.TranscribeModeIndex.Value, Mode=TwoWay}"
                             />
 
                         <TextBlock
                             Grid.Column="0" Grid.Row="2"
-                            Visibility="{Binding ConfigBinder.GoogleItemVisibility.Value, Mode=OneWay}">
+                            Visibility="{Binding ConfigBinder.GoogleItemVisibility.Value, Mode=OneWay}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            >
                             <Run Text="音声認識言語" />
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="-" />
                         </TextBlock>
                         <TextBox
-                            Grid.Column="2" Grid.Row="2" 
+                            Grid.Column="3" Grid.Row="2" 
                             Visibility="{Binding ConfigBinder.GoogleItemVisibility.Value, Mode=OneWay}"
+                            FontSize="{DynamicResource YsrFontSize}"
                             Text="{Binding ConfigBinder.GoogleLanguageBinding.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
                         
                         <TextBlock
                             Grid.Column="0" Grid.Row="4"
-                            Visibility="{Binding ConfigBinder.GoogleItemVisibility.Value, Mode=OneWay}">
-                            <Run Text="APIタイムアウト時間[秒]" />
-                        </TextBlock>
-                        <TextBox
-                            Grid.Column="2" Grid.Row="4" 
                             Visibility="{Binding ConfigBinder.GoogleItemVisibility.Value, Mode=OneWay}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            >
+                            <Run Text="APIタイムアウト時間[秒]" />
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="-" />
+                        </TextBlock>
+                        <TextBlock
+                            Grid.Column="2" Grid.Row="4"
+                            Margin="4,0,4,0"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource YspErrorBrush}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            FontFamily="{StaticResource SymbolFont}" 
+                            Text="{StaticResource FontSymbolStatusErrorFull}"
+                            Visibility="{Binding ConfigBinder.GoogleTimeoutError.Value, Mode=OneWay}"
+                            />
+                        <TextBox
+                            Grid.Column="3" Grid.Row="4" 
+                            Visibility="{Binding ConfigBinder.GoogleItemVisibility.Value, Mode=OneWay}"
+                            FontSize="{DynamicResource YsrFontSize}"
                             Text="{Binding ConfigBinder.GoogleTimeoutBinding.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
                         <!--
@@ -132,21 +169,40 @@
 
                         <TextBlock
                             Grid.Column="0" Grid.Row="6"
-                            Visibility="{Binding ConfigBinder.GoogleItemVisibility.Value, Mode=OneWay}">
+                            Visibility="{Binding ConfigBinder.GoogleItemVisibility.Value, Mode=OneWay}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            >
                             <Run Text="冒とくフィルタ" />
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="-" />
                         </TextBlock>
                         <CheckBox
-                            Grid.Column="2" Grid.Row="6" 
+                            Grid.Column="3" Grid.Row="6" 
                             Visibility="{Binding ConfigBinder.GoogleItemVisibility.Value, Mode=OneWay}"
                             IsChecked="{Binding ConfigBinder.GoogleProfanityFilterBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            FontSize="{DynamicResource YsrFontSize}"
                             Content="使用する"
                             />
 
-                        <TextBlock Grid.Column="0" Grid.Row="9">
-                            <Run Text="冒とく翻訳モデル" />
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="9"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            >
+                            <Run Text="翻訳モデル" />
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="-" />
                         </TextBlock>
                         <ComboBox
-                            Grid.Column="2" Grid.Row="8"
+                            Grid.Column="3" Grid.Row="8"
+                            FontSize="{DynamicResource YsrFontSize}"
                             ItemsSource="{Binding ConfigBinder.TranslateModelsBinder, Mode=OneWay}"
                             SelectedIndex="{Binding ConfigBinder.TranslateModelIndex.Value, Mode=TwoWay}"
                             />
@@ -160,107 +216,134 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="48" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="24" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="8" />
+                            <RowDefinition Height="12" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="24" />
+                            <RowDefinition Height="12" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="8" />
+                            <RowDefinition Height="12" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="8" />
+                            <RowDefinition Height="12" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock
-                            Grid.Column="0" Grid.Row="0">
+                            Grid.Column="0" Grid.Row="0"
+                            FontSize="{DynamicResource YsrFontSize}">
                             <Run Text="デバイス" />
                         </TextBlock>
                         <Grid
-                            Grid.Column="2" Grid.Row="0"
+                            Grid.Column="3" Grid.Row="0"
                             >
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="64" />
+                                <ColumnDefinition Width="72" />
                             </Grid.ColumnDefinitions>
                             <ComboBox
+                                FontSize="{DynamicResource YsrFontSize}"
                                 ItemsSource="{Binding ConfigBinder.MicDevicesBinder, Mode=OneWay}"
                                 SelectedIndex="{Binding ConfigBinder.MicDeviceIndex.Value, Mode=TwoWay}"
                                 />
                             <Button
                                 Grid.Column="1"
+                                FontSize="{DynamicResource YsrFontSize}"
                                 Content="再読み込み"
                                 IsEnabled="False"
                                 />
                         </Grid>
 
-                        <TextBlock Grid.Column="0" Grid.Row="2">
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="2"
+                            FontSize="{DynamicResource YsrFontSize}">
                             <Run Text="環境音境界値[dB]" />
                             <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
                                 FontFamily="{StaticResource SymbolFont}"
                                 Text="{StaticResource FontSymbolInfo}"
                                 ToolTip="環境音ではないと判断する音圧の境界値。デフォルトでは0.0が設定されています。お使いのマイクによって感度は異なります" />
                         </TextBlock>
-                        <TextBox
-                            Grid.Column="2" Grid.Row="2" 
-                            Text="{Binding ConfigBinder.MicrophoneThresholdDbBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                            />
                         <TextBlock
-                            Grid.Column="3" Grid.Row="2"
-                            HorizontalAlignment="Center"
+                            Grid.Column="2" Grid.Row="2"
+                            Margin="4,0,4,0"
+                            HorizontalAlignment="Right"
                             VerticalAlignment="Center"
-                            Foreground="Red"
+                            Foreground="{DynamicResource YspErrorBrush}"
+                            FontSize="{DynamicResource YsrFontSize}"
                             FontFamily="{StaticResource SymbolFont}" 
-                            Text="{StaticResource FontSymbolError}"
+                            Text="{StaticResource FontSymbolStatusErrorFull}"
                             Visibility="{Binding ConfigBinder.MicrophoneThresholdDbError.Value, Mode=OneWay}"
                             />
+                        <TextBox
+                            Grid.Column="3" Grid.Row="2"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            Text="{Binding ConfigBinder.MicrophoneThresholdDbBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            />
 
-                        <TextBlock Grid.Column="0" Grid.Row="4">
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="4"
+                            FontSize="{DynamicResource YsrFontSize}">
                             <Run Text="入力無視秒数[秒]" />
                             <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
                                 FontFamily="{StaticResource SymbolFont}"
                                 Text="{StaticResource FontSymbolInfo}"
                                 ToolTip="この秒数未満の入力は無視します。デフォルトでは0.0が設定されています。お使いのマイクによって感度は異なります。" />
                         </TextBlock>
-                        <TextBox
-                            Grid.Column="2" Grid.Row="4"                            
-                            Text="{Binding ConfigBinder.MicrophoneRecordMinDurationBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                            />
                         <TextBlock
-                            Grid.Column="3" Grid.Row="4"
-                            HorizontalAlignment="Center"
+                            Grid.Column="2" Grid.Row="4"
+                            Margin="4,0,4,0"
+                            HorizontalAlignment="Right"
                             VerticalAlignment="Center"
-                            Foreground="Red"
+                            Foreground="{DynamicResource YspErrorBrush}"
+                            FontSize="{DynamicResource YsrFontSize}"
                             FontFamily="{StaticResource SymbolFont}" 
-                            Text="{StaticResource FontSymbolError}"
+                            Text="{StaticResource FontSymbolStatusErrorFull}"
                             Visibility="{Binding ConfigBinder.MicrophoneRecordMinDurationError.Value, Mode=OneWay}"
                             />
+                        <TextBox
+                            Grid.Column="3" Grid.Row="4"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            Text="{Binding ConfigBinder.MicrophoneRecordMinDurationBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            />
 
-                        <TextBlock Grid.Column="0" Grid.Row="6">
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="6"
+                            FontSize="{DynamicResource YsrFontSize}">
                             <Run Text="雑音判定の積極性" />
                             <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
                                 FontFamily="{StaticResource SymbolFont}"
                                 Text="{StaticResource FontSymbolInfo}"
                                 ToolTip="VADフィルタの強度を設定します。数値が大きくなるほど積極的に雑音判定します" />
                         </TextBlock>
                         <ComboBox
-                            Grid.Column="2" Grid.Row="6"
+                            Grid.Column="3" Grid.Row="6"
+                            FontSize="{DynamicResource YsrFontSize}"
                             ItemsSource="{Binding ConfigBinder.VadGoogleParamatersBinder, Mode=OneWay}"
                             SelectedIndex="{Binding ConfigBinder.VadGoogleParamaterIndex.Value, Mode=TwoWay}"
                             />
 
-                        <TextBlock Grid.Column="0" Grid.Row="8">
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="8"
+                            FontSize="{DynamicResource YsrFontSize}">
                             <Run Text="HPFの強さ" />
                             <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
                                 FontFamily="{StaticResource SymbolFont}"
                                 Text="{StaticResource FontSymbolInfo}"
                                 ToolTip="HPFフィルタの強度を設定します。google音声認識を使用する場合無効を推奨します" />
                         </TextBlock>
                         <ComboBox
-                            Grid.Column="2" Grid.Row="8"                            
+                            Grid.Column="3" Grid.Row="8"                            
+                            FontSize="{DynamicResource YsrFontSize}"
                             ItemsSource="{Binding ConfigBinder.HpfParamatersBinder, Mode=OneWay}"
                             SelectedIndex="{Binding ConfigBinder.HpfParamaterIndex.Value, Mode=TwoWay}"
                             />
@@ -274,8 +357,8 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="48" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="24" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -288,29 +371,65 @@
                         </Grid.RowDefinitions>
 
                         <CheckBox
-                            Grid.Column="0" Grid.ColumnSpan="3"
+                            Grid.Column="0" Grid.ColumnSpan="4"
                             HorizontalAlignment="Left"
+                            IsChecked="{Binding ConfigBinder.IsUsedYukarinetteBinding.Value, Mode=TwoWay}"
+                            FontSize="{DynamicResource YsrFontSize}"
                             Content="ゆかりねっとと連携"
                             />
+
                         <TextBlock
                             Grid.Column="0" Grid.Row="2"
-                            Text="外部連携ポート"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            >
+                            <Run Text="外部連携ポート" />
+                        </TextBlock>
+                        <TextBlock
+                            Grid.Column="2" Grid.Row="2"
+                            Margin="4,0,4,0"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource YspErrorBrush}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            FontFamily="{StaticResource SymbolFont}" 
+                            Text="{StaticResource FontSymbolStatusErrorFull}"
+                            Visibility="{Binding ConfigBinder.YukarinettePortError.Value, Mode=OneWay}"
                             />
                         <TextBox
-                            Grid.Column="2" Grid.Row="2"                            
+                            Grid.Column="3" Grid.Row="2"                            
+                            FontSize="{DynamicResource YsrFontSize}"
+                            Text="{Binding ConfigBinder.YukarinettePortBinding.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
 
                         <CheckBox
-                            Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="4"
+                            Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="4"
                             HorizontalAlignment="Left"
+                            IsChecked="{Binding ConfigBinder.IsUsedYukaConeBinding.Value, Mode=TwoWay}"
+                            FontSize="{DynamicResource YsrFontSize}"
                             Content="ゆかコネNEOと連携"
                             />
+
                         <TextBlock
                             Grid.Column="0" Grid.Row="6"
-                            Text="外部連携ポート"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            >
+                            <Run Text="外部連携ポート" />
+                        </TextBlock>
+                        <TextBlock
+                            Grid.Column="2" Grid.Row="6"
+                            Margin="4,0,4,0"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource YspErrorBrush}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            FontFamily="{StaticResource SymbolFont}" 
+                            Text="{StaticResource FontSymbolStatusErrorFull}"
+                            Visibility="{Binding ConfigBinder.YukaConePortError.Value, Mode=OneWay}"
                             />
                         <TextBox
-                            Grid.Column="2" Grid.Row="6"                            
+                            Grid.Column="3" Grid.Row="6"                            
+                            FontSize="{DynamicResource YsrFontSize}"
+                            Text="{Binding ConfigBinder.YukaConePortBinding.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
                     </Grid>
                 </Border>
@@ -322,8 +441,8 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="48" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="24" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -342,56 +461,158 @@
                         </Grid.RowDefinitions>
 
                         <CheckBox
-                            Grid.Column="0" Grid.ColumnSpan="3"
+                            Grid.Column="0" Grid.ColumnSpan="4"
                             HorizontalAlignment="Left"
-                            Content="OBS字幕を使用する"
-                            />
+                            IsChecked="{Binding ConfigBinder.IsUsedObsSubtitleBinder.Value, Mode=TwoWay}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            >
+                            <CheckBox.Content>
+                                <TextBlock
+                                    FontSize="{DynamicResource YsrFontSize}"
+                                    >
+                                    <Run Text="OBS字幕を使用する" />
+                                    <Run
+                                        Foreground="{DynamicResource YspInfoBrush}"
+                                        BaselineAlignment="Bottom"
+                                        FontFamily="{StaticResource SymbolFont}"
+                                        Text="{StaticResource FontSymbolInfo}"
+                                        ToolTip="-" />
+                                </TextBlock>
+                            </CheckBox.Content>
+                        </CheckBox>
 
                         <TextBlock
                             Grid.Column="0" Grid.Row="2"
-                            Text="字幕時間(秒)"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            >
+                            <Run Text="字幕時間(秒)" />
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="-" />
+                        </TextBlock>
+                        <TextBlock
+                            Grid.Column="2" Grid.Row="2"
+                            Margin="4,0,4,0"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource YspErrorBrush}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            FontFamily="{StaticResource SymbolFont}" 
+                            Text="{StaticResource FontSymbolStatusErrorFull}"
+                            Visibility="{Binding ConfigBinder.ObsSubtitleTruncateError.Value, Mode=OneWay}"
                             />
                         <TextBox
-                            Grid.Column="2" Grid.Row="2"                            
+                            Grid.Column="3" Grid.Row="2"                            
+                            FontSize="{DynamicResource YsrFontSize}"
+                            Text="{Binding ConfigBinder.ObsSubtitleTruncateBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
 
                         <TextBlock
                             Grid.Column="0" Grid.Row="4"
-                            Text="日本語字幕用テキストソース"
-                            />
+                            FontSize="{DynamicResource YsrFontSize}"
+                            >
+                            <Run Text="日本語字幕用テキストソース" />
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="-" />                        
+                        </TextBlock>
                         <TextBox
-                            Grid.Column="2" Grid.Row="4"                            
+                            Grid.Column="3" Grid.Row="4"                            
+                            FontSize="{DynamicResource YsrFontSize}"
+                            Text="{Binding ConfigBinder.ObsSubtitleTextJpBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
 
                         <TextBlock
                             Grid.Column="0" Grid.Row="6"
-                            Text="翻訳字幕用テキストソース"
-                            />
+                            FontSize="{DynamicResource YsrFontSize}"
+                            >
+                            <Run Text="翻訳字幕用テキストソース" />
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="-" />                        
+                        </TextBlock>
                         <TextBox
-                            Grid.Column="2" Grid.Row="6"                            
+                            Grid.Column="3" Grid.Row="6"                            
+                            FontSize="{DynamicResource YsrFontSize}"
+                            Text="{Binding ConfigBinder.ObsSubtitleTextEnBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
 
                         <TextBlock
                             Grid.Column="0" Grid.Row="8"
-                            Text="Webソケットポート"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            >
+                            <Run Text="Webソケットポート" />
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="-" />                        
+                        </TextBlock>
+                        <TextBlock
+                            Grid.Column="2" Grid.Row="8"
+                            Margin="4,0,4,0"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource YspErrorBrush}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            FontFamily="{StaticResource SymbolFont}" 
+                            Text="{StaticResource FontSymbolStatusErrorFull}"
+                            Visibility="{Binding ConfigBinder.ObsSubtitlePortError.Value, Mode=OneWay}"
                             />
                         <TextBox
-                            Grid.Column="2" Grid.Row="8"                            
+                            Grid.Column="3" Grid.Row="8"                            
+                            FontSize="{DynamicResource YsrFontSize}"
+                            Text="{Binding ConfigBinder.ObsSubtitlePortBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
 
                         <TextBlock
                             Grid.Column="0" Grid.Row="10"
-                            Text="Webソケットパスワード"
-                            />
+                            FontSize="{DynamicResource YsrFontSize}"
+                            Text="{Binding ConfigBinder.ObsSubtitlePasswordBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            >
+                            <Run Text="Webソケットパスワード" />
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="-" />                        
+                        </TextBlock>
                         <TextBox
-                            Grid.Column="2" Grid.Row="10"                            
+                            Grid.Column="3" Grid.Row="10"                            
+                            FontSize="{DynamicResource YsrFontSize}"
+                            Text="{Binding ConfigBinder.ObsSubtitlePasswordBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
 
                         <CheckBox
-                            Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="12"
+                            Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="12"
                             HorizontalAlignment="Left"
-                            Content="VRC OSC字幕を使用する"
-                            />
+                            IsChecked="{Binding ConfigBinder.IsUsedVrcSubtitleBinder.Value, Mode=TwoWay}"
+                            >
+                            <CheckBox.Content>
+                                <TextBlock
+                                    FontSize="{DynamicResource YsrFontSize}"
+                                    >
+                                    <Run Text="VRC OSC字幕を使用する" />
+                                    <Run
+                                        Foreground="{DynamicResource YspInfoBrush}"
+                                        BaselineAlignment="Bottom"
+                                        FontFamily="{StaticResource SymbolFont}"
+                                        Text="{StaticResource FontSymbolInfo}"
+                                        ToolTip="-" />                                
+                                </TextBlock>
+                            </CheckBox.Content>
+                        </CheckBox>
                     </Grid>
                 </Border>
             </TabItem>
@@ -402,9 +623,9 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="48" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="64" />
-                            <ColumnDefinition Width="24" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -419,29 +640,35 @@
                         <CheckBox
                             Grid.Column="0" Grid.ColumnSpan="5" Grid.Row="0"
                             HorizontalAlignment="Left"
+                            FontSize="{DynamicResource YsrFontSize}"
                             Content="合成音声でおしゃべりする"
                             />
 
                         <TextBlock
                             Grid.Column="0" Grid.Row="2"
+                            FontSize="{DynamicResource YsrFontSize}"
                             Text="連携ボイロ"
                             />
                         <ComboBox
-                            Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="2"
+                            Grid.Column="3" Grid.ColumnSpan="2" Grid.Row="2"
+                            FontSize="{DynamicResource YsrFontSize}"
                             SelectedIndex="0">
                             <ComboBoxItem>VOICEROID2</ComboBoxItem>
                         </ComboBox>
 
                         <TextBlock
                             Grid.Column="0" Grid.Row="4"
+                            FontSize="{DynamicResource YsrFontSize}"
                             Text="合成音声パス"
                             />
                         <TextBox
-                            Grid.Column="2" Grid.Row="4"
+                            Grid.Column="3" Grid.Row="4"
+                            FontSize="{DynamicResource YsrFontSize}"
                             Text="{Binding ConfigBinder.IlluminateClientBinding.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
                         <Button
-                            Grid.Column="3" Grid.Row="4"
+                            Grid.Column="4" Grid.Row="4"
+                            FontSize="{DynamicResource YsrFontSize}"
                             Content="選択"
                             >
                             <i:Interaction.Triggers>
@@ -475,12 +702,14 @@
 
                                 <TextBlock
                                     Grid.Row="0"
+                                    FontSize="{DynamicResource YsrFontSize}"
                                     Text="ここにフィルタの説明を書く"
                                     />
 
                                 <TextBlock
                                     Grid.Row="1"
                                     VerticalAlignment="Center"
+                                    FontSize="{DynamicResource YsrFontSize}"
                                     Text="←ボタンをクリックしてフィルタを追加"
                                     />
                             </Grid>
@@ -499,15 +728,16 @@
                                 </Grid.RowDefinitions>
                                 <StackPanel>
                                     <TextBlock
+                                        FontSize="{DynamicResource YsrFontSize}"
                                         Text="フィルタ名"
                                         />
                                     <TextBox
+                                        FontSize="{DynamicResource YsrFontSize}"
                                          Text="{Binding SelectedItem.Name.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ElementName=filter_listbox}"
                                         />
                                 </StackPanel>
 
                                 <Grid Grid.Row="2">
-
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="92" />
                                         <ColumnDefinition Width="*" />
@@ -517,7 +747,9 @@
                                     </Grid.ColumnDefinitions>
                                     <Button>
                                         <Button.Content>
-                                            <TextBlock>
+                                            <TextBlock
+                                                FontSize="{DynamicResource YsrFontSize}"
+                                                >
                                                 <Run FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolPage}" />
                                                 <Run Text="ルール追加"/>
                                             </TextBlock>
@@ -531,7 +763,9 @@
 
                                     <Button Grid.Column="2">
                                         <Button.Content>
-                                            <TextBlock>
+                                            <TextBlock
+                                                FontSize="{DynamicResource YsrFontSize}"
+                                                >
                                                 <Run Text="__(仮配置)保存__" />
                                             </TextBlock>
                                         </Button.Content>
@@ -543,7 +777,9 @@
                                     </Button>
                                     <Button Grid.Column="4" IsEnabled="False">
                                         <Button.Content>
-                                            <TextBlock>
+                                            <TextBlock
+                                                FontSize="{DynamicResource YsrFontSize}"
+                                                >
                                                 <Run FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolSave}" />
                                                 <Run Text="バックアップ" />
                                             </TextBlock>
@@ -554,6 +790,7 @@
 
                                 <ListBox
                                     Grid.Row="4"
+                                    FontSize="{DynamicResource YsrFontSize}"
                                     ItemsSource="{Binding Rules, Mode=OneWay}"
                                     HorizontalContentAlignment="Stretch">
                                     <ListBox.ItemTemplate>
@@ -587,7 +824,10 @@
                                                     </StackPanel>
                                                     <Button Grid.Column="1">
                                                         <Button.Content>
-                                                            <TextBlock FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolEdit}" />
+                                                            <TextBlock
+                                                                FontFamily="{StaticResource SymbolFont}"
+                                                                FontSize="{DynamicResource YsrFontSize}"
+                                                                Text="{StaticResource FontSymbolEdit}" />
                                                         </Button.Content>
                                                         <i:Interaction.Triggers>
                                                             <i:EventTrigger EventName="Click">
@@ -597,7 +837,10 @@
                                                     </Button>
                                                     <Button Grid.Column="2">
                                                         <Button.Content>
-                                                            <TextBlock FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolDelete}" />
+                                                            <TextBlock
+                                                                FontFamily="{StaticResource SymbolFont}"
+                                                                FontSize="{DynamicResource YsrFontSize}"
+                                                                Text="{StaticResource FontSymbolDelete}" />
                                                         </Button.Content>
                                                         <i:Interaction.Triggers>
                                                             <i:EventTrigger EventName="Click">
@@ -647,7 +890,11 @@
                                                 <RowDefinition Height="4" />
                                                 <RowDefinition Height="Auto" />
                                             </Grid.RowDefinitions>
-                                            <TextBlock Grid.Column="0" Grid.Row="0" MaxWidth="120">
+                                            <TextBlock
+                                                Grid.Column="0" Grid.Row="0"
+                                                MaxWidth="120"
+                                                FontSize="{DynamicResource YsrFontSize}"
+                                                >
                                                 <Run FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolFilter}" />
                                                 <Run Text="{Binding Name.Value, Mode=OneWay}" />
                                             </TextBlock>
@@ -655,6 +902,7 @@
                                                 Grid.Column="0" Grid.Row="2"
                                                 HorizontalAlignment="Left"
                                                 IsChecked="{Binding Enable.Value, Mode=TwoWay}"
+                                                FontSize="{DynamicResource YsrFontSize}"
                                                 Content="有効"
                                                 />
                                             <Button
@@ -664,7 +912,10 @@
                                                 HorizontalAlignment="Right"
                                                 VerticalAlignment="Top">
                                                 <Button.Content>
-                                                    <TextBlock FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolDelete}" />
+                                                    <TextBlock
+                                                        FontFamily="{StaticResource SymbolFont}"
+                                                        FontSize="{DynamicResource YsrFontSize}"
+                                                        Text="{StaticResource FontSymbolDelete}" />
                                                 </Button.Content>
                                                 <i:Interaction.Triggers>
                                                     <i:EventTrigger EventName="Click">
@@ -679,7 +930,9 @@
                         </ListBox>
                         <Button Grid.Column="0" Grid.Row="1">
                             <Button.Content>
-                                <TextBlock>
+                                <TextBlock
+                                    FontSize="{DynamicResource YsrFontSize}"
+                                    >
                                     <Run FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolFilter}" />
                                     <Run Text="フィルタ追加"/>
                                 </TextBlock>
@@ -703,7 +956,7 @@
                 </Border>
             </TabItem>
 
-            <TabItem Header="詳細" Padding="16,2,16,2">
+            <TabItem Header="高度な設定" Padding="16,2,16,2">
                 <Border >
                     <WindowsFormsHost Grid.Row="1">
                         <wf:PropertyGrid x:Name="propertyGrid" />
@@ -717,6 +970,7 @@
             HorizontalAlignment="Right"
             VerticalAlignment="Bottom"
             Margin="5"
+            FontSize="{DynamicResource YsrFontSize}"
             Content="起動"
             Command="{Binding ExecCommand}"
             />
