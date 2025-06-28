@@ -51,9 +51,11 @@
         <Menu>
             <MenuItem Header="ファイル(_F)">
                 <MenuItem Header="バッチファイルを作成" Command="{Binding CreateBatchommand}"/>
+                <!--
                 <Separator />
                 <MenuItem Header="マイクテスト" Command="{Binding MicTestCommand}"/>
                 <MenuItem Header="環境音測定" Command="{Binding AmbientTestCommand}"/>
+                -->
                 <Separator />
                 <MenuItem Header="終了(_E)" Command="{Binding CloseCommand}"/>
             </MenuItem>
@@ -97,7 +99,7 @@
                                 BaselineAlignment="Bottom"
                                 FontFamily="{StaticResource SymbolFont}"
                                 Text="{StaticResource FontSymbolInfo}"
-                                ToolTip="-" />
+                                ToolTip="ゆーかねすぴれこの認識方法" />
                         </TextBlock>
                         <ComboBox
                             Grid.Column="3" Grid.Row="0"
@@ -116,7 +118,7 @@
                                 BaselineAlignment="Bottom"
                                 FontFamily="{StaticResource SymbolFont}"
                                 Text="{StaticResource FontSymbolInfo}"
-                                ToolTip="-" />
+                                ToolTip="グーグルの音声認識言語(例：ja-JP)" />
                         </TextBlock>
                         <TextBox
                             Grid.Column="3" Grid.Row="2" 
@@ -136,7 +138,7 @@
                                 BaselineAlignment="Bottom"
                                 FontFamily="{StaticResource SymbolFont}"
                                 Text="{StaticResource FontSymbolInfo}"
-                                ToolTip="-" />
+                                ToolTip="グーグルサーバからのタイムアウト時間" />
                         </TextBlock>
                         <TextBlock
                             Grid.Column="2" Grid.Row="4"
@@ -178,7 +180,7 @@
                                 BaselineAlignment="Bottom"
                                 FontFamily="{StaticResource SymbolFont}"
                                 Text="{StaticResource FontSymbolInfo}"
-                                ToolTip="-" />
+                                ToolTip="使用すると冒とく的な単語を伏字にします" />
                         </TextBlock>
                         <CheckBox
                             Grid.Column="3" Grid.Row="6" 
@@ -198,7 +200,7 @@
                                 BaselineAlignment="Bottom"
                                 FontFamily="{StaticResource SymbolFont}"
                                 Text="{StaticResource FontSymbolInfo}"
-                                ToolTip="-" />
+                                ToolTip="翻訳方法を設定" />
                         </TextBlock>
                         <ComboBox
                             Grid.Column="3" Grid.Row="8"
@@ -228,6 +230,8 @@
                             <RowDefinition Height="12" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="12" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="24" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
@@ -347,6 +351,33 @@
                             ItemsSource="{Binding ConfigBinder.HpfParamatersBinder, Mode=OneWay}"
                             SelectedIndex="{Binding ConfigBinder.HpfParamaterIndex.Value, Mode=TwoWay}"
                             />
+                        <Grid Grid.Column="3" Grid.Row="10" HorizontalAlignment="Right">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="92" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="92" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="36" />
+                            </Grid.RowDefinitions>
+
+                            <Button Grid.Column="0" Command="{Binding MicTestCommand}">
+                                <Button.Content>
+                                    <TextBlock FontSize="{DynamicResource YsrFontSize}">
+                                        <Run Text="マイクテスト" />
+                                    </TextBlock>
+                                </Button.Content>
+                            </Button>
+
+                            <Button Grid.Column="2" Command="{Binding AmbientTestCommand}">
+                                <Button.Content>
+                                    <TextBlock FontSize="{DynamicResource YsrFontSize}">
+                                        <Run Text="環境音測定" />
+                                    </TextBlock>
+                                </Button.Content>
+                            </Button>
+                        </Grid>
+
                     </Grid>
                 </Border>
             </TabItem>
@@ -383,6 +414,13 @@
                             FontSize="{DynamicResource YsrFontSize}"
                             >
                             <Run Text="外部連携ポート" />
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="ゆかりねっとの外部連携ポートを指定します" />
+
                         </TextBlock>
                         <TextBlock
                             Grid.Column="2" Grid.Row="2"
@@ -414,6 +452,12 @@
                             FontSize="{DynamicResource YsrFontSize}"
                             >
                             <Run Text="外部連携ポート" />
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="ゆかコネNEOのウェブソケットポートを指定します。\r\n通常自動的に取得するため必要ありません" />
                         </TextBlock>
                         <TextBlock
                             Grid.Column="2" Grid.Row="6"
@@ -471,12 +515,6 @@
                                     FontSize="{DynamicResource YsrFontSize}"
                                     >
                                     <Run Text="OBS字幕を使用する" />
-                                    <Run
-                                        Foreground="{DynamicResource YspInfoBrush}"
-                                        BaselineAlignment="Bottom"
-                                        FontFamily="{StaticResource SymbolFont}"
-                                        Text="{StaticResource FontSymbolInfo}"
-                                        ToolTip="-" />
                                 </TextBlock>
                             </CheckBox.Content>
                         </CheckBox>
@@ -491,7 +529,7 @@
                                 BaselineAlignment="Bottom"
                                 FontFamily="{StaticResource SymbolFont}"
                                 Text="{StaticResource FontSymbolInfo}"
-                                ToolTip="-" />
+                                ToolTip="字幕の表示時間を指定します。0秒を指定すると字幕は消去されません" />
                         </TextBlock>
                         <TextBlock
                             Grid.Column="2" Grid.Row="2"
@@ -520,7 +558,7 @@
                                 BaselineAlignment="Bottom"
                                 FontFamily="{StaticResource SymbolFont}"
                                 Text="{StaticResource FontSymbolInfo}"
-                                ToolTip="-" />                        
+                                ToolTip="日本語字幕を表示するOBSテキストソースを指定します" />                        
                         </TextBlock>
                         <TextBox
                             Grid.Column="3" Grid.Row="4"                            
@@ -538,7 +576,7 @@
                                 BaselineAlignment="Bottom"
                                 FontFamily="{StaticResource SymbolFont}"
                                 Text="{StaticResource FontSymbolInfo}"
-                                ToolTip="-" />                        
+                                ToolTip="英語字幕を表示するOBSテキストソースを指定します" />                        
                         </TextBlock>
                         <TextBox
                             Grid.Column="3" Grid.Row="6"                            
@@ -556,7 +594,7 @@
                                 BaselineAlignment="Bottom"
                                 FontFamily="{StaticResource SymbolFont}"
                                 Text="{StaticResource FontSymbolInfo}"
-                                ToolTip="-" />                        
+                                ToolTip="OBSのWeb Socketポートを指定します" />                        
                         </TextBlock>
                         <TextBlock
                             Grid.Column="2" Grid.Row="8"
@@ -585,7 +623,7 @@
                                 BaselineAlignment="Bottom"
                                 FontFamily="{StaticResource SymbolFont}"
                                 Text="{StaticResource FontSymbolInfo}"
-                                ToolTip="-" />                        
+                                ToolTip="OBSのWeb Socketパスワードを指定します" />                        
                         </TextBlock>
                         <TextBox
                             Grid.Column="3" Grid.Row="10"                            
@@ -603,12 +641,6 @@
                                     FontSize="{DynamicResource YsrFontSize}"
                                     >
                                     <Run Text="VRC OSC字幕を使用する" />
-                                    <Run
-                                        Foreground="{DynamicResource YspInfoBrush}"
-                                        BaselineAlignment="Bottom"
-                                        FontFamily="{StaticResource SymbolFont}"
-                                        Text="{StaticResource FontSymbolInfo}"
-                                        ToolTip="-" />                                
                                 </TextBlock>
                             </CheckBox.Content>
                         </CheckBox>
@@ -658,8 +690,15 @@
                         <TextBlock
                             Grid.Column="0" Grid.Row="4"
                             FontSize="{DynamicResource YsrFontSize}"
-                            Text="合成音声パス"
-                            />
+                            >
+                            <Run Text="合成音声パス" />
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="使用する合成音声クライアントのexeファイルを指定します" />
+                        </TextBlock>
                         <TextBox
                             Grid.Column="3" Grid.Row="4"
                             FontSize="{DynamicResource YsrFontSize}"
