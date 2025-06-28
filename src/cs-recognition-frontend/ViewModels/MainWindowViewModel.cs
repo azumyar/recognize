@@ -148,11 +148,14 @@ public class MainWindowViewModel : BindableBase {
 		});
 		this.AmbientTestCommand.Subscribe((_) => {
 			System.Diagnostics.Debug.Assert(this.Config is not null);
-			using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
-				FileName = this.Config.Extra.RecognizeExePath,
-				Arguments = string.Format("--test mic_ambient {0}", this.Config.ToCommandOption()),
-				UseShellExecute = true,
-			})) { }
+			try {
+				using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
+					FileName = this.Config.Extra.RecognizeExePath,
+					Arguments = string.Format("--test mic_ambient {0}", this.Config.ToCommandOption()),
+					UseShellExecute = true,
+				})) { }
+			}
+			catch(Exception) { }
 		});
 		this.CloseCommand.Subscribe((_) => {
 			global::System.Windows.Application.Current?.Shutdown();
