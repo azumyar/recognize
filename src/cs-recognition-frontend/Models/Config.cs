@@ -397,6 +397,10 @@ public class ConfigBinder : INotifyPropertyChanged {
 			int v => v + 1,
 			_ => 0
 		});
+		this.MicDeviceIndex.Subscribe(x => config.Microphone = (x - 1) switch {
+			int v when (0 <= v) => v,
+			_ => null
+		});
 		this.MicrophoneThresholdDbBinder = new(initialValue: this.ToString(config.MicrophoneThresholdDb));
 		this.MicrophoneThresholdDbBinder.Subscribe(x => {
 			config.MicrophoneThresholdDb = this.ToFloat(x);

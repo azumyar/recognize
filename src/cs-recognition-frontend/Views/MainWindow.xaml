@@ -673,6 +673,7 @@
                             HorizontalAlignment="Left"
                             FontSize="{DynamicResource YsrFontSize}"
                             Content="合成音声でおしゃべりする"
+                            IsChecked="{Binding ConfigBinder.IsUsedIlluminateBinding.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
 
                         <TextBlock
