@@ -16,7 +16,7 @@ if exist "C:\Users\WDAGUtilityAccount" if not exist "nuget.config" (
 )
 
 
-pushd test
+pushd illuminate
 dotnet clean -c Release
 set r=%errorlevel%
 if %r% neq 0 goto error

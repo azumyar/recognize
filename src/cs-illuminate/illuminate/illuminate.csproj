@@ -10,7 +10,7 @@
 
   <PropertyGroup>
     <ApplicationIcon>App.ico</ApplicationIcon>
-    <AssemblyName>illiminate</AssemblyName>
+    <AssemblyName>illuminate</AssemblyName>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
