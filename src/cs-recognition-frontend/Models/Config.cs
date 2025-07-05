@@ -13,6 +13,7 @@ using Reactive.Bindings;
 
 namespace Haru.Kei.Models;
 
+[JsonObject]
 public class Config {
 
 	public string TranscribeModel { get; set; } = "";
@@ -56,7 +57,7 @@ public class Config {
 	public string IlluminateVoice { get; set; } = "voiceroid2";
 	public string IlluminateClient { get; set; } = "";
 
-
+	[JsonObject]
 	[TypeConverter(typeof(DefinitionOrderTypeConverter))]
 	public class RecognizeExeArgument {
 		/// <summary>プロパティグリッドのソート順番を宣言順に行う</summary>
@@ -101,9 +102,9 @@ public class Config {
 		public string RecognizeExePath { get; set; } = "";
 
 		[Category(categoryOutput)]
-		[DisplayName("illiminate.exeパス")]
-		[Description("illiminate.exeのパスをフルパスまたは相対パスで指定")]
-		[DefaultValue(@".\src\\cs-illiminate\dist\illiminate.exe")]
+		[DisplayName("illuminate.exeパス")]
+		[Description("illuminate.exeのパスをフルパスまたは相対パスで指定")]
+		[DefaultValue(@".\src\\cs-illuminate\dist\illuminate.exe")]
 		public string IlluminateExePath { get; set; } = "";
 
 		[DisplayName("ログレベル")]
@@ -240,7 +241,6 @@ public class Config {
 			opt.Append($"--out \"vrc\" ");
 		}
 
-		// 絶対パスに変換してillminateパス
 		if(this.IsUsedIlluminate) {
 			opt.Append($"--out \"illuminate\" ");
 			if(Helpers.Util.IsFullPath(this.Extra.IlluminateExePath)) {

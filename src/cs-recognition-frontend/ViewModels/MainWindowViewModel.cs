@@ -25,7 +25,7 @@ public class MainWindowViewModel : BindableBase {
 	public static string ConfirmationKey = "Confirmation";
 
 	private readonly string CONFIG_FILE = "frontend.conf";
-	private readonly string CONFIG2_FILE = "frontend.dev.v250628.conf";
+	private readonly string CONFIG2_FILE = "frontend.dev.v250705.conf";
 	private readonly string FILTER_FILE = "frontend-filter.conf";
 	private readonly string BAT_FILE = "custom-recognize.bat";
 	private readonly string TEMP_BAT = global::System.IO.Path.Combine(
