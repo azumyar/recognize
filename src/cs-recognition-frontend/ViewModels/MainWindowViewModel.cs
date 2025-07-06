@@ -94,7 +94,7 @@ public class MainWindowViewModel : BindableBase {
 			var bat = new StringBuilder()
 				.AppendLine("@echo off")
 				.AppendLine()
-				.AppendFormat("\"{0}\"", this.Config.Extra.RecognizeExePath).Append(" ").AppendLine(this.Config.ToCommandOption())
+				.AppendFormat("\"{0}\"", this.Config.Extra.RecognizeExePath).Append(" ").AppendLine(this.GetCommandLine())
 				.AppendLine("if %ERRORLEVEL% neq 0 (")
 				.AppendLine("  pause")
 				.AppendLine(")");
@@ -117,7 +117,7 @@ public class MainWindowViewModel : BindableBase {
 					.AppendLine("@echo off")
 					.AppendLine("pushd \"%~dp0\"")
 					.AppendLine()
-					.AppendFormat("\"{0}\"", this.Config.Extra.RecognizeExePath).Append(" ").AppendLine(this.Config.ToCommandOption())
+					.AppendFormat("\"{0}\"", this.Config.Extra.RecognizeExePath).Append(" ").AppendLine(this.GetCommandLine())
 					.AppendLine("pause");
 				File.WriteAllText(
 					global::System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.BAT_FILE),
@@ -140,7 +140,7 @@ public class MainWindowViewModel : BindableBase {
 			try {
 				using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
 					FileName = this.Config.Extra.RecognizeExePath,
-					Arguments = string.Format("--test mic {0}", this.Config.ToCommandOption()),
+					Arguments = string.Format("--test mic {0}", this.GetCommandLine()),
 					UseShellExecute = true,
 				})) { }
 			}
@@ -151,7 +151,7 @@ public class MainWindowViewModel : BindableBase {
 			try {
 				using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
 					FileName = this.Config.Extra.RecognizeExePath,
-					Arguments = string.Format("--test mic_ambient {0}", this.Config.ToCommandOption()),
+					Arguments = string.Format("--test mic_ambient {0}", this.GetCommandLine()),
 					UseShellExecute = true,
 				})) { }
 			}
@@ -207,6 +207,14 @@ public class MainWindowViewModel : BindableBase {
 			}
 		}
 		catch(Exception) { }
+	}
+
+	private string GetCommandLine() {
+		var sb = new StringBuilder(this.Config.ToCommandOption());
+		if(this.Filter.Value?.Filters?.Any() ?? false) {
+			sb.Append($"  --transcribe_filter \"{Path.Combine(AppContext.BaseDirectory, FILTER_FILE)}\"");
+		}
+		return sb.ToString();
 	}
 
 	private async Task OnLoaded(RoutedEventArgs e) {
