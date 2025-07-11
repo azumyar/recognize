@@ -49,21 +49,32 @@ public class VoiceRoid : IVoiceClient {
 			}
 		}
 
-		const int IdTalkTextBox = 0x005F13C0;
-		const int IdPlayButton = 0x000F0BB4;
-		static nint getChildfromID(nint parent, int id) {
+		static nint getChildFromIndex(nint parent, int index) {
 			var r = default(nint);
+			var i = 0;
 			Interop.EnumChildWindows(parent, (h, l) => {
-				if (Interop.GetDlgCtrlID(h) == id) {
-					r = h;
-					return false;
+				if (Interop.GetParent(h) == parent) {
+					if (i++ == index) {
+						r = h;
+						return false;
+					}
 				}
 				return true;
 			}, 0);
 			return r;
 		}
-		this.textBox = getChildfromID(this.hVoiceRoid2, IdTalkTextBox);
-		this.playButton = getChildfromID(this.hVoiceRoid2, IdPlayButton);
+
+		// ウインドウ階層をたどる
+		// まとめて書くとよくわからないので分解する
+		var _0 = getChildFromIndex(this.hVoiceRoid2, 0);
+		var _1 = getChildFromIndex(_0, 1);
+		var _2 = getChildFromIndex(_1, 0);
+		var _3 = getChildFromIndex(_2, 0);
+		var _4 = getChildFromIndex(_3, 0);
+		var _5 = getChildFromIndex(_4, 0);
+
+		this.textBox = getChildFromIndex(getChildFromIndex(_5, 0), 0);
+		this.playButton = getChildFromIndex(getChildFromIndex(_5, 1), 0);
 		if ((this.textBox == 0) || (this.playButton == 0)) {
 			throw new VoiceLinkException("読み上げ開始準備に失敗");
 		}
@@ -82,10 +93,7 @@ public class VoiceRoid : IVoiceClient {
 			return;
 		}
 
-		try {
-			Interop.SendMessage(this.textBox, Interop.WM_SETTEXT, 0, "");
-		}
-		catch { }
+		Interop.SendMessage(this.textBox, Interop.WM_SETTEXT, 0, "");
 
 		this.textBox = 0;
 		this.playButton = 0;

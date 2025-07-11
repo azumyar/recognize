@@ -60,6 +60,9 @@ internal static class Interop {
 	public static extern bool EnumChildWindows(nint hWndParent, EnumThreadWndProc lpEnumFunc, nint lParam);
 	public delegate bool EnumThreadWndProc(nint hwnd, nint lParam);
 	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	public static extern nint GetParent(nint hwnd);
+
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
 	public static extern nint GetDlgItem(nint hwnd, int childID);
 	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
 	public static extern int GetDlgCtrlID(nint hwnd);
