@@ -17,23 +17,16 @@ namespace Haru.Kei.Models;
 public class Config {
 
 	public string TranscribeModel { get; set; } = "";
-
 	public string GoogleLanguage { get; set; } = "";
-
 	public float? GoogleTimeout { get; set; }
-
 	public bool GoogleProfanityFilter { get; set; }
-
 	public string TranslateModel { get; set; } = "";
 
 	// マイク
 	public int? Microphone { get; set; } = null;
 	public float? MicrophoneThresholdDb { get; set; } = null;
-
 	public float? MicrophoneRecordMinDuration { get; set; } = null;
-
 	public int? VadGoogleParamater { get; set; } = null;
-
 	public int? HpfParamater { get; set; } = null;
 
 	// ゆかりねっと連携
@@ -54,7 +47,7 @@ public class Config {
 	public bool IsUsedVrcSubtitle { get; set; } = false;
 
 	public bool IsUsedIlluminate { get; set; } = false;
-	public string IlluminateVoice { get; set; } = "voiceroid2";
+	public string IlluminateVoice { get; set; } = "voiceroid";
 	public string IlluminateClient { get; set; } = "";
 
 	[JsonObject]
@@ -93,15 +86,15 @@ public class Config {
 			}
 		}
 
-		protected const string categoryOutput = "00.環境";
+		protected const string category00 = "00.環境";
 
-		[Category(categoryOutput)]
+		[Category(category00)]
 		[DisplayName("recognize.exeパス")]
 		[Description("recognize.exeのパスをフルパスまたは相対パスで指定")]
 		[DefaultValue(@".\src\\py-recognition\dist\recognize\recognize.exe")]
 		public string RecognizeExePath { get; set; } = "";
 
-		[Category(categoryOutput)]
+		[Category(category00)]
 		[DisplayName("illuminate.exeパス")]
 		[Description("illuminate.exeのパスをフルパスまたは相対パスで指定")]
 		[DefaultValue(@".\src\\cs-illuminate\dist\illuminate.exe")]
@@ -111,7 +104,6 @@ public class Config {
 		[Description("コンソールに出すログ出力レベルを設定します")]
 		[DefaultValue("")]
 		[TypeConverter(typeof(ArgVerboseConverter))]
-		[ArgAttribute("--verbose")]
 		public string ArgVerbose { get; set; } = "";
 
 		/* 設定できないほうがいい気がするので保留
@@ -125,29 +117,24 @@ public class Config {
 		[DisplayName("ログファイル出力先")]
 		[Description("ログファイル出力先フォルダパスを指定します")]
 		[DefaultValue("")]
-		[ArgAttribute("--log_directory")]
 		public string ArgLogDirectory { get; set; } = "";
 
 		[DisplayName("録音")]
 		[DefaultValue(null)]
 		[Description("録音データを保存する場合trueにします")]
-		[ArgAttribute("--record", IsFlag = true)]
 		public bool? ArgRecord { get; set; } = null;
 
 		[DisplayName("録音ファイル名")]
 		[Description("録音ファイル名を指定します。最終的なファイル名は{指定ファイル名}-{連番}.wavになります。")]
 		[DefaultValue("record")]
-		[ArgAttribute("--record_file", TargetProperty = "ArgRecord", TargetValue = "true", IgnoreCase = true)]
 		public string ArgRecordFile { get; set; } = "";
 
 		[DisplayName("録音格納先")]
 		[Description("録音ファイル出力先フォルダパスを指定します")]
-		[ArgAttribute("--record_directory", TargetProperty = "ArgRecord", TargetValue = "true", IgnoreCase = true)]
 		public string ArgRecordDirectory { get; set; } = "";
 
 		[DisplayName("AIファイル格納先")]
 		[Description("AIファイル格納ルートフォルダパスを指定します。このパスの配下に.cacheディレクトリが作られます。")]
-		[ArgAttribute("--torch_cache")]
 		public string ArgTorchCache { get; set; } = "";
 
 		[DisplayName("自由記入欄")]
@@ -171,14 +158,14 @@ public class Config {
 
 	public RecognizeExeArgument Extra { get; private set; } = new();
 
-	public readonly string TranscribeModelWhisper = "kotoba_whisper";
-	public readonly string TranscribeModelGoogle = "google_mix";
+	public const string TranscribeModelWhisper = "kotoba_whisper";
+	public const string TranscribeModelGoogle = "google_mix";
 
-	public readonly string VoiroVoiceRoid = "";
-	public readonly string VoiroVoiceRoid2 = "voiceroid2";
-	public readonly string VoiroAiVoice = "aivoice";
-	public readonly string VoiroAiVoice2 = "aivoice2";
-	public readonly string VoiroVoicePeak = "voicepeak";
+	public const string VoiroVoiceRoid = "voiceroid";
+	public const string VoiroVoiceRoid2 = "voiceroid2";
+	public const string VoiroAiVoice = "aivoice";
+	public const string VoiroAiVoice2 = "aivoice2";
+	public const string VoiroVoicePeak = "voicepeak";
 
 	public string ToCommandOption() {
 		static StringBuilder arg<T>(StringBuilder opt, string name, T? val) {
@@ -281,10 +268,15 @@ public class ConfigBinder : INotifyPropertyChanged {
 		"AI音声認識",
 		"google音声認識",
 	};
+	const int TranscribeIndexNull = 0;
+	const int TranscribeIndexAi = 1;
+	const int TranscribeIndexGoogle = 2;
 	private readonly string[] TranslateModels = {
 		"設定しない",
 		"AI翻訳",
 	};
+	const int TranslateIndexNull = 0;
+	const int TranslateIndexAi = 1; 
 	private readonly string[] VadGoogleParamaters = {
 		"設定しない",
 		"0",
@@ -299,6 +291,27 @@ public class ConfigBinder : INotifyPropertyChanged {
 		"普通",
 		"強め",
 	};
+	const int HpfIndexNull = 0;
+	const int HpfIndexDisable = 1;
+	const int HpfIndexLow = 2;
+	const int HpfIndexNormal = 3;
+	const int HpfIndexHi = 4;
+	const int HpfParamDisable = 0;
+	const int HpfParamLow = 80;
+	const int HpfParamNormal = 120;
+	const int HpfParamHi = 200;
+	private readonly string[] IlluminateVoices = {
+		"VOICEROID1/PLUS/EX",
+		"VOICEROID2",
+		"VOICEPEAK",
+		"A.I.VOICE",
+		"A.I.VOICE2",
+	};
+	const int VoiceIndexVoiceRoid = 0;
+	const int VoiceIndexVoiceRoid2 = 1;
+	const int VoiceIndexVoicePeak = 2;
+	const int VoiceIndexAiVoice = 3;
+	const int VoiceIndexAiVoice2 = 4;
 
 	// モデル
 	public ReactiveCollection<string> TranscribeModelsBinder { get; }
@@ -347,7 +360,8 @@ public class ConfigBinder : INotifyPropertyChanged {
 
 	// ボイロ連携
 	public ReactiveProperty<bool> IsUsedIlluminateBinding { get; }
-	//public ReactiveProperty<string> IlluminateVoiceBinding { get; }
+	public ReactiveCollection<string> IlluminateVoiceBinding { get; }
+	public ReactiveProperty<int> IlluminateVoiceIndex { get; }
 	public ReactiveProperty<string> IlluminateClientBinding { get; }
 
 
@@ -356,13 +370,13 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.TranscribeModelsBinder = new();
 		this.TranscribeModelsBinder.AddRangeOnScheduler(TranscribeModels);
 		this.TranscribeModeIndex = new(initialValue: config.TranscribeModel switch {
-			"kotoba_whisper" => 1,
-			"google_mix" => 2,
-			_ => 0
+			"kotoba_whisper" => TranscribeIndexAi,
+			"google_mix" => TranscribeIndexGoogle,
+			_ => TranscribeIndexNull
 		});
 		this.TranscribeModeIndex.Subscribe(x => config.TranscribeModel = x switch {
-			1 => "kotoba_whisper",
-			2 => "google_mix",
+			TranscribeIndexAi => "kotoba_whisper",
+			TranscribeIndexGoogle => "google_mix",
 			_ => ""
 		});
 		this.GoogleLanguageBinding = new(initialValue: config.GoogleLanguage);
@@ -374,17 +388,17 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.TranslateModelsBinder = new();
 		this.TranslateModelsBinder.AddRangeOnScheduler(TranslateModels);
 		this.TranslateModelIndex = new(initialValue: config.TranslateModel switch {
-			"kotoba_whisper" => 1,
-			_ => 0
+			"kotoba_whisper" => TranslateIndexAi,
+			_ => TranslateIndexNull
 		});
 		this.TranslateModelIndex.Subscribe(x => config.TranslateModel = x switch {
-			1 => "kotoba_whisper",
+			TranslateIndexAi => "kotoba_whisper",
 			_ => "",
 		});
 
 		this.GoogleItemVisibility = this.TranscribeModeIndex
 			.Select(x => x switch {
-				2 => Visibility.Visible,
+				TranscribeIndexGoogle => Visibility.Visible,
 				_ => Visibility.Hidden,
 			}).ToReactiveProperty();
 		this.GoogleTimeoutError = this.GoogleTimeoutBinding
@@ -398,7 +412,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 			_ => 0
 		});
 		this.MicDeviceIndex.Subscribe(x => config.Microphone = (x - 1) switch {
-			int v when (0 <= v) => v,
+			int v when(0 <= v) => v,
 			_ => null
 		});
 		this.MicrophoneThresholdDbBinder = new(initialValue: this.ToString(config.MicrophoneThresholdDb));
@@ -418,17 +432,17 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.HpfParamatersBinder = new();
 		this.HpfParamatersBinder.AddRangeOnScheduler(this.HpfParamaters);
 		this.HpfParamaterIndex = new(initialValue: config.HpfParamater switch {
-			int v when(0 <= v) && (v < 80) => 1,
-			int v when(80 <= v) && (v < 120) => 2,
-			int v when(120 <= v) && (v < 200) => 3,
-			int v when(200 <= v) => 4,
-			_ => 0
+			int v when(HpfParamDisable <= v) && (v < HpfParamLow) => HpfIndexDisable,
+			int v when(HpfParamLow <= v) && (v < HpfParamNormal) => HpfIndexLow,
+			int v when(HpfParamNormal <= v) && (v < HpfParamHi) => HpfIndexNormal,
+			int v when(HpfParamHi <= v) => HpfIndexHi,
+			_ => HpfIndexNull
 		});
 		this.HpfParamaterIndex.Subscribe(x => config.HpfParamater = x switch {
-			1 => 0,
-			2 => 80,
-			3 => 120,
-			4 => 200,
+			HpfIndexDisable => HpfParamDisable,
+			HpfIndexLow => HpfParamLow,
+			HpfIndexNormal => HpfParamNormal,
+			HpfIndexHi => HpfParamHi,
 			_ => null
 		});
 		this.MicrophoneThresholdDbError = this.MicrophoneThresholdDbBinder
@@ -480,11 +494,48 @@ public class ConfigBinder : INotifyPropertyChanged {
 		// ボイロ連携
 		this.IsUsedIlluminateBinding = new(initialValue: config.IsUsedIlluminate);
 		this.IsUsedIlluminateBinding.Subscribe(x => config.IsUsedIlluminate = x);
-		//this.IlluminateVoiceBinding = new(initialValue: config.IsUsedIlluminate);
-		//this.IlluminateVoiceBinding.Subscribe(x => config.IsUsedIlluminate = x);
+		this.IlluminateVoiceBinding = new();
+		this.IlluminateVoiceBinding.AddRangeOnScheduler(IlluminateVoices);
+		this.IlluminateVoiceIndex = new(initialValue: config.IlluminateVoice switch {
+			Config.VoiroVoiceRoid => VoiceIndexVoiceRoid,
+			Config.VoiroVoiceRoid2 => VoiceIndexVoiceRoid2,
+			Config.VoiroVoicePeak => VoiceIndexVoicePeak,
+			Config.VoiroAiVoice => VoiceIndexAiVoice,
+			Config.VoiroAiVoice2 => VoiceIndexAiVoice2,
+			_ => VoiceIndexVoiceRoid
+		});
+		this.IlluminateVoiceIndex.Subscribe(x => config.IlluminateVoice = x switch {
+			VoiceIndexVoiceRoid2 => Config.VoiroVoiceRoid2,
+			VoiceIndexVoicePeak => Config.VoiroVoicePeak,
+			VoiceIndexAiVoice => Config.VoiroAiVoice,
+			VoiceIndexAiVoice2 => Config.VoiroAiVoice2,
+			_ => Config.VoiroVoiceRoid
+		});
 		this.IlluminateClientBinding = new(initialValue: config.IlluminateClient);
 		this.IlluminateClientBinding.Subscribe(x => config.IlluminateClient = x);
+
+		this.IlluminateClientDialogFilter = this.IlluminateVoiceIndex.Select(x => x switch {
+			VoiceIndexVoiceRoid => "VOICEROID|VOICEROID.exe",
+			VoiceIndexVoiceRoid2 => "VOICEROID2|VoiceroidEditor.exe",
+			VoiceIndexVoicePeak => "VOICEPEAK|voicepeak.exe",
+			VoiceIndexAiVoice => "A.I.VOICE|AIVoiceEditor.exe",
+			VoiceIndexAiVoice2 => "A.I.VOICE2|aivoice.exe",
+			_ => "",
+		}).Select(x => $"{x}|すべてのファイル(*.*)|*.*").ToReactiveProperty<string>();
+		this.IlluminateClientDialogDirectory = this.IlluminateVoiceIndex.Select(x => x switch {
+			VoiceIndexVoiceRoid => @"C:\Program Files (x86)\AHS\",
+			VoiceIndexVoiceRoid2 => @"C:\Program Files (x86)\AHS\VOICEROID2",
+			VoiceIndexVoicePeak => @"C:\Program Files\VOICEPEAK",
+			VoiceIndexAiVoice => @"C:\Program Files\AI\AIVoice\AIVoiceEditor",
+			VoiceIndexAiVoice2 => @"C:\Program Files\AI\AIVoice2\AIVoice2Editor",
+			_ => null,
+		}).Select(x => Directory.Exists(x) switch {
+			true => x,
+			_ => null,
+		}).ToReactiveProperty();
 	}
+	public ReactiveProperty<string> IlluminateClientDialogFilter { get; }
+	public ReactiveProperty<string?> IlluminateClientDialogDirectory { get; }
 
 	private string ToString<T>(T v) {
 		if(v == null) {
@@ -527,7 +578,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 			return Visibility.Collapsed;
 		}
 
-		if(float.TryParse(s, out var v)) {
+		if(float.TryParse(s, out var _)) {
 			return Visibility.Collapsed;
 		} else {
 			return Visibility.Visible;
