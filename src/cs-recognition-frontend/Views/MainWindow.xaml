@@ -684,9 +684,9 @@
                         <ComboBox
                             Grid.Column="3" Grid.ColumnSpan="2" Grid.Row="2"
                             FontSize="{DynamicResource YsrFontSize}"
-                            SelectedIndex="0">
-                            <ComboBoxItem>VOICEROID2</ComboBoxItem>
-                        </ComboBox>
+                            ItemsSource="{Binding ConfigBinder.IlluminateVoiceBinding, Mode=OneWay}"
+                            SelectedIndex="{Binding ConfigBinder.IlluminateVoiceIndex.Value, Mode=TwoWay}"
+                            />
 
                         <TextBlock
                             Grid.Column="0" Grid.Row="4"
@@ -714,7 +714,11 @@
                                 <i:EventTrigger EventName="Click">
                                     <l:OpenFileDialogInteractionMessageAction>
                                         <l:DirectInteractionMessage CallbackCommand="{Binding IlluminateClientClickCommand}">
-                                            <l:OpeningFileSelectionMessage Filter="すべてのファイル(*.*)|*.*" Title="合成音声を選択" MultiSelect="False"/>
+                                            <l:OpeningFileSelectionMessage
+                                                Filter="{Binding ConfigBinder.IlluminateClientDialogFilter.Value, Mode=OneWay}" 
+                                                InitialDirectory="{Binding ConfigBinder.IlluminateClientDialogDirectory.Value, Mode=OneWay}"
+                                                Title="合成音声を選択"
+                                                MultiSelect="False"/>
                                         </l:DirectInteractionMessage>
                                     </l:OpenFileDialogInteractionMessageAction>
                                 </i:EventTrigger>
@@ -816,16 +820,25 @@
                                         </i:Interaction.Triggers>
                                     </Button>
                                     -->
+                                    <Button Grid.Column="2" IsEnabled="False">
+                                        <Button.Content>
+                                            <TextBlock
+                                                FontSize="{DynamicResource YsrFontSize}"
+                                                >
+                                                <Run FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolImport}" />
+                                                <Run Text="インポート" />
+                                            </TextBlock>
+                                        </Button.Content>
+                                    </Button>
                                     <Button Grid.Column="4" IsEnabled="False">
                                         <Button.Content>
                                             <TextBlock
                                                 FontSize="{DynamicResource YsrFontSize}"
                                                 >
-                                                <Run FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolSave}" />
-                                                <Run Text="バックアップ" />
+                                                <Run FontFamily="{StaticResource SymbolFont}" Text="{StaticResource FontSymbolExportMirrored}" />
+                                                <Run Text="エクスポート" />
                                             </TextBlock>
                                         </Button.Content>
-
                                     </Button>
                                 </Grid>
 
@@ -836,7 +849,7 @@
                                     HorizontalContentAlignment="Stretch">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <Border>
+                                            <Border Padding="8,4,9,3">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*" />
@@ -844,25 +857,47 @@
                                                         <ColumnDefinition Width="32" />
                                                     </Grid.ColumnDefinitions>
                                                     <Grid.RowDefinitions>
-                                                        <RowDefinition Height="32" />
+                                                        <RowDefinition Height="36" />
                                                     </Grid.RowDefinitions>
-                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                        <TextBlock Text="ルール：" />
-                                                        <TextBlock Text="{Binding Rule.Value, Mode=OneWay}" />
-                                                        <TextBlock Text="/" />
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="72" />
+                                                            <ColumnDefinition Width="72" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                        </Grid.RowDefinitions>
+                                                        <TextBlock
+                                                            Grid.Column="0" Grid.Row="0"
+                                                            FontWeight="Bold">
+                                                            <Run Text="ルール" />
+                                                        </TextBlock>
+                                                        <TextBlock
+                                                            Grid.Column="0" Grid.Row="1">
+                                                            <Run Text="{Binding Rule.Value, Mode=OneWay}" />
+                                                        </TextBlock>
 
-                                                        <TextBlock Text="アクション：" />
-                                                        <TextBlock Text="{Binding Action.Value, Mode=OneWay}" />
-                                                        <TextBlock Text="/" />
+                                                        <TextBlock
+                                                            Grid.Column="1" Grid.Row="0"
+                                                            FontWeight="Bold">
+                                                            <Run Text="動作" />
+                                                        </TextBlock>
+                                                        <TextBlock
+                                                            Grid.Column="1" Grid.Row="1">
+                                                            <Run Text="{Binding Action.Value, Mode=OneWay}" />
+                                                        </TextBlock>
 
-                                                        <TextBlock Text="入力文字列：&quot;" />
-                                                        <TextBlock Text="{Binding Src.Value, Mode=OneWay}" />
-                                                        <TextBlock Text="&quot;/" />
-
-                                                        <TextBlock Text="変換文字列：&quot;" />
-                                                        <TextBlock Text="{Binding Dst.Value, Mode=OneWay}" />
-                                                        <TextBlock Text="&quot;" />
-                                                    </StackPanel>
+                                                        <TextBlock
+                                                            Grid.Column="2" Grid.Row="0" Grid.RowSpan="2"
+                                                            VerticalAlignment="Center"
+                                                            >
+                                                            <Run Text="{Binding Src.Value, Mode=OneWay}" />
+                                                            <Run Text=" > " />
+                                                            <Run Text="{Binding Dst.Value, Mode=OneWay}" />
+                                                        </TextBlock>
+                                                    </Grid>
                                                     <Button Grid.Column="1">
                                                         <Button.Content>
                                                             <TextBlock
