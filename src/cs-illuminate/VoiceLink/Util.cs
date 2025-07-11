@@ -22,7 +22,7 @@ internal static class Util {
 		}).FirstOrDefault();
 	}
 
-	public static (Process Proc, nint WindowHandle)? LaunchProcess(string targetExe, Func<string, bool> classProc) {
+	public static (Process Proc, nint WindowHandle)? LaunchProcess(string targetExe, Func<string, bool>? classProc) {
 		if (File.Exists(targetExe)) {
 			try {
 				var p = Process.Start(targetExe);
@@ -32,18 +32,22 @@ internal static class Util {
 				foreach (ProcessThread thread in p.Threads) {
 					l.Add(thread);
 				}
-				if (l.OrderBy(x => x.StartTime).FirstOrDefault() is ProcessThread pt) {
-					nint h = 0;
-					Interop.EnumThreadWindows(pt.Id, (hwnd, lP) => {
-						var s = new StringBuilder(128);
-						if ((Interop.GetClassName(hwnd, s, s.Capacity) != 0) && classProc(s.ToString())) {
-							h = hwnd;
-							return false;
+				if (classProc == null) {
+					return (p, 0);
+				} else {
+					if (l.OrderBy(x => x.StartTime).FirstOrDefault() is ProcessThread pt) {
+						nint h = 0;
+						Interop.EnumThreadWindows(pt.Id, (hwnd, lP) => {
+							var s = new StringBuilder(128);
+							if ((Interop.GetClassName(hwnd, s, s.Capacity) != 0) && classProc(s.ToString())) {
+								h = hwnd;
+								return false;
+							}
+							return true;
+						}, 0);
+						if (h != 0) {
+							return (p, h);
 						}
-						return true;
-					}, 0);
-					if (h != 0) {
-						return (p, h);
 					}
 				}
 			}

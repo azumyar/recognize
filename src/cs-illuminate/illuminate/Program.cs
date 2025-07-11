@@ -54,8 +54,10 @@ class Logger {
 
 class CommandOptions {
 	public enum VoiceClientType { 
+		voiceroid,
 		voiceroid2,
 		voicepeak,
+		aivoice,
 		aivoice2,
 	}
 
@@ -124,9 +126,11 @@ class Program {
 
 			this.opt = opt;
 			this.client = opt.Voice switch {
+				CommandOptions.VoiceClientType.voiceroid => new VoiceLink.Clients.VoiceRoid(),
 				CommandOptions.VoiceClientType.voiceroid2 => new VoiceLink.Clients.VoiceRoid2(),
-				CommandOptions.VoiceClientType.aivoice2 => new VoiceLink.Clients.AiVoice2(),
 				CommandOptions.VoiceClientType.voicepeak => new VoiceLink.Clients.VoicePeak(),
+				CommandOptions.VoiceClientType.aivoice => new VoiceLink.Clients.AiVoice(),
+				CommandOptions.VoiceClientType.aivoice2 => new VoiceLink.Clients.AiVoice2(),
 				_ => throw new NotImplementedException($"不正な合成音声{opt.Voice}"),
 			};
 			this.client.StartClient(this.opt.Client, this.opt.Launch);

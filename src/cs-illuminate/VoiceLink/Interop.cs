@@ -17,7 +17,8 @@ internal static class Interop {
 	public static extern nint PostMessage(nint hwnd, int msg, nint wp, nint lp);
 	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
 	public static extern nint SendMessage(nint hwnd, int msg, nint wp, nint lp);
-
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	public static extern nint SendMessage(nint hwnd, int msg, nint wp, string lp);
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
 	public static extern nint LoadLibrary(string lpLibFileName);
 	[DllImport("kernel32.dll", CharSet = CharSet.Ansi, SetLastError = true)]
@@ -55,7 +56,15 @@ internal static class Interop {
 	public static extern int GetClassName(nint hWnd, StringBuilder lpClassName, int nMaxCount);
 	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
 	public static extern bool EnumThreadWindows(int dwThreadId, EnumThreadWndProc lpfn, nint lParam);
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	public static extern bool EnumChildWindows(nint hWndParent, EnumThreadWndProc lpEnumFunc, nint lParam);
 	public delegate bool EnumThreadWndProc(nint hwnd, nint lParam);
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	public static extern nint GetDlgItem(nint hwnd, int childID);
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	public static extern int GetDlgCtrlID(nint hwnd);
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	public static extern bool SetWindowText(nint hWnd, string lpString);
 
 	public const int WM_KILLFOCUS = 0x0008;
 	public const int WM_LBUTTONDOWN = 0x201;
@@ -64,14 +73,17 @@ internal static class Interop {
 	public const int WM_KEYUP = 0x0101;
 	public const int WM_IME_CHAR = 0x286;
 	public const int MK_LBUTTON = 0x01;
+	public const int WM_CHAR = 0x0102;
+	public const int WM_SETTEXT = 0x000C; 
 	public const int VK_HOME = 0x24;
 	public const int VK_DELETE = 0x2E;
 	public const int VK_SPACE = 0x20;
 	public const int VK_F5 = 0x74;
-	public const int WM_CHAR = 0x0102;
 
 	public const int PAGE_READWRITE = 0x04;
 	public const int FILE_MAP_WRITE = 0x00000002;
+
+	public const int BM_CLICK = 0x00F5;
 
 	[StructLayout(LayoutKind.Sequential)]
 	public struct POINT {
@@ -96,7 +108,7 @@ internal static class Interop {
 	// Token: 0x0600005C RID: 92
 	[DllImport("oleacc.dll")]
 	public static extern uint AccessibleChildren(
-		Accessibility.IAccessible paccContainer,
+		/*Accessibility.IAccessible*/object paccContainer,
 		int iChildStart,
 		int cChildren,
 		[In][Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] object[] rgvarChildren,
