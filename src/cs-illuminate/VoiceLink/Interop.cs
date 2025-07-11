@@ -111,7 +111,7 @@ internal static class Interop {
 	// Token: 0x0600005C RID: 92
 	[DllImport("oleacc.dll")]
 	public static extern uint AccessibleChildren(
-		/*Accessibility.IAccessible*/object paccContainer,
+		Accessibility.IAccessible paccContainer,
 		int iChildStart,
 		int cChildren,
 		[In][Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] object[] rgvarChildren,
