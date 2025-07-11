@@ -105,10 +105,11 @@ def __whiper_help(s:str) -> str:
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
 @click.option("--out_yukacone",default=None, help="ゆかコネNEOの外部連携ポートを指定", type=int)
 @click.option("--out_illuminate_exe",default="", help="-", type=str)
-@click.option("--out_illuminate_voice",default="voiceroid2", help="-", type=click.Choice(["voiceroid2", "voicepeak", "aivoice2"]))
+@click.option("--out_illuminate_voice",default="voiceroid", help="-", type=click.Choice(["voiceroid", "voiceroid2", "voicepeak", "aivoice", "aivoice2"]))
 @click.option("--out_illuminate_client",default="", help="-", type=str)
 @click.option("--out_illuminate_launch",default=False, help="-", type=str)
 @click.option("--out_illuminate_port",default=49514, help="-",type=int)
+@click.option("--out_illuminate_capture_pause",default=0.75, help="-",type=int)
 @click.option("--out_file_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
 @click.option("--out_file_directory", default=None, help="ファイル字幕連携で保存先", type=str)
 @click.option("--out_obs_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
@@ -177,6 +178,7 @@ def main(
     out_illuminate_client:str,
     out_illuminate_launch:bool,
     out_illuminate_port:int,
+    out_illuminate_capture_pause:float,
     out_file_truncate:float,
     out_file_directory:str,
     out_obs_truncate:float,
@@ -401,7 +403,8 @@ def main(
                     out_illuminate_exe,
                     out_illuminate_voice,
                     out_illuminate_client,
-                    out_illuminate_launch),
+                    out_illuminate_launch,
+                    out_illuminate_capture_pause),
                 val.OUT_VALUE_OBS: lambda: output_subtitle.ObsV5SubtitleOutputer(
                     out_obs_host,
                     out_obs_port,

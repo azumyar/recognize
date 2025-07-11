@@ -147,8 +147,11 @@ internal class ApplicationCapture {
 	private bool isSpeak = false;
 	private readonly AutoResetEvent speakWait = new(false);
 
-	private ApplicationCapture(AudioClient audioClient) {
+	private int pauseSec;
+
+	private ApplicationCapture(AudioClient audioClient, float pauseSec) {
 		this.audioClient = audioClient;
+		this.pauseSec = (int)(pauseSec * 1000);
 	}
 
 	private static bool s_initilized = false;
@@ -172,7 +175,7 @@ internal class ApplicationCapture {
 		s_initilized = true;
 	}
 
-	public static async Task<ApplicationCapture?> Get(int pid) {
+	public static async Task<ApplicationCapture?> Get(int pid, float pauseSec = 0.75f) {
 		if (pid == 0) {
 			return null;
 		}
@@ -182,7 +185,7 @@ internal class ApplicationCapture {
 		ev.Reset();
 		var audioClient = AudioCapture.Initilize(pid);
 		if(audioClient != null) {
-			capture = new ApplicationCapture(audioClient);
+			capture = new ApplicationCapture(audioClient, pauseSec);
 			capture.waveFormat = new WaveFormat(
 				rate: 16000,
 				bits: 16,
@@ -288,7 +291,7 @@ internal class ApplicationCapture {
 			if(!ReadNextPacket(audioCaptureClient, (rms) => {
 				if(!rms) {
 					if(speakEndTime.HasValue) {
-						if(750 < (DateTime.Now - speakEndTime.Value).TotalMilliseconds) {
+						if(this.pauseSec < (DateTime.Now - speakEndTime.Value).TotalMilliseconds) {
 							return true;
 						}
 					} else {

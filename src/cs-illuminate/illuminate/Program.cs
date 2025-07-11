@@ -79,6 +79,9 @@ class CommandOptions {
 	public bool Launch { get; set; }
 	*/
 
+	[Option("capture_pause", Required = false, HelpText = "-")]
+	public float CapturePauseSec { get; set; } = 0.75f;
+
 }
 
 public record class RecognitionObject {
@@ -197,7 +200,7 @@ class Program {
 								|| (this.targetProcess != this.client.ProcessId)) {
 								Logger.Current.Log($"！！合成音声クライアントの再起動が確認されました");
 								this.targetProcess = this.client.ProcessId;
-								this.capture = await ApplicationCapture.Get(this.targetProcess);
+								this.capture = await ApplicationCapture.Get(this.targetProcess, this.opt.CapturePauseSec);
 							}
 							if (this.capture != null) {
 								this.capture.Start();

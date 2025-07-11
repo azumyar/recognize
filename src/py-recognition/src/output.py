@@ -144,11 +144,12 @@ class IlluminateSpeechOutputer(WebSocketOutputer):
     def __init__(
             self,
             host:str,
-            port:str,
+            port:int,
             exe_path:str,
             exe_voice:str,
             exe_client:str,
-            exe_lunch:bool):
+            exe_lunch:bool,
+            capture_pause:float):
         super().__init__( f"ws://{host}:{port}", "Illuminate")
         subprocess.Popen([
             exe_path,
@@ -156,6 +157,7 @@ class IlluminateSpeechOutputer(WebSocketOutputer):
              f"--port", f"{port}",
              f"--voice", exe_voice,
              f"--client", exe_client,
+             f"--capture_pause", f"{capture_pause}",
         ])
 
     def output(self, text_ja:str, text_en:str) -> str:
