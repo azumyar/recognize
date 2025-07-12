@@ -14,7 +14,7 @@ public class AiVoice : IVoiceClient {
 	public int ProcessId { get => this.pId; }
 
 	public AiVoice() {
-		// WCFが使われているのでCOMを経由する
+		// WCFが使われているので.NETで使用できないCOMを経由する
 		var type = Type.GetTypeFromCLSID(new Guid("B628D293-341C-41BE-B2E7-9E7822B2B7AC"));
 		if (type == null) {
 			throw new VoiceLinkException("A.I.Voiceが見つかりません");

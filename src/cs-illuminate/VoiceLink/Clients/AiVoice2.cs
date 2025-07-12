@@ -15,10 +15,7 @@ public class AiVoice2 : IVoiceClient {
 	private readonly string AiVoice2WindowsClass = "FLUTTER_RUNNER_WIN32_WINDOW";
 	private string exe = "";
 	private int pId;
-	private nint hAiVoice = 0;
-	private int targetWidth;
-	//private readonly string DefaultAiVoicePath = @"C:\Program Files\AI\AIVoice2\AIVoice2Editor\aivoice.exe";
-
+	private nint hTargetWindow;
 
 	public int ProcessId { get => this.pId; }
 
@@ -29,7 +26,7 @@ public class AiVoice2 : IVoiceClient {
 
 	private bool Load(string targetExe, bool isLaunch) {
 		this.pId = 0;
-		this.hAiVoice = 0;
+		this.hTargetWindow = 0;
 
 		var p = Util.GetProcess(targetExe);
 		var h = p?.MainWindowHandle ?? 0;
@@ -45,26 +42,21 @@ public class AiVoice2 : IVoiceClient {
 			h = pp.Value.WindowHandle;
 		}
 		this.pId = p.Id;
-		this.hAiVoice = h;
-
-		Interop.GetWindowRect(this.hAiVoice, out var rc);
-		Interop.SetWindowPos(this.hAiVoice, 0, rc.left, rc.top, 1152, 720, 0);
-		Interop.GetClientRect(this.hAiVoice, out rc);
-		this.targetWidth = rc.right - rc.left;
+		this.hTargetWindow = h;
 		return true;
 	}
 
 	public void EndClient() { }
 
 	public void BeginSpeech(string text) {
-		if (!Interop.IsWindow(this.hAiVoice)) {
+		if (!Interop.IsWindow(this.hTargetWindow)) {
 			this.Load(this.exe, false);
 		}
 	}
 
 	public void Speech(string text) {
 		// キーボードフォーカス握るウインドウに差し替え
-		var aivoiceTarget = Interop.FindWindowEx(this.hAiVoice, 0, "FLUTTERVIEW", "FLUTTERVIEW");
+		var aivoiceTarget = Interop.FindWindowEx(this.hTargetWindow, 0, "FLUTTERVIEW", "FLUTTERVIEW");
 		if(aivoiceTarget == 0) {
 			throw new VoiceLinkException();
 		}
@@ -83,7 +75,7 @@ public class AiVoice2 : IVoiceClient {
 	}
 
 	public void EndSpeech(string text) {
-		var aivoiceTarget = Interop.FindWindowEx(this.hAiVoice, 0, "FLUTTERVIEW", "FLUTTERVIEW");
+		var aivoiceTarget = Interop.FindWindowEx(this.hTargetWindow, 0, "FLUTTERVIEW", "FLUTTERVIEW");
 
 		// 後片付け
 		// 再生終了直後はフォーカスが奪えないので少し待つ

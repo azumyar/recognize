@@ -13,9 +13,9 @@ public class VoiceRoid2 : IVoiceClient {
 	private readonly string VoiceRoid2EditorClass = "HwndWrapper[VoiceroidEditor.exe;;4cc5cceb-49d9-4fbf-8374-11d461e38c4c]";
 	private string exe = "";
 	private int pId;
-	private nint hVoiceRoid2;
-	private Accessibility.IAccessible? TextBox;
-	private Accessibility.IAccessible? PlayButton;
+	private nint hTargetWindow;
+	private Accessibility.IAccessible? textBox;
+	private Accessibility.IAccessible? playButton;
 
 	public int ProcessId { get => this.pId; }
 
@@ -27,14 +27,14 @@ public class VoiceRoid2 : IVoiceClient {
 
 	private bool Load(string targetExe, bool isLaunch) {
 		this.pId = 0;
-		this.hVoiceRoid2 = 0;
-		if(this.TextBox != null) {
-			Marshal.ReleaseComObject(this.TextBox);
-			this.TextBox = null;
+		this.hTargetWindow = 0;
+		if(this.textBox != null) {
+			Marshal.ReleaseComObject(this.textBox);
+			this.textBox = null;
 		}
-		if (this.PlayButton != null) {
-			Marshal.ReleaseComObject(this.PlayButton);
-			this.PlayButton = null;
+		if (this.playButton != null) {
+			Marshal.ReleaseComObject(this.playButton);
+			this.playButton = null;
 		}
 
 		var p = Util.GetProcess(targetExe);
@@ -54,7 +54,7 @@ public class VoiceRoid2 : IVoiceClient {
 			return false;
 		}
 		this.pId = p.Id;
-		this.hVoiceRoid2 = h;
+		this.hTargetWindow = h;
 		return true;
 	}
 
@@ -62,14 +62,14 @@ public class VoiceRoid2 : IVoiceClient {
 
 
 	public void BeginSpeech(string text) {
-		if(!Interop.IsWindow(this.hVoiceRoid2)) {
+		if(!Interop.IsWindow(this.hTargetWindow)) {
 			this.Load(this.exe, false);
-			if (this.hVoiceRoid2 == 0) {
+			if (this.hTargetWindow == 0) {
 				throw new VoiceLinkException("VoiceRoid2が見つかりません");
 			}
 		}
 		Interop.AccessibleObjectFromWindow(
-			this.hVoiceRoid2,
+			this.hTargetWindow,
 			0,
 			in Interop.IID_IAccessible,
 			out var o
@@ -99,8 +99,8 @@ public class VoiceRoid2 : IVoiceClient {
 					throw new VoiceLinkException("VoiceRoid2オブジェクトの取得に失敗(3/3)");
 				}
 
-				this.TextBox = (Accessibility.IAccessible)obj3[0];
-				this.PlayButton = (Accessibility.IAccessible)obj3[1];
+				this.textBox = (Accessibility.IAccessible)obj3[0];
+				this.playButton = (Accessibility.IAccessible)obj3[1];
 				return;
 			}
 			finally {
@@ -118,13 +118,13 @@ public class VoiceRoid2 : IVoiceClient {
 	}
 
 	public void Speech(string text) {
-		if ((this.TextBox == null) || (this.PlayButton == null)) {
+		if ((this.textBox == null) || (this.playButton == null)) {
 			throw new VoiceLinkException("");
 		}
 
 		foreach(var it in new (int Index, Action Action)[] {
-			(1, () => { this.TextBox.accValue[0] = text; }),
-			(2, () => { this.PlayButton.accDoDefaultAction(0); }),
+			(1, () => { this.textBox.accValue[0] = text; }),
+			(2, () => { this.playButton.accDoDefaultAction(0); }),
 		}) {
 			try {
 				it.Action();
@@ -137,22 +137,22 @@ public class VoiceRoid2 : IVoiceClient {
 	}
 
 	public void EndSpeech(string text) {
-		if (this.TextBox == null) {
+		if (this.textBox == null) {
 			return;
 		}
 
 		try {
-			this.TextBox.accValue[0] = "";
+			this.textBox.accValue[0] = "";
 		}
 		catch {}
 
-		if (this.TextBox != null) {
-			Marshal.ReleaseComObject(this.TextBox);
-			this.TextBox = null;
+		if (this.textBox != null) {
+			Marshal.ReleaseComObject(this.textBox);
+			this.textBox = null;
 		}
-		if (this.PlayButton != null) {
-			Marshal.ReleaseComObject(this.PlayButton);
-			this.PlayButton = null;
+		if (this.playButton != null) {
+			Marshal.ReleaseComObject(this.playButton);
+			this.playButton = null;
 		}
 	}
 }
