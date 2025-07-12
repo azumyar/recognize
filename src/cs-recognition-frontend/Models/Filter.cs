@@ -80,6 +80,13 @@ public class FilterItem : INotifyPropertyChanged {
 public class FilterRule : INotifyPropertyChanged {
 	public event PropertyChangedEventHandler? PropertyChanged;
 
+	public const string MaskValueMask = "mask";
+	public const string MaskValueMaskAll = "mask-all";
+	public const string MaskValueReplace = "replace";
+	public const string RuleValueMatch = "match";
+	public const string RuleValueMatchAll = "match-all";
+	public const string RuleValueRegex = "regex";
+
 	[JsonProperty("action")]
 	[JsonConverter(typeof(ReactivePropertyConverter<string?>))]
 	public ReactiveProperty<string?> Action { get; private set; } = new(initialValue: "mask");

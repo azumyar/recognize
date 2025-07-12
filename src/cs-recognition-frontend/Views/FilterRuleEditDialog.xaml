@@ -8,9 +8,15 @@
     xmlns:l="http://schemas.livet-mvvm.net/2011/wpf"
     xmlns:ri="clr-namespace:Reactive.Bindings.Interactivity;assembly=ReactiveProperty.WPF"
     xmlns:prism="http://prismlibrary.com/"
+    xmlns:m="clr-namespace:Haru.Kei.Models"
+    xmlns:sys="clr-namespace:System;assembly=System.ValueTuple"
     xmlns:local="clr-namespace:Haru.Kei.Views"
     mc:Ignorable="d" 
     d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <local:FilterMaskConverter x:Key="FilterMaskConverter"/>
+        <local:FilterRuleConverter x:Key="FilterRuleConverter"/>
+    </UserControl.Resources>
 
     <i:Interaction.Triggers>
         <l:InteractionMessageTrigger Messenger="{Binding Messenger}" MessageKey="Confirmation" >
@@ -41,8 +47,8 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="32" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="24" />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -57,23 +63,57 @@
             </Grid.RowDefinitions>
 
             <GroupBox
-                Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="0"
-                Header="アクション">
+                Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="0"
+                FontSize="{DynamicResource YsrFontSize}"
+                Header="検索条件">
                 <StackPanel Margin="8">
                     <RadioButton
-                    IsChecked="{Binding ActionMaskValue.Value, Mode=TwoWay}"
-                    Content="先頭意外マスク"
-                    GroupName="a"
+                        IsChecked="{Binding RuleWordValue.Value, Mode=TwoWay}"
+                        FontSize="{DynamicResource YsrFontSize}"
+                        Content="{Binding Source={x:Static m:FilterRule.RuleValueMatch}, Converter={StaticResource FilterRuleConverter}}"
+                        GroupName="rule"
                     />
                     <RadioButton
-                    IsChecked="{Binding ActionMaskAllValue.Value, Mode=TwoWay}"
-                    Content="全部をマスク"
-                    GroupName="a"
+                        IsChecked="{Binding RuleWordAllValue.Value, Mode=TwoWay}"
+                        FontSize="{DynamicResource YsrFontSize}"
+                        Content="{Binding Source={x:Static m:FilterRule.RuleValueMatchAll}, Converter={StaticResource FilterRuleConverter}}"
+                        GroupName="rule"
                     />
                     <RadioButton
-                    IsChecked="{Binding ActionReplaceValue.Value, Mode=TwoWay}"
-                    Content="置き換え"
-                    GroupName="a">
+                        IsChecked="{Binding RuleRegexValue.Value, Mode=TwoWay}"
+                        FontSize="{DynamicResource YsrFontSize}"
+                        Content="{Binding Source={x:Static m:FilterRule.RuleValueRegex}, Converter={StaticResource FilterRuleConverter}}"
+                        GroupName="rule"
+                    />
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox
+                Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="2"
+                FontSize="{DynamicResource YsrFontSize}"
+                Header="アクション">
+                <GroupBox.Resources>
+
+                </GroupBox.Resources>
+
+                <StackPanel Margin="8">
+                    <RadioButton
+                        IsChecked="{Binding ActionMaskValue.Value, Mode=TwoWay}"
+                        FontSize="{DynamicResource YsrFontSize}"
+                        Content="{Binding Source={x:Static m:FilterRule.MaskValueMask}, Converter={StaticResource FilterMaskConverter}}"
+                        GroupName="action"
+                        />
+                    <RadioButton
+                        IsChecked="{Binding ActionMaskAllValue.Value, Mode=TwoWay}"
+                        FontSize="{DynamicResource YsrFontSize}"
+                        Content="{Binding Source={x:Static m:FilterRule.MaskValueMaskAll}, Converter={StaticResource FilterMaskConverter}}"
+                        GroupName="action"
+                        />
+                    <RadioButton
+                        IsChecked="{Binding ActionReplaceValue.Value, Mode=TwoWay}"
+                        FontSize="{DynamicResource YsrFontSize}"
+                        Content="{Binding Source={x:Static m:FilterRule.MaskValueReplace}, Converter={StaticResource FilterMaskConverter}}"
+                        GroupName="action">
                         <i:Interaction.Triggers>
                             <i:DataTrigger Binding="{Binding ActionReplaceValue.Value}" Comparison="Equal" Value="true">
                                 <i:ChangePropertyAction TargetName="dstReplace" PropertyName="Visibility" Value="Visible" />
@@ -88,43 +128,25 @@
                 </StackPanel>
             </GroupBox>
 
-            <GroupBox
-                Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="2"
-                Header="検索条件">
-                <StackPanel Margin="8">
-                    <RadioButton
-                    IsChecked="{Binding RuleWordValue.Value, Mode=TwoWay}"
-                    Content="単語一致検索"
-                    GroupName="b"
-                    />
-                    <RadioButton
-                    IsChecked="{Binding RuleWordAllValue.Value, Mode=TwoWay}"
-                    Content="全文一致検索"
-                    GroupName="b"
-                    />
-                    <RadioButton
-                    IsChecked="{Binding RuleRegexValue.Value, Mode=TwoWay}"
-                    Content="正規表現検索"
-                    GroupName="b"
-                    />
-                </StackPanel>
-            </GroupBox>
 
             <TextBlock
                 Grid.Column="0" Grid.Row="4"
+                FontSize="{DynamicResource YsrFontSize}"
                 Text="検索文字"
                 />
             <TextBox
-                Grid.Column="2" Grid.Row="4"                
+                Grid.Column="3" Grid.Row="4"                
+                FontSize="{DynamicResource YsrFontSize}"
                 Text="{Binding Src.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                 />
             <TextBlock
-                Grid.Column="3" Grid.Row="4"
+                Grid.Column="2" Grid.Row="4"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Foreground="Red"
+                FontSize="{DynamicResource YsrFontSize}"
                 FontFamily="{StaticResource SymbolFont}" 
-                Text="{StaticResource FontSymbolError}"
+                Text="{StaticResource FontSymbolStatusErrorFull}"
                 Visibility="{Binding SrcErrorVisibility.Value, Mode=OneWay}"
                 />
 
@@ -134,7 +156,8 @@
                 />
             <TextBox
                 x:Name="dstReplace"
-                Grid.Column="2" Grid.Row="6"
+                Grid.Column="3" Grid.Row="6"
+                FontSize="{DynamicResource YsrFontSize}"
                 Text="{Binding DstReplace.Value, Mode=TwoWay}"
                 AcceptsReturn="False"
                 TextWrapping="Wrap"
@@ -143,7 +166,8 @@
                 />
             <TextBox
                 x:Name="dstMask"
-                Grid.Column="2" Grid.Row="6"
+                Grid.Column="3" Grid.Row="6"
+                FontSize="{DynamicResource YsrFontSize}"
                 Text="{Binding DstMask.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                 AcceptsReturn="False"
                 TextWrapping="Wrap"
@@ -151,12 +175,13 @@
                 VerticalScrollBarVisibility="Visible"
                 />
             <TextBlock
-                Grid.Column="3" Grid.Row="6"
+                Grid.Column="2" Grid.Row="6"
                 HorizontalAlignment="Center"
-                VerticalAlignment="Center"
+                VerticalAlignment="Top"
                 Foreground="Red"
+                FontSize="{DynamicResource YsrFontSize}"
                 FontFamily="{StaticResource SymbolFont}" 
-                Text="{StaticResource FontSymbolError}"
+                Text="{StaticResource FontSymbolStatusErrorFull}"
                 Visibility="{Binding DstErrorVisibility.Value, Mode=OneWay}"
                 />
 
@@ -176,6 +201,7 @@
                 <Button
                     Grid.Column="0"
                     IsEnabled="{Binding OkButtonEnabled.Value, Mode=OneWay}"
+                    FontSize="{DynamicResource YsrFontSize}"
                     Content="OK">
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="Click">
@@ -185,6 +211,7 @@
                 </Button>
                 <Button
                     Grid.Column="2"
+                    FontSize="{DynamicResource YsrFontSize}"
                     Content="キャンセル">
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="Click">

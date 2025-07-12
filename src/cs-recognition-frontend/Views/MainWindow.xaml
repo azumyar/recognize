@@ -14,6 +14,10 @@
     Title="ゆーかねすぴれこランチャー"
     Height="720" Width="820"
     Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+    <Window.Resources>
+        <local:FilterMaskConverter x:Key="FilterMaskConverter"/>
+        <local:FilterRuleConverter x:Key="FilterRuleConverter"/>
+    </Window.Resources>
 
     <i:Interaction.Triggers>
         <i:EventTrigger EventName="Loaded">
@@ -861,8 +865,8 @@
                                                     </Grid.RowDefinitions>
                                                     <Grid>
                                                         <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="72" />
-                                                            <ColumnDefinition Width="72" />
+                                                            <ColumnDefinition Width="96" />
+                                                            <ColumnDefinition Width="128" />
                                                             <ColumnDefinition Width="Auto" />
                                                         </Grid.ColumnDefinitions>
                                                         <Grid.RowDefinitions>
@@ -872,21 +876,21 @@
                                                         <TextBlock
                                                             Grid.Column="0" Grid.Row="0"
                                                             FontWeight="Bold">
-                                                            <Run Text="ルール" />
+                                                            <Run Text="検索条件" />
                                                         </TextBlock>
                                                         <TextBlock
                                                             Grid.Column="0" Grid.Row="1">
-                                                            <Run Text="{Binding Rule.Value, Mode=OneWay}" />
+                                                            <Run Text="{Binding Rule.Value, Mode=OneWay, Converter={StaticResource FilterRuleConverter}}" />
                                                         </TextBlock>
 
                                                         <TextBlock
                                                             Grid.Column="1" Grid.Row="0"
                                                             FontWeight="Bold">
-                                                            <Run Text="動作" />
+                                                            <Run Text="アクション" />
                                                         </TextBlock>
                                                         <TextBlock
                                                             Grid.Column="1" Grid.Row="1">
-                                                            <Run Text="{Binding Action.Value, Mode=OneWay}" />
+                                                            <Run Text="{Binding Action.Value, Mode=OneWay, Converter={StaticResource FilterMaskConverter}}" />
                                                         </TextBlock>
 
                                                         <TextBlock
