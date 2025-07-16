@@ -3,21 +3,19 @@ using System.Threading;
 
 namespace VoiceLink.Clients;
 
-public class VoicePeak : IVoiceClient {
+public class VoicePeak : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 	private readonly string AiVoice2WindowsClass = "FLUTTER_RUNNER_WIN32_WINDOW";
 	private string exe = "";
-	private int pId;
 	private nint hTargetWindow;
 	private int targetWidth;
-	public int ProcessId { get => this.pId; }
 
-	public bool StartClient(string targetExe, bool isLaunch) {
-		this.exe = targetExe;
+	public override bool StartClient(bool isLaunch, AudioCaptreStart extra) {
+		this.exe = extra.TargetExe;
 		return this.Load(this.exe, isLaunch);
 	}
 
 	private bool Load(string targetExe, bool isLaunch) {
-		this.pId = 0;
+		this.ProcessId = 0;
 		this.hTargetWindow = 0;
 
 		var p = Util.GetProcess(targetExe);
@@ -37,7 +35,7 @@ public class VoicePeak : IVoiceClient {
 			return false;
 		}
 
-		this.pId = p.Id;
+		this.ProcessId = p.Id;
 		this.hTargetWindow = h;
 
 		Interop.GetWindowRect(this.hTargetWindow, out var rc);
@@ -47,16 +45,16 @@ public class VoicePeak : IVoiceClient {
 		return true;
 	}
 
-	public void EndClient() {
+	public override void EndClient() {
 	}
 
-	public void BeginSpeech(string text) {
+	public override void BeginSpeech(string text, NopVoiceObject extra) {
 		if (!Interop.IsWindow(this.hTargetWindow)) {
 			this.Load(this.exe, false);
 		}
 	}
 
-	public void Speech(string text) {
+	public override void Speech(string text, NopVoiceObject extra) {
 		var len = text.Length;
 		Util.PlatformClick(this.hTargetWindow, 400, 140);
 		foreach (var c in text) {
@@ -73,7 +71,7 @@ public class VoicePeak : IVoiceClient {
 	}
 
 
-	public void EndSpeech(string text) {
+	public override void EndSpeech(string text, NopVoiceObject extra) {
 		Util.PlatformClick(this.hTargetWindow, 400, 140);
 		if (!string.IsNullOrEmpty(text)) {
 			// 残ることがあるらしいので3週Deleteを打つ

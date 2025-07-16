@@ -10,23 +10,22 @@ using System.Windows.Forms;
 using System.Security.Cryptography;
 using System.Collections.Generic;
 using System.Reactive.Linq;
+using System.Threading;
+using System.Windows.Threading;
 
 using CommandLine;
-using System.Threading;
 using Fleck;
-using System.Windows.Threading;
 
 namespace Haru.Kei;
 class Program {
 	class MessageForm : Form {
 		private System.Reactive.Concurrency.EventLoopScheduler SpeechScheduler { get; } = new();
-		private Models.CommandOptions opt;
-		private int targetProcess;
-		private VoiceLink.IVoiceClient client;
-		private ApplicationCapture? capture;
-		private CancellationTokenSource cancellationSource;
-		private AutoResetEvent autoResetEvent = new(false);
-		private NotifyIcon notifyIcon = new();
+		private readonly Models.CommandOptions opt;
+		private readonly Models.IClient client;
+		private readonly Models.IVoiceWaitable capture;
+		private readonly CancellationTokenSource cancellationSource;
+		private readonly AutoResetEvent autoResetEvent = new(false);
+		private readonly NotifyIcon notifyIcon = new();
 		private IDisposable wsSubscriber;
 		private IDisposable? masterMoniter = null;
 
@@ -40,9 +39,9 @@ class Program {
 			this.ShowInTaskbar = false;
 
 			this.opt = opt;
-			this.client = this.CreateVoiceClient(opt.Voice);
-			this.client.StartClient(this.opt.Client, this.opt.Launch);
-			this.targetProcess = this.client.ProcessId;
+			this.client = Models.IClient.Get(opt);
+			this.client.StartClient(this.opt.Launch);
+			this.capture = Models.IVoiceWaitable.Get(opt, this.client);
 			cancellationSource = new CancellationTokenSource();
 
 			// ウェブソケット
@@ -98,17 +97,6 @@ class Program {
 			}
 		}
 
-		private VoiceLink.IVoiceClient CreateVoiceClient(Models.CommandOptions.VoiceClientType voice) {
-			return voice switch {
-				Models.CommandOptions.VoiceClientType.voiceroid => new VoiceLink.Clients.VoiceRoid(),
-				Models.CommandOptions.VoiceClientType.voiceroid2 => new VoiceLink.Clients.VoiceRoid2(),
-				Models.CommandOptions.VoiceClientType.voicepeak => new VoiceLink.Clients.VoicePeak(),
-				Models.CommandOptions.VoiceClientType.aivoice => new VoiceLink.Clients.AiVoice(),
-				Models.CommandOptions.VoiceClientType.aivoice2 => new VoiceLink.Clients.AiVoice2(),
-				_ => throw new NotImplementedException($"不正な合成音声{opt.Voice}"),
-			};
-		}
-
 		private async Task RunVoiceRoid(Models.RecognitionObject x) {
 			try {
 				Logger.Current.Log($"合成音声呼び出し開始:{x.Transcript}");
@@ -123,13 +111,7 @@ class Program {
 				}
 
 				try {
-					if ((this.capture == null && this.targetProcess != 0)
-						|| (this.targetProcess != this.client.ProcessId)) {
-						Logger.Current.Log($"！！合成音声クライアントの再起動が確認されました");
-						this.targetProcess = this.client.ProcessId;
-						this.capture = await ApplicationCapture.Get(this.targetProcess, this.opt.CapturePauseSec);
-					}
-					if (this.capture != null) {
+					if (await this.capture.Prepare()) {
 						this.capture.Start();
 						_ = Task.Run(() => {
 							this.capture.Wait();
@@ -200,9 +182,7 @@ class Program {
 			this.notifyIcon.Visible = true;
 
 			ApplicationCapture.UiInitilize();
-			var _ = Task.Run(async () => {
-				this.capture = await ApplicationCapture.Get(this.targetProcess);
-			});
+			var _ = this.capture.LoadFromUi();
 			await Task.Delay(500);
 			this.Hide();
 		}
@@ -235,6 +215,16 @@ class Program {
 					Logger.Current.Log("致命的なエラー");
 					Logger.Current.Log(e.ExceptionObject);
 				};
+
+				Logger.Current.Log("illuminateが起動しました");
+				Logger.Current.Log(string.Join(' ', args));
+
+				{
+					var vld = parsed.Value.Validate();
+					if (!vld.IsValid) {
+						throw new InvalidOperationException($"コマンドラインに不正な値があります{Environment.NewLine}{Environment.NewLine}{vld.ErrorText}");
+					}
+				}
 
 				ApplicationConfiguration.Initialize();
 				Application.Run(new MessageForm(parsed.Value));

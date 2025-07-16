@@ -6,12 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace VoiceLink.Clients;
-public class AiVoice : IVoiceClient {
+public class AiVoice : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 	private string exe = "";
-	private int pId;
 	private dynamic ttsClient;
-
-	public int ProcessId { get => this.pId; }
 
 	public AiVoice() {
 		// WCFが使われているので.NETで使用できないCOMを経由する
@@ -31,13 +28,13 @@ public class AiVoice : IVoiceClient {
 		this.ttsClient.Initialize(hosts[0]);
 	}
 
-	public bool StartClient(string targetExe, bool isLaunch) {
-		this.exe = targetExe;
+	public override bool StartClient(bool isLaunch, AudioCaptreStart extra) {
+		this.exe =  extra.TargetExe;
 		return this.Load(this.exe, isLaunch);
 	}
 
 	private bool Load(string targetExe, bool isLaunch) {
-		this.pId = 0;
+		this.ProcessId = 0;
 		var p = Util.GetProcess(targetExe);
 		if (p == null) {
 			var pp = isLaunch switch {
@@ -49,25 +46,25 @@ public class AiVoice : IVoiceClient {
 			}
 			p = pp.Value.Proc;
 		}
-		this.pId = p.Id;
+		this.ProcessId = p.Id;
 		return true;
 	}
 
-	public void EndClient() { }
+	public override void EndClient() { }
 
-	public void BeginSpeech(string text) {
+	public override void BeginSpeech(string text, NopVoiceObject extra) {
 		if ((int)this.ttsClient.Status == 0) {
 			throw new VoiceLinkException("A.I.Voiceが起動していません");
 		}
 		this.ttsClient.Connect();
 	}
 
-	public void Speech(string text) {
+	public override void Speech(string text, NopVoiceObject extra) {
 		this.ttsClient.Text = text;
 		this.ttsClient.Play();
 	}
 
-	public void EndSpeech(string text) {
+	public override void EndSpeech(string text, NopVoiceObject extra) {
 		this.ttsClient.Text = "";
 		this.ttsClient.Disconnect();
 	}

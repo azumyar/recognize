@@ -5,24 +5,55 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 namespace VoiceLink.Clients;
-public class VoiceRoid : IVoiceClient {
+
+/// <summary>ボイスロイド系の基底クラス</summary>
+/// <typeparam name="TStartObj"></typeparam>
+/// <typeparam name="TSpeechObj"></typeparam>
+public abstract class VoiceRoid<TStartObj, TSpeechObj> : IVoiceClient<TStartObj, TSpeechObj, IAudioCaptireClient>
+	where TStartObj : IStartObject
+	where TSpeechObj : ISpeechObject {
+	class AudioCaptireClient : IAudioCaptireClient {
+		private readonly VoiceRoid<TStartObj, TSpeechObj> owner;
+		public AudioCaptireClient(VoiceRoid<TStartObj, TSpeechObj> owner) {
+			this.owner = owner;
+		}
+
+		public int ProcessId {
+			get {
+				return this.owner.ProcessId;
+			}
+		}
+	}
+
+	public VoiceRoid() {
+		this.ClientParameter = new AudioCaptireClient(this);
+	}
+
+	protected int ProcessId { get; set; }
+
+	public IAudioCaptireClient ClientParameter { get; }
+
+	public abstract bool StartClient(bool isLaunch, TStartObj extra);
+	public abstract void EndClient();
+	public abstract void BeginSpeech(string text, TSpeechObj extra);
+	public abstract void Speech(string text, TSpeechObj extra);
+	public abstract void EndSpeech(string text, TSpeechObj extra);
+}
+
+public class VoiceRoid : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 	private readonly string VoiceRoidEditorClass = "WindowsForms10.Window.8.app.0.378734a";
 	private string exe = "";
-	private int pId;
 	private nint hTargetWindow;
 	private nint hTextBox;
 	private nint hPlayButton;
 
-	public int ProcessId { get => this.pId; }
-
-
-	public bool StartClient(string targetExe, bool isLaunch) {
-		this.exe = targetExe;
+	public override bool StartClient(bool isLaunch, AudioCaptreStart extra) {
+		this.exe = extra.TargetExe;
 		return this.Load(this.exe, isLaunch);
 	}
 
 	private bool Load(string targetExe, bool isLaunch) {
-		this.pId = 0;
+		this.ProcessId = 0;
 		this.hTargetWindow = 0;
 		this.hTextBox = 0;
 		this.hPlayButton = 0;
@@ -33,15 +64,15 @@ public class VoiceRoid : IVoiceClient {
 			/* スプラッシュスクリーンが出るので考えないといけない */
 			return false;
 		}
-		this.pId = p.Id;
+		this.ProcessId = p.Id;
 		this.hTargetWindow = h;
 		return true;
 	}
 
-	public void EndClient() { }
+	public override void EndClient() { }
 
 
-	public void BeginSpeech(string text) {
+	public override void BeginSpeech(string text, NopVoiceObject extra) {
 		if (!Interop.IsWindow(this.hTargetWindow)) {
 			this.Load(this.exe, false);
 			if (this.hTargetWindow == 0) {
@@ -80,7 +111,7 @@ public class VoiceRoid : IVoiceClient {
 		}
 	}
 
-	public void Speech(string text) {
+	public override void Speech(string text, NopVoiceObject extra) {
 		if ((this.hTextBox == 0) || (this.hPlayButton == 0)) {
 			throw new VoiceLinkException("");
 		}
@@ -88,7 +119,7 @@ public class VoiceRoid : IVoiceClient {
 		Interop.SendMessage(this.hPlayButton, Interop.BM_CLICK, 0, 0);
 	}
 
-	public void EndSpeech(string text) {
+	public override void EndSpeech(string text, NopVoiceObject extra) {
 		if (this.hTextBox == 0) {
 			return;
 		}

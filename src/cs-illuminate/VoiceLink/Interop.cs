@@ -117,5 +117,8 @@ internal static class Interop {
 		[In][Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] object[] rgvarChildren,
 		out int pcObtained);
 
+	[DllImport("oleacc.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
+	public static extern void GetStateText(int lStateBit, StringBuilder lpszState, int cchState);
+
 	public static readonly Guid IID_IAccessible = new("{618736e0-3c3d-11cf-810c-00aa00389b71}");
 }

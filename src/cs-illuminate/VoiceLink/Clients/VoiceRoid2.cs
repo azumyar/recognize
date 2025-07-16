@@ -9,24 +9,21 @@ using System.Windows;
 using System.Windows.Forms.Automation;
 
 namespace VoiceLink.Clients;
-public class VoiceRoid2 : IVoiceClient {
+public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 	private readonly string VoiceRoid2EditorClass = "HwndWrapper[VoiceroidEditor.exe;;4cc5cceb-49d9-4fbf-8374-11d461e38c4c]";
 	private string exe = "";
-	private int pId;
 	private nint hTargetWindow;
 	private Accessibility.IAccessible? textBox;
 	private Accessibility.IAccessible? playButton;
+	private Accessibility.IAccessible? caretStartButton;
 
-	public int ProcessId { get => this.pId; }
-
-
-	public bool StartClient(string targetExe, bool isLaunch) {
-		this.exe = targetExe;
+	public override bool StartClient(bool isLaunch, AudioCaptreStart extra) {
+		this.exe = extra.TargetExe;
 		return this.Load(this.exe, isLaunch);
 	}
 
 	private bool Load(string targetExe, bool isLaunch) {
-		this.pId = 0;
+		this.ProcessId = 0;
 		this.hTargetWindow = 0;
 		if(this.textBox != null) {
 			Marshal.ReleaseComObject(this.textBox);
@@ -53,15 +50,15 @@ public class VoiceRoid2 : IVoiceClient {
 			*/
 			return false;
 		}
-		this.pId = p.Id;
+		this.ProcessId = p.Id;
 		this.hTargetWindow = h;
 		return true;
 	}
 
-	public void EndClient() {}
+	public override void EndClient() {}
 
 
-	public void BeginSpeech(string text) {
+	public override void BeginSpeech(string text, NopVoiceObject extra) {
 		if(!Interop.IsWindow(this.hTargetWindow)) {
 			this.Load(this.exe, false);
 			if (this.hTargetWindow == 0) {
@@ -101,15 +98,18 @@ public class VoiceRoid2 : IVoiceClient {
 
 				this.textBox = (Accessibility.IAccessible)obj3[0];
 				this.playButton = (Accessibility.IAccessible)obj3[1];
+				this.caretStartButton = (Accessibility.IAccessible)obj3[3];
 				return;
 			}
 			finally {
 				var rls = (obj3?.Skip(2) ?? Array.Empty<object>()).ToList();
 				rls.AddRange(obj2 ?? Array.Empty<object>());
 				rls.AddRange(obj1 ?? Array.Empty<object>());
+				rls.Add(o);
+
 				foreach (var it in rls) {
-					if (it != null) {
-						Marshal.ReleaseComObject(o);
+					if ((it != null) && Marshal.IsComObject(it)) {
+						Marshal.ReleaseComObject(it);
 					}
 				}
 			}
@@ -117,8 +117,8 @@ public class VoiceRoid2 : IVoiceClient {
 		throw new VoiceLinkException("読み上げ開始準備に失敗");
 	}
 
-	public void Speech(string text) {
-		if ((this.textBox == null) || (this.playButton == null)) {
+	public override void Speech(string text, NopVoiceObject extra) {
+		if ((this.textBox == null) || (this.playButton == null) || (this.caretStartButton == null)) {
 			throw new VoiceLinkException("");
 		}
 
@@ -136,23 +136,46 @@ public class VoiceRoid2 : IVoiceClient {
 		}
 	}
 
-	public void EndSpeech(string text) {
-		if (this.textBox == null) {
-			return;
-		}
-
+	public override void EndSpeech(string text, NopVoiceObject extra) {
 		try {
-			this.textBox.accValue[0] = "";
-		}
-		catch {}
+			if (this.textBox == null) {
+				return;
+			}
 
-		if (this.textBox != null) {
-			Marshal.ReleaseComObject(this.textBox);
-			this.textBox = null;
+			// 本当に読み上げが終わっているかのダブルチェック
+			if (this.caretStartButton != null) {
+				var s = new StringBuilder(256);
+				try {
+					while (true) {
+						var state = (int)this.caretStartButton.accState[0];
+						if (state == 0x1) {
+							Thread.Sleep(100);
+							continue;
+						}
+						break;
+					}
+				}
+				catch { }
+			}
+
+			try {
+				this.textBox.accValue[0] = "";
+			}
+			catch { }
 		}
-		if (this.playButton != null) {
-			Marshal.ReleaseComObject(this.playButton);
-			this.playButton = null;
+		finally {
+			if (this.textBox != null) {
+				Marshal.ReleaseComObject(this.textBox);
+				this.textBox = null;
+			}
+			if (this.playButton != null) {
+				Marshal.ReleaseComObject(this.playButton);
+				this.playButton = null;
+			}
+			if (this.caretStartButton != null) {
+				Marshal.ReleaseComObject(this.caretStartButton);
+				this.caretStartButton = null;
+			}
 		}
 	}
 }
