@@ -13,6 +13,7 @@ from src import Logger, db2rms, rms2db
 import src.microphone
 import src.val as val
 import src.exception
+import src.output as output
 from src.main_common import Record, save_wav
 from src.cancellation import CancellationObject
 
@@ -198,3 +199,15 @@ def run_ambient(
             f"{type(e)}:{e}",
             traceback.format_exc()
         ])
+
+def run_illuminate(
+    out:output.IlluminateSpeechOutputer,
+    logger:Logger,
+    _:str) -> None:
+
+
+    logger.log("illuminateテスト機能を起動")
+    logger.print("入力した行を送信します。")
+    logger.print("終了は ctrl+c を押してください。")
+    while True:
+        out.output(input(), "")

@@ -37,6 +37,7 @@ public class MainWindowViewModel : BindableBase {
 	public ReactiveCommand CreateBatchommand { get; } = new();
 	public ReactiveCommand MicTestCommand { get; } = new();
 	public ReactiveCommand AmbientTestCommand { get; } = new();
+	public ReactiveCommand IlluminateTestCommand { get; } = new();
 	public ReactiveCommand CloseCommand { get; } = new();
 
 	public ReactiveCommand ConnectWhisperCommand { get; } = new();
@@ -135,28 +136,9 @@ public class MainWindowViewModel : BindableBase {
 			}
 			catch(System.IO.IOException) { }
 		});
-		this.MicTestCommand.Subscribe(() => {
-			System.Diagnostics.Debug.Assert(this.Config is not null);
-			try {
-				using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
-					FileName = this.Config.Extra.RecognizeExePath,
-					Arguments = string.Format("--test mic {0}", this.GetCommandLine()),
-					UseShellExecute = true,
-				})) { }
-			}
-			catch(Exception) { }
-		});
-		this.AmbientTestCommand.Subscribe((_) => {
-			System.Diagnostics.Debug.Assert(this.Config is not null);
-			try {
-				using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
-					FileName = this.Config.Extra.RecognizeExePath,
-					Arguments = string.Format("--test mic_ambient {0}", this.GetCommandLine()),
-					UseShellExecute = true,
-				})) { }
-			}
-			catch(Exception) { }
-		});
+		this.MicTestCommand.Subscribe(() => this.ExecuteTest("mic"));
+		this.AmbientTestCommand.Subscribe((_) => this.ExecuteTest("mic_ambient"));
+		this.IlluminateTestCommand.Subscribe(() => this.ExecuteTest("illuminate"));
 		this.CloseCommand.Subscribe((_) => {
 			global::System.Windows.Application.Current?.Shutdown();
 		});
@@ -215,6 +197,18 @@ public class MainWindowViewModel : BindableBase {
 			sb.Append($"  --transcribe_filter \"{Path.Combine(AppContext.BaseDirectory, FILTER_FILE)}\"");
 		}
 		return sb.ToString();
+	}
+
+	private void ExecuteTest(string testArg) {
+		System.Diagnostics.Debug.Assert(this.Config is not null);
+		try {
+			using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
+				FileName = this.Config.Extra.RecognizeExePath,
+				Arguments = $"--test {testArg} {this.GetCommandLine()}",
+				UseShellExecute = true,
+			})) { }
+		}
+		catch(Exception) { }
 	}
 
 	private async Task OnLoaded(RoutedEventArgs e) {

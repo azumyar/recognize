@@ -224,7 +224,6 @@ def main(
         out_illuminate_exe = "" 
 
     cancel = CancellationObject()
-    print("\033[?25l", end="") # カーソルを消す
     try:
         if record_directory is None:
             record_directory = ilm_enviroment.root
@@ -235,6 +234,21 @@ def main(
             out_file_directory = ilm_enviroment.root
         else:
             os.makedirs(out_file_directory, exist_ok=True)
+
+        if test == val.TEST_VALUE_ILLUMINATE:
+            main_test.run_illuminate(
+                output.IlluminateSpeechOutputer(
+                    "localhost",
+                    out_illuminate_port,
+                    out_illuminate_exe,
+                    out_illuminate_voice,
+                    out_illuminate_client,
+                    out_illuminate_launch,
+                    out_illuminate_capture_pause),
+                ilm_logger,
+                feature)
+
+        print("\033[?25l", end="") # カーソルを消す
 
         #sampling_rate = src.mic.Mic.update_sample_rate(mic, mic_sampling_rate) #16000
         sampling_rate = 16000
