@@ -74,7 +74,7 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 		if (o is Accessibility.IAccessible acc) {
 			object[]? obj1 = default;
 			object[]? obj2 = default;
-			object[]? obj3 = default;
+			object?[]? obj3 = default;
 			try {
 				obj1 = new object[acc.accChildCount];
 				Interop.AccessibleChildren(acc, 0, obj1.Length, obj1, out var c);
@@ -96,13 +96,15 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 					throw new VoiceLinkException("VoiceRoid2オブジェクトの取得に失敗(3/3)");
 				}
 
-				this.textBox = (Accessibility.IAccessible)obj3[0];
-				this.playButton = (Accessibility.IAccessible)obj3[1];
-				this.caretStartButton = (Accessibility.IAccessible)obj3[3];
+				this.textBox = (Accessibility.IAccessible?)obj3[0];
+				this.playButton = (Accessibility.IAccessible?)obj3[1];
+				this.caretStartButton = (Accessibility.IAccessible?)obj3[3];
+				obj3[0] = obj3[1] = obj3[3] = null; 
+
 				return;
 			}
 			finally {
-				var rls = (obj3?.Skip(2) ?? Array.Empty<object>()).ToList();
+				var rls = (obj3 ?? Array.Empty<object>()).ToList<object?>();
 				rls.AddRange(obj2 ?? Array.Empty<object>());
 				rls.AddRange(obj1 ?? Array.Empty<object>());
 				rls.Add(o);
@@ -134,28 +136,23 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 				throw new VoiceLinkException($"VoiceRoid2読み上げ連携に失敗({it.Index}/2)", e);
 			}
 		}
+
+		// 読み上げ開始まち
+		// 読み上げ文章が十分に短い場合ステート判定が失敗することがある
+		const int timeoutMiliSec = 500;
+		var time = DateTime.Now;
+		while ((DateTime.Now - time).TotalMilliseconds < timeoutMiliSec) {
+			if (this.IsSpeak()) {
+				break;
+			}
+			Thread.Sleep(10);
+		}
 	}
 
 	public override void EndSpeech(string text, NopVoiceObject extra) {
 		try {
 			if (this.textBox == null) {
 				return;
-			}
-
-			// 本当に読み上げが終わっているかのダブルチェック
-			if (this.caretStartButton != null) {
-				var s = new StringBuilder(256);
-				try {
-					while (true) {
-						var state = (int)this.caretStartButton.accState[0];
-						if (state == 0x1) {
-							Thread.Sleep(100);
-							continue;
-						}
-						break;
-					}
-				}
-				catch { }
 			}
 
 			try {
@@ -177,6 +174,19 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 				this.caretStartButton = null;
 			}
 		}
+	}
+
+	private bool IsSpeak() {
+		if (this.caretStartButton != null) {
+			try {
+				var state = (int)this.caretStartButton.accState[0];
+				if (state == 0x1) {
+					return true;
+				}
+			}
+			catch(COMException) {}
+		}
+		return false;
 	}
 }
 
