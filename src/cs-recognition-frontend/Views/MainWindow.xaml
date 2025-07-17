@@ -260,7 +260,7 @@
                                 Grid.Column="1"
                                 FontSize="{DynamicResource YsrFontSize}"
                                 Content="再読み込み"
-                                IsEnabled="False"
+                                Command="{Binding MicReloadCommand, Mode=OneWay}"
                                 />
                         </Grid>
 

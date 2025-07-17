@@ -39,13 +39,6 @@ internal class FilterRuleEditDialogViewModel : BindableBase, IDialogAware {
 
 	private Models.FilterRule? input = default;
 
-	private const string MaskValueMask = "mask";
-	private const string MaskValueMaskAll = "mask-all";
-	private const string MaskValueReplace = "replace";
-	private const string RuleValueMatch = "match";
-	private const string RuleValueMatchAll = "match-all";
-	private const string RuleValueRegex = "regex";
-
 	public FilterRuleEditDialogViewModel() {
 		this.SrcError = this.Src.Select(x => !string.IsNullOrEmpty(x)).ToReactiveProperty();
 		this.SrcErrorVisibility = this.SrcError.Select(x => x switch {
@@ -71,19 +64,19 @@ internal class FilterRuleEditDialogViewModel : BindableBase, IDialogAware {
 
 		this.OkClickCommand.Subscribe(() => {
 			var ret = new DialogResult(ButtonResult.OK);
-			var action = "mask";
+			var action = Models.FilterRule.MaskValueMask;
 			if(this.ActionMaskAllValue.Value) {
-				action = "mask-all";
+				action = Models.FilterRule.MaskValueMaskAll;
 			}
 			if(this.ActionReplaceValue.Value) {
-				action = "replace";
+				action = Models.FilterRule.MaskValueReplace;
 			}
-			var rule = "match";
+			var rule = Models.FilterRule.RuleValueMatch;
 			if(this.RuleWordAllValue.Value) {
-				rule = "match-all";
+				rule = Models.FilterRule.RuleValueMatchAll;
 			}
 			if(this.RuleRegexValue.Value) {
-				rule = "regex";
+				rule = Models.FilterRule.RuleValueRegex;
 			}
 			var src = this.Src.Value;
 			var dst = (this.ActionMaskValue.Value || this.ActionMaskAllValue.Value) switch {
@@ -123,24 +116,24 @@ internal class FilterRuleEditDialogViewModel : BindableBase, IDialogAware {
 				= this.RuleRegexValue.Value
 				= false;
 			switch(this.input.Action.Value ?? "") {
-			case MaskValueMask:
+			case Models.FilterRule.MaskValueMask:
 				this.ActionMaskValue.Value = true;
 				break;
-			case MaskValueMaskAll:
+			case Models.FilterRule.MaskValueMaskAll:
 				this.ActionMaskAllValue.Value = true;
 				break;
-			case MaskValueReplace:
+			case Models.FilterRule.MaskValueReplace:
 				this.ActionReplaceValue.Value = true;
 				break;
 			}
 			switch(this.input.Rule.Value ?? "") {
-			case RuleValueMatch:
+			case Models.FilterRule.RuleValueMatch:
 				this.RuleWordValue.Value = true;
 				break;
-			case RuleValueMatchAll:
+			case Models.FilterRule.RuleValueMatchAll:
 				this.RuleWordAllValue.Value = true;
 				break;
-			case RuleValueRegex:
+			case Models.FilterRule.RuleValueRegex:
 				this.RuleRegexValue.Value = true;
 				break;
 			}
@@ -154,6 +147,5 @@ internal class FilterRuleEditDialogViewModel : BindableBase, IDialogAware {
 	}
 	public void OnDialogClosed() {
 	}
-
 }
 

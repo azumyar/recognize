@@ -25,7 +25,7 @@ public class MainWindowViewModel : BindableBase {
 	public static string ConfirmationKey = "Confirmation";
 
 	private readonly string CONFIG_FILE = "frontend.conf";
-	private readonly string CONFIG2_FILE = "frontend.dev.v250705.conf";
+	private readonly string CONFIG2_FILE = "frontend.dev.v250717.conf";
 	private readonly string FILTER_FILE = "frontend-filter.conf";
 	private readonly string BAT_FILE = "custom-recognize.bat";
 	private readonly string TEMP_BAT = global::System.IO.Path.Combine(
@@ -35,6 +35,7 @@ public class MainWindowViewModel : BindableBase {
 	public ReactiveProperty<Models.Filter> Filter { get; } = new(initialValue: new());
 
 	public ReactiveCommand CreateBatchommand { get; } = new();
+	public ReactiveCommand MicReloadCommand { get; } = new();
 	public ReactiveCommand MicTestCommand { get; } = new();
 	public ReactiveCommand AmbientTestCommand { get; } = new();
 	public ReactiveCommand IlluminateTestCommand { get; } = new();
@@ -88,54 +89,9 @@ public class MainWindowViewModel : BindableBase {
 			}
 		});
 
-		this.ExecCommand.Subscribe(() => {
-			System.Diagnostics.Debug.Assert(this.Config is not null);
-			this.SaveConfig();
-
-			var bat = new StringBuilder()
-				.AppendLine("@echo off")
-				.AppendLine()
-				.AppendFormat("\"{0}\"", this.Config.Extra.RecognizeExePath).Append(" ").AppendLine(this.GetCommandLine())
-				.AppendLine("if %ERRORLEVEL% neq 0 (")
-				.AppendLine("  pause")
-				.AppendLine(")");
-			File.WriteAllText(this.TEMP_BAT, bat.ToString(), Encoding.GetEncoding("Shift_JIS"));
-
-			try {
-				using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
-					FileName = this.TEMP_BAT,
-					WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory,
-					UseShellExecute = true,
-				})) { }
-			}
-			catch(Exception) { }
-		});
-
-		this.CreateBatchommand.Subscribe(async () => {
-			System.Diagnostics.Debug.Assert(this.Config is not null);
-			try {
-				var bat = new StringBuilder()
-					.AppendLine("@echo off")
-					.AppendLine("pushd \"%~dp0\"")
-					.AppendLine()
-					.AppendFormat("\"{0}\"", this.Config.Extra.RecognizeExePath).Append(" ").AppendLine(this.GetCommandLine())
-					.AppendLine("pause");
-				File.WriteAllText(
-					global::System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.BAT_FILE),
-					bat.ToString(),
-					Encoding.GetEncoding("Shift_JIS"));
-
-				await Messenger.RaiseAsync(new ConfirmationMessage(
-					$"{this.BAT_FILE}を作成しました！",
-					"ゆーかねすぴれこ",
-					ConfirmationKey) {
-
-					Button = MessageBoxButton.OK,
-					Image = MessageBoxImage.Information,
-				});
-			}
-			catch(System.IO.IOException) { }
-		});
+		this.ExecCommand.Subscribe(() => this.OnExec());
+		this.CreateBatchommand.Subscribe(async () => await this.OnCreateBatch());
+		this.MicReloadCommand.Subscribe(() => this.OnMicReload());
 		this.MicTestCommand.Subscribe(() => this.ExecuteTest("mic"));
 		this.AmbientTestCommand.Subscribe((_) => this.ExecuteTest("mic_ambient"));
 		this.IlluminateTestCommand.Subscribe(() => this.ExecuteTest("illuminate"));
@@ -143,14 +99,10 @@ public class MainWindowViewModel : BindableBase {
 			global::System.Windows.Application.Current?.Shutdown();
 		});
 
-		this.ConnectWhisperCommand.Subscribe(() => {
-		});
-		this.ConnectGoogleCommand.Subscribe((_) => {
-		});
-		this.ConnectYukarinetteCommand.Subscribe((_) => {
-		});
-		this.ConnectYukaConeCommand.Subscribe(() => {
-		});
+		this.ConnectWhisperCommand.Subscribe(() => this.OnConnectWhisper());
+		this.ConnectGoogleCommand.Subscribe((_) => this.OnConnectGoogle());
+		this.ConnectYukarinetteCommand.Subscribe((_) => this.OnConnectYukarinette());
+		this.ConnectYukaConeCommand.Subscribe(() => this.OnConnectYukaCone());
 
 		try {
 			if(File.Exists(this.CONFIG2_FILE)) {
@@ -166,8 +118,20 @@ public class MainWindowViewModel : BindableBase {
 		catch(Exception) {
 			this.Config = new();
 		}
+		this.LoadMicList();
 		this.ConfigBinder = new(this.Config);
+		this.LoadMicList();
+	}
 
+	private string GetCommandLine() {
+		var sb = new StringBuilder(this.Config.ToCommandOption());
+		if(this.Filter.Value?.Filters?.Any() ?? false) {
+			sb.Append($"  --transcribe_filter \"{Path.Combine(AppContext.BaseDirectory, FILTER_FILE)}\"");
+		}
+		return sb.ToString();
+	}
+
+	private void LoadMicList() {
 		try {
 			if(File.Exists(this.Config.Extra.RecognizeExePath)) {
 				this.ConfigBinder.MicDevicesBinder.Clear();
@@ -189,14 +153,6 @@ public class MainWindowViewModel : BindableBase {
 			}
 		}
 		catch(Exception) { }
-	}
-
-	private string GetCommandLine() {
-		var sb = new StringBuilder(this.Config.ToCommandOption());
-		if(this.Filter.Value?.Filters?.Any() ?? false) {
-			sb.Append($"  --transcribe_filter \"{Path.Combine(AppContext.BaseDirectory, FILTER_FILE)}\"");
-		}
-		return sb.ToString();
 	}
 
 	private void ExecuteTest(string testArg) {
@@ -353,5 +309,85 @@ public class MainWindowViewModel : BindableBase {
 
 		json(this.CONFIG2_FILE, this.Config);
 		json(this.FILTER_FILE, this.Filter.Value);
+	}
+
+	private void OnExec() {
+		this.SaveConfig();
+
+		var bat = new StringBuilder()
+			.AppendLine("@echo off")
+			.AppendLine()
+			.AppendFormat("\"{0}\"", this.Config.Extra.RecognizeExePath).Append(" ").AppendLine(this.GetCommandLine())
+			.AppendLine("if %ERRORLEVEL% neq 0 (")
+			.AppendLine("  pause")
+			.AppendLine(")");
+		File.WriteAllText(this.TEMP_BAT, bat.ToString(), Encoding.GetEncoding("Shift_JIS"));
+
+		try {
+			using(System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
+				FileName = this.TEMP_BAT,
+				WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory,
+				UseShellExecute = true,
+			})) { }
+		}
+		catch(Exception) { }
+	}
+
+	private async Task OnCreateBatch() {
+		try {
+			var bat = new StringBuilder()
+				.AppendLine("@echo off")
+				.AppendLine("pushd \"%~dp0\"")
+				.AppendLine()
+				.AppendFormat("\"{0}\"", this.Config.Extra.RecognizeExePath).Append(" ").AppendLine(this.GetCommandLine())
+				.AppendLine("pause");
+			File.WriteAllText(
+				global::System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.BAT_FILE),
+				bat.ToString(),
+				Encoding.GetEncoding("Shift_JIS"));
+
+			await Messenger.RaiseAsync(new ConfirmationMessage(
+				$"{this.BAT_FILE}を作成しました！",
+				"ゆーかねすぴれこ",
+				ConfirmationKey) {
+
+				Button = MessageBoxButton.OK,
+				Image = MessageBoxImage.Information,
+			});
+		}
+		catch(System.IO.IOException) { }
+	}
+
+
+
+	private void OnConnectWhisper() {
+		this.ConfigBinder.TranscribeModeIndex.Value = ConfigBinder.TranscribeIndexAi;
+		this.ConfigBinder.HpfParamaterIndex.Value = ConfigBinder.HpfIndexHi;
+		this.ConfigBinder.VadGoogleParamaterIndex.Value = ConfigBinder.VadGoogleLevel0;
+		this.ConfigBinder.MicrophoneRecordMinDurationBinder.Value = "0.8";
+	}
+
+	private void OnConnectGoogle() {
+		this.ConfigBinder.TranscribeModeIndex.Value = ConfigBinder.TranscribeIndexGoogle;
+		this.ConfigBinder.GoogleProfanityFilterBinder.Value = true;
+		this.ConfigBinder.HpfParamaterIndex.Value = ConfigBinder.HpfIndexDisable;
+		this.ConfigBinder.VadGoogleParamaterIndex.Value = ConfigBinder.VadGoogleLevel0;
+		this.ConfigBinder.MicrophoneRecordMinDurationBinder.Value = "";
+
+	}
+
+	private void OnConnectYukarinette() {
+		this.ConfigBinder.IsUsedYukarinetteBinding.Value = true;
+		this.ConfigBinder.YukarinettePortBinding.Value = "49513";
+	}
+
+	private void OnConnectYukaCone() {
+		this.ConfigBinder.IsUsedYukaConeBinding.Value = true;
+	}
+
+
+	private void OnMicReload() {
+		this.LoadMicList();
+		this.ConfigBinder.MicDeviceIndex.Value = 0;
 	}
 }
