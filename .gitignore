@@ -5,14 +5,17 @@ src/**/**/obj
 .cache/
 packages/
 Record/*
-bin/tee.exe
 src/py-recognition/.venv
-src/cs-illiminate/dist/
+src/py-recognition/whl/
+src/cs-illuminate/dist/
+src/cs-recognition-frontend/dist/
+
 *.csproj.user
-build.log
 recognize-gui.exe
 frontend.conf
+frontend-filter.conf
 recognize.log
 custom-recognize.bat
 
-build.dat
+src/maintenance/24h2_sandobox.ps1.txt
+
