@@ -61,6 +61,10 @@ public class Filter : INotifyPropertyChanged {
 
 public class FilterItem : INotifyPropertyChanged {
 	public event PropertyChangedEventHandler? PropertyChanged;
+	public const int CurrentRuleVersion = 2025071400;
+
+	[JsonProperty("version")]
+	public int Version { get; private set; } = CurrentRuleVersion;
 
 	[JsonProperty("name")]
 	[JsonConverter(typeof(ReactivePropertyConverter<string?>))]
@@ -82,16 +86,12 @@ public class FilterItem : INotifyPropertyChanged {
 public class FilterRule : INotifyPropertyChanged {
 	public event PropertyChangedEventHandler? PropertyChanged;
 
-	public const int CurrentRuleVersion = 2025071400;
 	public const string MaskValueMask = "mask";
 	public const string MaskValueMaskAll = "mask-all";
 	public const string MaskValueReplace = "replace";
 	public const string RuleValueMatch = "match";
 	public const string RuleValueMatchAll = "match-all";
 	public const string RuleValueRegex = "regex";
-
-	[JsonProperty("version")]
-	public int Version { get; private set; } = CurrentRuleVersion;
 
 	[JsonProperty("action")]
 	[JsonConverter(typeof(ReactivePropertyConverter<string?>))]

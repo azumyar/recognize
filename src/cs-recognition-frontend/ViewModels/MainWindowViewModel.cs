@@ -13,6 +13,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Haru.Kei.Models;
 using Haru.Kei.Views;
+using Livet.Behaviors.Messaging;
 using Livet.Messaging;
 using Livet.Messaging.IO;
 using Prism.Dialogs;
@@ -23,6 +24,8 @@ namespace Haru.Kei.ViewModels;
 
 public class MainWindowViewModel : BindableBase {
 	public static string ConfirmationKey = "Confirmation";
+	public static string OpenFileKey = "OpenFile";
+	public static string SaveFileKey = "SaveFile";
 
 	private readonly string CONFIG_FILE = "frontend.conf";
 	private readonly string CONFIG2_FILE = "frontend.dev.v250717.conf";
@@ -53,13 +56,16 @@ public class MainWindowViewModel : BindableBase {
 	public ReactiveCommand ClosingCommand { get; } = new();
 
 
-	public ReactiveCommand<OpeningFileSelectionMessage> IlluminateClientClickCommand { get; } = new();	
+	public ReactiveCommand<OpeningFileSelectionMessage> IlluminateClientClickCommand { get; } = new();
 
 	public ReactiveCommand<RoutedEventArgs> FilterAddClickCommand { get; } = new();
 	public ReactiveCommand<RoutedEventArgs> FilterRemoveClickCommand { get; } = new();
 	public ReactiveCommand<RoutedEventArgs> RuleAddClickCommand { get; } = new();
 	public ReactiveCommand<RoutedEventArgs> RuleEditClickCommand { get; } = new();
 	public ReactiveCommand<RoutedEventArgs> RuleRemoveClickCommand { get; } = new();
+
+	public ReactiveCommand RuleImportCommand {  get; } = new();
+	public ReactiveCommand RuleExportCommand {  get; } = new();
 
 	public ReactiveProperty<Models.FilterItem?> SelectedFilterItem { get; } = new();
 
@@ -82,6 +88,8 @@ public class MainWindowViewModel : BindableBase {
 		this.RuleAddClickCommand.Subscribe(x => this.OnRuleAdd(x));
 		this.RuleEditClickCommand.Subscribe(x => this.OnRuleEdit(x));
 		this.RuleRemoveClickCommand.Subscribe(x => this.OnRuleRemove(x));
+		this.RuleImportCommand.Subscribe(() => this.OnRuleImport());
+		this.RuleExportCommand.Subscribe(() => this.OnRuleExport());
 
 		this.SelectedFilterItem.Subscribe(x => {
 			if((x == null) && (this.Filter.Value.Filters?.FirstOrDefault() is Models.FilterItem it)) {
@@ -178,7 +186,7 @@ public class MainWindowViewModel : BindableBase {
 
 				Button = MessageBoxButton.OK,
 				Image = MessageBoxImage.Warning,
-			}); 
+			});
 			global::System.Windows.Application.Current?.Shutdown();
 		}
 
@@ -204,7 +212,7 @@ public class MainWindowViewModel : BindableBase {
 		catch(IOException) { }
 	}
 
-	private void OnIlluminateClientClick(OpeningFileSelectionMessage e) { 
+	private void OnIlluminateClientClick(OpeningFileSelectionMessage e) {
 		if(e.Response?.FirstOrDefault() is string file) {
 			this.ConfigBinder.IlluminateClientBinding.Value = file;
 		}
@@ -270,7 +278,7 @@ public class MainWindowViewModel : BindableBase {
 
 
 	private bool IsValidExePath(Models.Config argument) {
-		if(string.IsNullOrEmpty( argument.Extra.RecognizeExePath)) {
+		if(string.IsNullOrEmpty(argument.Extra.RecognizeExePath)) {
 			return true;
 		}
 
@@ -389,5 +397,80 @@ public class MainWindowViewModel : BindableBase {
 	private void OnMicReload() {
 		this.LoadMicList();
 		this.ConfigBinder.MicDeviceIndex.Value = 0;
+	}
+
+	public async Task OnRuleImport() {
+		if(this.SelectedFilterItem.Value != null) {
+			var c1 = new ConfirmationMessage(
+				"フィルタルールを上書きインポートします。\r\n既存のルールは消去されますのでご注意ください。",
+				"ゆーかねすぴれこ",
+				ConfirmationKey) {
+
+				Button = MessageBoxButton.OKCancel,
+				Image = MessageBoxImage.Warning,
+			};
+			await Messenger.RaiseAsync(c1);
+			if(c1.Response is bool b && b) {
+				var c2 = new OpeningFileSelectionMessage(OpenFileKey) {
+					Title = "ゆーかねすぴれこ",
+					Filter = "ゆーかねすぴれこフィルタルール(.json)|*.json"
+				};
+				await Messenger.RaiseAsync(c2);
+				if(c2.Response is IEnumerable<string> rs && rs.Any()) {
+					var file = rs.First();
+					if(File.Exists(file)) {
+						try {
+							var json = File.ReadAllText(file);
+							var item = Newtonsoft.Json.JsonConvert.DeserializeObject<Models.FilterItem>(json);
+							System.Diagnostics.Debug.Assert(item != null);
+							this.SelectedFilterItem.Value.Rules?.Clear();
+							this.SelectedFilterItem.Value.Rules?.AddRangeOnScheduler(
+								item.Rules as IEnumerable<Models.FilterRule> ?? Array.Empty<Models.FilterRule>());
+						}
+						catch(Exception ex) when ((ex is Newtonsoft.Json.JsonException) || (ex is IOException)) {
+							await Messenger.RaiseAsync(new ConfirmationMessage(
+								"フィルタルールフォーマットが間違っています。\r\nインポートに失敗しました。",
+								"ゆーかねすぴれこ",
+								ConfirmationKey) {
+
+								Button = MessageBoxButton.OK,
+								Image = MessageBoxImage.Warning,
+							});
+						}
+					} else {
+						this.Config = new();
+					}
+				}
+			}
+		}
+	}
+
+	public async Task OnRuleExport() {
+		if(this.SelectedFilterItem.Value != null) {
+			static string safe(string s)
+				=> s.Replace('\\', '￥')
+					.Replace('/', '／')
+					.Replace(':', '：')
+					.Replace('*', '＊')
+					.Replace('?', '？')
+					.Replace('\"', '”')
+					.Replace('<', '＜')
+					.Replace('>', '＞')
+					.Replace('|', '｜');
+			var c1 = new SavingFileSelectionMessage(SaveFileKey) {
+				Title = "ゆーかねすぴれこ",
+				Filter = "(ゆーかねすぴれこフィルタルール(.json))|*.json",
+				FileName = this.SelectedFilterItem.Value.Name.Value switch {
+					string v when (0 < v.Length) => $"{safe(v)}.json",
+					_ => "",
+				}
+			};
+			await Messenger.RaiseAsync(c1);
+			if(c1.Response is IEnumerable<string> rs && rs.Any()) {
+				var file = rs.First();
+				var json = Newtonsoft.Json.JsonConvert.SerializeObject(this.SelectedFilterItem.Value);
+				File.WriteAllText(file, json);
+			}
+		}
 	}
 }

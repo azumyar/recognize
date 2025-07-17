@@ -835,7 +835,7 @@
                                         </i:Interaction.Triggers>
                                     </Button>
                                     -->
-                                    <Button Grid.Column="2" IsEnabled="False">
+                                    <Button Grid.Column="2" Command="{Binding DataContext.RuleImportCommand, Mode=OneWay, ElementName=root}">
                                         <Button.Content>
                                             <TextBlock
                                                 FontSize="{DynamicResource YsrFontSize}"
@@ -845,7 +845,7 @@
                                             </TextBlock>
                                         </Button.Content>
                                     </Button>
-                                    <Button Grid.Column="4" IsEnabled="False">
+                                    <Button Grid.Column="4" Command="{Binding DataContext.RuleExportCommand, Mode=OneWay, ElementName=root}">
                                         <Button.Content>
                                             <TextBlock
                                                 FontSize="{DynamicResource YsrFontSize}"
