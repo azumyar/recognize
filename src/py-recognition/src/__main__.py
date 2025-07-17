@@ -109,7 +109,7 @@ def __whiper_help(s:str) -> str:
 @click.option("--out_illuminate_client",default="", help="-", type=str)
 @click.option("--out_illuminate_launch",default=False, help="-", type=str)
 @click.option("--out_illuminate_port",default=49514, help="-",type=int)
-@click.option("--out_illuminate_capture_pause",default=0.75, help="-",type=int)
+@click.option("--out_illuminate_capture_pause",default=0.75, help="-",type=float)
 @click.option("--out_file_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
 @click.option("--out_file_directory", default=None, help="ファイル字幕連携で保存先", type=str)
 @click.option("--out_obs_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
