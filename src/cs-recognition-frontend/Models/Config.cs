@@ -15,39 +15,66 @@ namespace Haru.Kei.Models;
 
 [JsonObject]
 public class Config {
+	public const int CurrentVersion = 2025071400;
 
+	[JsonProperty("version")]
+	public int Version { get; private set; } = CurrentVersion;
+	[JsonProperty("method")]
 	public string TranscribeModel { get; set; } = "";
+	[JsonProperty("google_language")]
 	public string GoogleLanguage { get; set; } = "";
+	[JsonProperty("google_timeout")]
 	public float? GoogleTimeout { get; set; }
+	[JsonProperty("google_profanity_filter")]
 	public bool GoogleProfanityFilter { get; set; }
+	[JsonProperty("translate")]
 	public string TranslateModel { get; set; } = "";
 
 	// マイク
+	[JsonProperty("mic")]
 	public int? Microphone { get; set; } = null;
+	[JsonProperty("mic_db_threshold")]
 	public float? MicrophoneThresholdDb { get; set; } = null;
+	[JsonProperty("mic_record_min_duration")]
 	public float? MicrophoneRecordMinDuration { get; set; } = null;
+	[JsonProperty("vad_google_mode")]
 	public int? VadGoogleParamater { get; set; } = null;
+	[JsonProperty("filter_hpf")]
 	public int? HpfParamater { get; set; } = null;
 
 	// ゆかりねっと連携
+	[JsonProperty("out:yukarinette")]
 	public bool IsUsedYukarinette { get; set; } = false;
+	[JsonProperty("out_yukarinette")]
 	public int? YukatinettePort { get; set; } = null;
 
 	// ゆかこね連携
+	[JsonProperty("out:yukacone")]
 	public bool IsUsedYukaCone { get; set; } = false;
+	[JsonProperty("out_yukacone")]
 	public int? YukaConePort { get; set; } = null;
 
 	// 字幕
+	[JsonProperty("out:obs")]
 	public bool IsUsedObsSubtitle { get; set; } = false;
+	[JsonProperty("out_obs_truncate")]
 	public float? ObsSubtitleTruncate { get; set; } = null;
+	[JsonProperty("out_obs_text_ja")]
 	public string ObsSubtitleTextJp { get; set; } = "";
+	[JsonProperty("out_obs_text_en")]
 	public string ObsSubtitleTextEn { get; set; } = "";
+	[JsonProperty("out_obs_port")]
 	public int? ObsSubtitlePort { get; set; } = null;
+	[JsonProperty("out_obs_password")]
 	public string ObsSubtitlePassword { get; set; } = "";
+	[JsonProperty("out:vrc")]
 	public bool IsUsedVrcSubtitle { get; set; } = false;
 
+	[JsonProperty("out:illuminate")]
 	public bool IsUsedIlluminate { get; set; } = false;
+	[JsonProperty("out_illuminate_voice")]
 	public string IlluminateVoice { get; set; } = "voiceroid";
+	[JsonProperty("out_illuminate_client")]
 	public string IlluminateClient { get; set; } = "";
 
 	[JsonObject]
@@ -92,18 +119,21 @@ public class Config {
 		[DisplayName("recognize.exeパス")]
 		[Description("recognize.exeのパスをフルパスまたは相対パスで指定")]
 		[DefaultValue(@".\src\\py-recognition\dist\recognize\recognize.exe")]
+		[JsonProperty("recognize_exe")]
 		public string RecognizeExePath { get; set; } = "";
 
 		[Category(category00)]
 		[DisplayName("illuminate.exeパス")]
 		[Description("illuminate.exeのパスをフルパスまたは相対パスで指定")]
 		[DefaultValue(@".\src\\cs-illuminate\dist\illuminate.exe")]
+		[JsonProperty("out_illuminate_exe")]
 		public string IlluminateExePath { get; set; } = "";
 
 		[DisplayName("ログレベル")]
 		[Description("コンソールに出すログ出力レベルを設定します")]
 		[DefaultValue("")]
 		[TypeConverter(typeof(ArgVerboseConverter))]
+		[JsonProperty("verbose")]
 		public string ArgVerbose { get; set; } = "";
 
 		/* 設定できないほうがいい気がするので保留
@@ -117,29 +147,35 @@ public class Config {
 		[DisplayName("ログファイル出力先")]
 		[Description("ログファイル出力先フォルダパスを指定します")]
 		[DefaultValue("")]
+		[JsonProperty("log_directory")]
 		public string ArgLogDirectory { get; set; } = "";
 
 		[DisplayName("録音")]
 		[DefaultValue(null)]
 		[Description("録音データを保存する場合trueにします")]
+		[JsonProperty("record")]
 		public bool? ArgRecord { get; set; } = null;
 
 		[DisplayName("録音ファイル名")]
 		[Description("録音ファイル名を指定します。最終的なファイル名は{指定ファイル名}-{連番}.wavになります。")]
 		[DefaultValue("record")]
+		[JsonProperty("record_file")]
 		public string ArgRecordFile { get; set; } = "";
 
 		[DisplayName("録音格納先")]
 		[Description("録音ファイル出力先フォルダパスを指定します")]
+		[JsonProperty("record_directory")]
 		public string ArgRecordDirectory { get; set; } = "";
 
 		[DisplayName("AIファイル格納先")]
 		[Description("AIファイル格納ルートフォルダパスを指定します。このパスの配下に.cacheディレクトリが作られます。")]
+		[JsonProperty("torch_cache")]
 		public string ArgTorchCache { get; set; } = "";
 
 		[DisplayName("自由記入欄")]
 		[Description("入力した文字列はコマンド引数末尾に追加されます")]
 		[DefaultValue("")]
+		[JsonProperty("user_args")]
 		public string ExtraArgument { get; set; } = "";
 
 		public RecognizeExeArgument() {
@@ -236,7 +272,7 @@ public class Config {
 			} else {
 				arg(opt, "--out_illuminate_exe", this.Extra.IlluminateExePath);
 			}
-			arg(opt, "--out_illuminate_voice", VoiroVoiceRoid2);
+			arg(opt, "--out_illuminate_voice", this.IlluminateVoice);
 			arg(opt, "--out_illuminate_client", this.IlluminateClient);
 		}
 
@@ -268,15 +304,15 @@ public class ConfigBinder : INotifyPropertyChanged {
 		"AI音声認識",
 		"google音声認識",
 	};
-	const int TranscribeIndexNull = 0;
-	const int TranscribeIndexAi = 1;
-	const int TranscribeIndexGoogle = 2;
+	public const int TranscribeIndexNull = 0;
+	public const int TranscribeIndexAi = 1;
+	public const int TranscribeIndexGoogle = 2;
 	private readonly string[] TranslateModels = {
 		"設定しない",
 		"AI翻訳",
 	};
-	const int TranslateIndexNull = 0;
-	const int TranslateIndexAi = 1; 
+	public const int TranslateIndexNull = 0;
+	public const int TranslateIndexAi = 1; 
 	private readonly string[] VadGoogleParamaters = {
 		"設定しない",
 		"0",
@@ -284,6 +320,10 @@ public class ConfigBinder : INotifyPropertyChanged {
 		"2",
 		"3",
 	};
+	public const int VadGoogleLevel0 = 1;
+	public const int VadGoogleLevel1 = 2;
+	public const int VadGoogleLevel2 = 3;
+	public const int VadGoogleLevel3 = 4;
 	private readonly string[] HpfParamaters = {
 		"設定しない",
 		"無効",
@@ -291,15 +331,15 @@ public class ConfigBinder : INotifyPropertyChanged {
 		"普通",
 		"強め",
 	};
-	const int HpfIndexNull = 0;
-	const int HpfIndexDisable = 1;
-	const int HpfIndexLow = 2;
-	const int HpfIndexNormal = 3;
-	const int HpfIndexHi = 4;
-	const int HpfParamDisable = 0;
-	const int HpfParamLow = 80;
-	const int HpfParamNormal = 120;
-	const int HpfParamHi = 200;
+	public const int HpfIndexNull = 0;
+	public const int HpfIndexDisable = 1;
+	public const int HpfIndexLow = 2;
+	public const int HpfIndexNormal = 3;
+	public const int HpfIndexHi = 4;
+	public const int HpfParamDisable = 0;
+	public const int HpfParamLow = 80;
+	public const int HpfParamNormal = 120;
+	public const int HpfParamHi = 200;
 	private readonly string[] IlluminateVoices = {
 		"VOICEROID1/PLUS/EX",
 		"VOICEROID2",
@@ -307,11 +347,11 @@ public class ConfigBinder : INotifyPropertyChanged {
 		"A.I.VOICE",
 		"A.I.VOICE2",
 	};
-	const int VoiceIndexVoiceRoid = 0;
-	const int VoiceIndexVoiceRoid2 = 1;
-	const int VoiceIndexVoicePeak = 2;
-	const int VoiceIndexAiVoice = 3;
-	const int VoiceIndexAiVoice2 = 4;
+	public const int VoiceIndexVoiceRoid = 0;
+	public const int VoiceIndexVoiceRoid2 = 1;
+	public const int VoiceIndexVoicePeak = 2;
+	public const int VoiceIndexAiVoice = 3;
+	public const int VoiceIndexAiVoice2 = 4;
 
 	// モデル
 	public ReactiveCollection<string> TranscribeModelsBinder { get; }

@@ -48,8 +48,11 @@ public class ReactiveCollectionConverter<T> : JsonConverter {
 }
 
 public class Filter : INotifyPropertyChanged {
+	public const int CurrentFilterVersion = 2025071400;
 	public event PropertyChangedEventHandler? PropertyChanged;
 
+	[JsonProperty("version")]
+	public int Version { get; private set; } = CurrentFilterVersion;
 
 	[JsonProperty("filters")]
 	[JsonConverter(typeof(ReactiveCollectionConverter<FilterItem>))]
@@ -71,7 +74,6 @@ public class FilterItem : INotifyPropertyChanged {
 	[JsonConverter(typeof(ReactivePropertyConverter<bool?>))]
 	public ReactiveProperty<bool?> Enable { get; private set; } = new(initialValue: true);
 
-
 	[JsonProperty("rules")]
 	[JsonConverter(typeof(ReactiveCollectionConverter<FilterRule>))]
 	public ReactiveCollection<FilterRule>? Rules { get; private set; } = new();
@@ -80,6 +82,7 @@ public class FilterItem : INotifyPropertyChanged {
 public class FilterRule : INotifyPropertyChanged {
 	public event PropertyChangedEventHandler? PropertyChanged;
 
+	public const int CurrentRuleVersion = 2025071400;
 	public const string MaskValueMask = "mask";
 	public const string MaskValueMaskAll = "mask-all";
 	public const string MaskValueReplace = "replace";
@@ -87,13 +90,16 @@ public class FilterRule : INotifyPropertyChanged {
 	public const string RuleValueMatchAll = "match-all";
 	public const string RuleValueRegex = "regex";
 
+	[JsonProperty("version")]
+	public int Version { get; private set; } = CurrentRuleVersion;
+
 	[JsonProperty("action")]
 	[JsonConverter(typeof(ReactivePropertyConverter<string?>))]
-	public ReactiveProperty<string?> Action { get; private set; } = new(initialValue: "mask");
+	public ReactiveProperty<string?> Action { get; private set; } = new(initialValue: MaskValueMask);
 
 	[JsonProperty("rule")]
 	[JsonConverter(typeof(ReactivePropertyConverter<string?>))]
-	public ReactiveProperty<string?> Rule { get; private set; } = new(initialValue: "match");
+	public ReactiveProperty<string?> Rule { get; private set; } = new(initialValue: RuleValueMatch);
 
 	[JsonProperty("src")]
 	[JsonConverter(typeof(ReactivePropertyConverter<string?>))]
