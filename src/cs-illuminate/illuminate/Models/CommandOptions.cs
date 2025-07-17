@@ -35,6 +35,8 @@ class CommandOptions {
 	[Option("log_", Required = false, HelpText = "-")]
 	public bool Launch { get; set; }
 	*/
+	[Option("notify_icon", Required = false, HelpText = "-")]
+	public bool NotifyIcon { get; set; } = false;
 
 	[Option("capture_pause", Required = false, HelpText = "-")]
 	public float CapturePauseSec { get; set; } = 0.75f;

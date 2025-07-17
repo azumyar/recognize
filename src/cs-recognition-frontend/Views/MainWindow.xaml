@@ -1054,6 +1054,20 @@
                     </WindowsFormsHost>
                 </Border>
             </TabItem>
+
+            <TabItem Header="自由記入欄" Padding="16,2,16,2">
+                <Border>
+                    <TextBox
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        AcceptsReturn="True"
+                        VerticalScrollBarVisibility="Visible"
+                        FontSize="{DynamicResource YsrFontSize}"
+                        Text="{Binding ConfigBinder.UserArgumentsBinding.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        />
+                </Border>
+            </TabItem>
+
         </TabControl>
         <Button
             Grid.Row="2"

@@ -77,6 +77,10 @@ public class Config {
 	[JsonProperty("out_illuminate_client")]
 	public string IlluminateClient { get; set; } = "";
 
+	[JsonProperty("user_args")]
+	public string UserArguments { get; set; } = "";
+
+
 	[JsonObject]
 	[TypeConverter(typeof(DefinitionOrderTypeConverter))]
 	public class RecognizeExeArgument {
@@ -114,6 +118,7 @@ public class Config {
 		}
 
 		protected const string category00 = "00.環境";
+		protected const string category01 = "01.illuminate";
 
 		[Category(category00)]
 		[DisplayName("recognize.exeパス")]
@@ -128,6 +133,20 @@ public class Config {
 		[DefaultValue(@".\src\\cs-illuminate\dist\illuminate.exe")]
 		[JsonProperty("out_illuminate_exe")]
 		public string IlluminateExePath { get; set; } = "";
+
+		[Category(category01)]
+		[DisplayName("ポート")]
+		[Description("illuminateのTCP待受ポートを指定します")]
+		[DefaultValue(null)]
+		[JsonProperty("out_illuminate_port")]
+		public int? IlluminatePort { get; set; } = default;
+
+		[Category(category01)]
+		[DisplayName("通知領域")]
+		[Description("illuminateは通知領域に常駐します")]
+		[DefaultValue(null)]
+		[JsonProperty("out_illuminate_notify_icon")]
+		public bool? IlluminateNotifyIcon { get; set; } = default;
 
 		[DisplayName("ログレベル")]
 		[Description("コンソールに出すログ出力レベルを設定します")]
@@ -172,12 +191,13 @@ public class Config {
 		[JsonProperty("torch_cache")]
 		public string ArgTorchCache { get; set; } = "";
 
+		/*
 		[DisplayName("自由記入欄")]
 		[Description("入力した文字列はコマンド引数末尾に追加されます")]
 		[DefaultValue("")]
 		[JsonProperty("user_args")]
 		public string ExtraArgument { get; set; } = "";
-
+		*/
 		public RecognizeExeArgument() {
 			foreach(var p in this.GetType().GetProperties()) {
 				var dva = p.GetCustomAttribute(typeof(DefaultValueAttribute)) as DefaultValueAttribute;
@@ -274,6 +294,9 @@ public class Config {
 			}
 			arg(opt, "--out_illuminate_voice", this.IlluminateVoice);
 			arg(opt, "--out_illuminate_client", this.IlluminateClient);
+
+			arg(opt, "--out_illuminate_port", this.Extra.IlluminatePort);
+			arg(opt, "--out_illuminate_notify_icon", this.Extra.IlluminateNotifyIcon);
 		}
 
 		arg(opt, "--verbose", this.Extra.ArgVerbose);
@@ -287,8 +310,12 @@ public class Config {
 		}
 		arg(opt, "--torch_cache", this.Extra.ArgTorchCache);
 
-		if(!string.IsNullOrEmpty(this.Extra.ExtraArgument)) {
-			opt.Append(this.Extra.ExtraArgument);
+		if(!string.IsNullOrEmpty(this.UserArguments)) {
+			opt.Append(string.Join(
+				" ",
+				this.UserArguments
+					.Replace("\r\n", "\n")
+					.Split('\n')));
 		}
 
 		return opt.ToString();
@@ -404,6 +431,8 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public ReactiveProperty<int> IlluminateVoiceIndex { get; }
 	public ReactiveProperty<string> IlluminateClientBinding { get; }
 
+	// 自由記入欄
+	public ReactiveProperty<string> UserArgumentsBinding { get; }
 
 	public ConfigBinder(Config config) {
 		// モデル
@@ -573,6 +602,9 @@ public class ConfigBinder : INotifyPropertyChanged {
 			true => x,
 			_ => null,
 		}).ToReactiveProperty();
+
+		this.UserArgumentsBinding = new(initialValue: config.UserArguments);
+		this.UserArgumentsBinding.Subscribe(x => config.UserArguments = x);
 	}
 	public ReactiveProperty<string> IlluminateClientDialogFilter { get; }
 	public ReactiveProperty<string?> IlluminateClientDialogDirectory { get; }

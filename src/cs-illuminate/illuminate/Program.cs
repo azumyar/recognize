@@ -164,24 +164,25 @@ class Program {
 		protected override async void OnLoad(EventArgs e) {
 			base.OnLoad(e);
 
-			var menu = new ContextMenuStrip();
-			// 表示メニュー項目の追加
-			var mItem = new ToolStripMenuItem("終了");
-			mItem.Click += (_, _) => { Application.Exit(); };
-			menu.Items.Add(mItem);
+			if (this.opt.NotifyIcon) {
+				var menu = new ContextMenuStrip();
+				// 表示メニュー項目の追加
+				var mItem = new ToolStripMenuItem("終了");
+				mItem.Click += (_, _) => { Application.Exit(); };
+				menu.Items.Add(mItem);
 
-			ExtractIconEx(
-				Process.GetCurrentProcess().MainModule?.FileName ?? "",
-				0,
-				out var hIcon,
-				out var hIconSmall,
-				1);
-			this.notifyIcon.Text = "ゆーかねすぴれこ/illuminate";
-			this.notifyIcon.Icon = System.Drawing.Icon.FromHandle(hIcon);
-			this.notifyIcon.ContextMenuStrip = menu;
-			this.notifyIcon.Visible = true;
+				ExtractIconEx(
+					Process.GetCurrentProcess().MainModule?.FileName ?? "",
+					0,
+					out var hIcon,
+					out var hIconSmall,
+					1);
+				this.notifyIcon.Text = "ゆーかねすぴれこ/illuminate";
+				this.notifyIcon.Icon = System.Drawing.Icon.FromHandle(hIcon);
+				this.notifyIcon.ContextMenuStrip = menu;
+				this.notifyIcon.Visible = true;
+			}
 
-			ApplicationCapture.UiInitilize();
 			var _ = this.capture.LoadFromUi();
 			await Task.Delay(500);
 			this.Hide();
