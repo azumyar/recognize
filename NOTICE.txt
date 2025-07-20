@@ -102,9 +102,56 @@ Copyright (c) attwad
 
 
 
-◆*.exe(合成音声連携)は次のライブラリを使用させて頂いています。
+◆recognize-gui.exe(ランチャー)は次のライブラリを使用させて頂いています。
 
-***
+LivetCask.Messaging(https://www.nuget.org/packages/LivetCask.Messaging)
+zlib/libpngライセンス
+Livet Copyright (c) 2010-2011 Livet Project
+
+
+
+Newtonsoft.Json(https://www.nuget.org/packages/newtonsoft.json/)
+MIT License
+Copyright (c) 2007 James Newton-King
+
+
+
+Prism.Unity(https://www.nuget.org/packages/Prism.Unity)
+Prism.Wpf(https://www.nuget.org/packages/Prism.Wpf)
+Prism Commercial license. https://cdn.prismlibrary.com/downloads/prism_license.pdf
+
+
+ReactiveProperty.WPF(https://www.nuget.org/packages/ReactiveProperty.WPF)
+MIT License
+Copyright (c) 2018 neuecc, xin9le, okazuki
+
+
+
+
+◆illuminate.exe(合成音声連携)は次のライブラリを使用させて頂いています。
+
+CommandLineParser(https://www.nuget.org/packages/CommandLineParser)
+MIT License
+Copyright (c) 2005 - 2015 Giacomo Stelluti Scala & Contributors
+
+
+
+Fleck(https://www.nuget.org/packages/Fleck)
+MIT License
+Copyright (c) 2010-2018 Jason Staten
+
+
+
+NAudio.Wasapi(https://www.nuget.org/packages/NAudio.Wasapi/)
+MIT License
+Copyright (c) Mark Heath
+
+
+
+Newtonsoft.Json(https://www.nuget.org/packages/newtonsoft.json/)
+MIT License
+Copyright (c) 2007 James Newton-King
+
 
 
 
