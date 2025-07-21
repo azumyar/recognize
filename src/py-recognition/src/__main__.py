@@ -89,15 +89,6 @@ def __whiper_help(s:str) -> str:
 @click.option("--translate_whisper_device", default=__available_cuda(), help=__whiper_help("(whisper)翻訳に使用する演算装置"), type=click.Choice(["cpu","cuda"]))
 @click.option("--translate_whisper_device_index", default=0, help=__whiper_help("(whisper)翻訳に使用するデバイスindex"), type=int)
 
-@click.option("--subtitle", default="", help="使用する字幕連携", type=click.Choice(val.ARG_CHOICE_SUBTITLE))
-@click.option("--subtitle_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
-@click.option("--subtitle_file_directory", default=None, help="ファイル字幕連携で保存先", type=str)
-@click.option("--subtitle_obs_host", default="localhost", help="", type=str)
-@click.option("--subtitle_obs_port", default=4455, help="OBS Web Socket APIのポート", type=int)
-@click.option("--subtitle_obs_password", default="", help="OBS Web Socket APIのパスワード", type=str)
-@click.option("--subtitle_obs_text_ja", default=None, help="字幕(ja_JP)テキストオブジェクトの名前", type=str)
-@click.option("--subtitle_obs_text_en", default=None, help="字幕(en_US)テキストオブジェクトの名前", type=str)
-
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
 @click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
 #@click.option("--mic_api", default=val.MIC_API_VALUE_MME, help="--mic_nameで検索するマイクのAPIを指定します", type=click.Choice(val.ARG_CHOICE_MIC_API))
@@ -110,10 +101,24 @@ def __whiper_help(s:str) -> str:
 @click.option("--mic_tail_insert_duration", default=None, help="-", type=float)
 
 
-@click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice(val.ARG_CHOICE_OUT))
+@click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice(val.ARG_CHOICE_OUT), multiple=True)
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
 @click.option("--out_yukacone",default=None, help="ゆかコネNEOの外部連携ポートを指定", type=int)
-@click.option("--out_illuminate",default=495134, help="-",type=int)
+@click.option("--out_illuminate_exe",default="", help="-", type=str)
+@click.option("--out_illuminate_voice",default="voiceroid", help="-", type=click.Choice(["voiceroid", "voiceroid2", "voicepeak", "aivoice", "aivoice2"]))
+@click.option("--out_illuminate_client",default="", help="-", type=str)
+@click.option("--out_illuminate_launch",default=False, help="-", type=str)
+@click.option("--out_illuminate_port",default=49514, help="-",type=int)
+@click.option("--out_illuminate_notify_icon",default=False, help="-",type=bool, is_flag=True)
+@click.option("--out_illuminate_capture_pause",default=0.75, help="-",type=float)
+@click.option("--out_file_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
+@click.option("--out_file_directory", default=None, help="ファイル字幕連携で保存先", type=str)
+@click.option("--out_obs_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
+@click.option("--out_obs_host", default="localhost", help="", type=str)
+@click.option("--out_obs_port", default=4455, help="OBS Web Socket APIのポート", type=int)
+@click.option("--out_obs_password", default="", help="OBS Web Socket APIのパスワード", type=str)
+@click.option("--out_obs_text_ja", default=None, help="字幕(ja_JP)テキストオブジェクトの名前", type=str)
+@click.option("--out_obs_text_en", default=None, help="字幕(en_US)テキストオブジェクトの名前", type=str)
 
 @click.option("--filter_hpf", default=None, help="ハイパスフィルタのカットオフ周波数を設定、ハイパスフィルタを有効化", type=int)
 
@@ -154,14 +159,6 @@ def main(
     translate:str,
     translate_whisper_device:str,
     translate_whisper_device_index:int,
-    subtitle:str,
-    subtitle_truncate:float,
-    subtitle_file_directory:str,
-    subtitle_obs_host:str,
-    subtitle_obs_port:int,
-    subtitle_obs_password:str,
-    subtitle_obs_text_ja:Optional[str],
-    subtitle_obs_text_en:Optional[str],
 
     mic:Optional[int],
     mic_name:Optional[str],
@@ -174,10 +171,25 @@ def main(
     mic_head_insert_duration:Optional[float],
     mic_tail_insert_duration:Optional[float],
 
-    out:str,
+    out:list[str],
     out_yukarinette:int,
     out_yukacone:Optional[int],
-    out_illuminate:int,
+    out_illuminate_exe:str,
+    out_illuminate_voice:str,
+    out_illuminate_client:str,
+    out_illuminate_launch:bool,
+    out_illuminate_port:int,
+    out_illuminate_notify_icon:bool,
+    out_illuminate_capture_pause:float,
+    out_file_truncate:float,
+    out_file_directory:str,
+    out_obs_truncate:float,
+    out_obs_host:str,
+    out_obs_port:int,
+    out_obs_password:str,
+    out_obs_text_ja:Optional[str],
+    out_obs_text_en:Optional[str],
+
     filter_hpf:Optional[int],
     vad:str,
     vad_google_mode:str,
@@ -210,19 +222,36 @@ def main(
             os.environ["HUGGINGFACE_HUB_CACHE"] = \
                 f"{torch_cache}{os.sep}.cache"     
 
+    if out_illuminate_exe == "":
+        out_illuminate_exe = "" 
 
     cancel = CancellationObject()
-    print("\033[?25l", end="") # カーソルを消す
     try:
         if record_directory is None:
             record_directory = ilm_enviroment.root
         else:
             os.makedirs(record_directory, exist_ok=True)
 
-        if subtitle_file_directory  is None:
-            subtitle_file_directory = ilm_enviroment.root
+        if out_file_directory  is None:
+            out_file_directory = ilm_enviroment.root
         else:
-            os.makedirs(subtitle_file_directory, exist_ok=True)
+            os.makedirs(out_file_directory, exist_ok=True)
+
+        if test == val.TEST_VALUE_ILLUMINATE:
+            main_test.run_illuminate(
+                output.IlluminateSpeechOutputer(
+                    "localhost",
+                    out_illuminate_port,
+                    out_illuminate_exe,
+                    out_illuminate_voice,
+                    out_illuminate_client,
+                    out_illuminate_launch,
+                    out_illuminate_notify_icon,
+                    out_illuminate_capture_pause),
+                ilm_logger,
+                feature)
+
+        print("\033[?25l", end="") # カーソルを消す
 
         #sampling_rate = src.mic.Mic.update_sample_rate(mic, mic_sampling_rate) #16000
         sampling_rate = 16000
@@ -378,34 +407,45 @@ def main(
                     }[translate]()
                 ilm_logger.debug(f"#翻訳モデルは{type(translate_model)}を使用", reset_console=True)
 
-            outputer:output.RecognitionOutputer = {
-                val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
-                val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(f"ws://localhost:{out_yukarinette}"),
-                val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}"),
-                val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(f"ws://localhost:{out_illuminate}"),
-            }[out]()
-            ilm_logger.debug(f"#出力は{type(outputer)}を使用", reset_console=True)
+            outputers:list[output.RecognitionOutputer] = []
+            outputer_map = {
+                #val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
+                val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(
+                    f"ws://localhost:{out_yukarinette}"),
+                val.OUT_VALUE_YUKACONE: lambda: output.YukaconeOutputer(
+                    f"ws://localhost:{output.YukaconeOutputer.get_port(out_yukacone)}"),
+                val.OUT_VALUE_ILLUMINATE: lambda: output.IlluminateSpeechOutputer(
+                    "localhost",
+                    out_illuminate_port,
+                    out_illuminate_exe,
+                    out_illuminate_voice,
+                    out_illuminate_client,
+                    out_illuminate_launch,
+                    out_illuminate_notify_icon,
+                    out_illuminate_capture_pause),
+                val.OUT_VALUE_OBS: lambda: output_subtitle.ObsV5SubtitleOutputer(
+                    out_obs_host,
+                    out_obs_port,
+                    out_obs_password,
+                    out_obs_text_ja,
+                    out_obs_text_en,
+                    out_obs_truncate,
+                    ilm_logger),
+                val.OUT_VALUE_FILE: lambda: output_subtitle.FileSubtitleOutputer(
+                    out_file_directory,
+                    out_file_truncate,
+                    ilm_logger),
+                val.OUT_VALUE_VRC: lambda: output.VrChatOutputer()
+            }
+            outputers.append(output.PrintOutputer())
+            for it in out:
+                if it in outputer_map:
+                    outputers.append(outputer_map[it]())
+            ilm_logger.debug(f"#出力は{','.join(list(map(lambda x: f'{type(x)}', outputers)))}を使用", reset_console=True)
 
             ilm_logger.debug(f"#使用音声フィルタ({len(filters)}):", reset_console=True)
             for f in filters:
                ilm_logger.debug(f"#{type(f)}", reset_console=True)
-
-            subtitle_ = {
-                "": lambda: output_subtitle.NopSubtitleOutputer(ilm_logger),
-                val.SUBTITLE_VALUE_FILE: lambda: output_subtitle.FileSubtitleOutputer(
-                    subtitle_file_directory,
-                    subtitle_truncate,
-                    ilm_logger),
-                val.SUBTITLE_VALUE_OBS_WS_V5: lambda: output_subtitle.ObsV5SubtitleOutputer(
-                    subtitle_obs_host,
-                    subtitle_obs_port,
-                    subtitle_obs_password,
-                    subtitle_obs_text_ja,
-                    subtitle_obs_text_en,
-                    subtitle_truncate,
-                    ilm_logger),
-            }[subtitle]()
-            ilm_logger.debug(f"#字幕連携は{type(subtitle_)}を使用", reset_console=True)
 
             jsn = {}
             if transcribe_filter is None:
@@ -429,9 +469,8 @@ def main(
                 f"マイク: {mc.device_name}",
                 f"認識モデル: {type(recognition_model)}",
                 f"翻訳モデル: {type(translate_model)}",
-                f"出力: {type(outputer)}",
+                f"出力: {','.join(list(map(lambda x: f'{type(x)}', outputers)))}",
                 f"マイクフィルタ = {','.join(list(map(lambda x: f'{type(x)}', filters)))}",
-                f"字幕: {type(subtitle)}",
                 f"変換フィルタ: {str(jsn)}",
             ])
 
@@ -452,8 +491,7 @@ def main(
                     recognition_model,
                     translate_model,
                     filter_transcribe,
-                    outputer,
-                    subtitle_,
+                    outputers,
                     rec,
                     ilm_enviroment,
                     cancel,

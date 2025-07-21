@@ -1,0 +1,176 @@
+ゆーかねすぴれこは下記サードパーティーライブラリを使用させて頂いています。
+
+◆recognize.exe(バックエンド)は次のライブラリを使用させて頂いています。
+
+torch,torchvision,torchaudio(https://pytorch.org/)
+Copyright (c) 2016-     Facebook, Inc            (Adam Paszke)
+Copyright (c) 2014-     Facebook, Inc            (Soumith Chintala)
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+
+$ click_ (https://pypi.org/project/click/)
+BSD License
+Copyright 2014 Pallets
+
+
+
+SpeechRecognition(https://pypi.org/project/SpeechRecognition/)
+BSD License
+Copyright (c) 2014-, Anthony Zhang 
+
+
+
+numpy(https://pypi.org/project/numpy/)
+BSD License
+Copyright (c) 2005-2024, NumPy Developers.
+
+
+
+nt-lib(https://pypi.org/project/nt-lib/)
+
+
+
+pynput(https://pypi.org/project/pynput/)
+GNU Lesser General Public License v3
+Copyright (c)  Moses Palmér
+
+
+
+PyAudio(https://pypi.org/project/PyAudio/)
+MIT License 
+Copyright (c) Hubert Pham
+
+
+
+websockets(https://pypi.org/project/websockets/)
+BSD License
+Copyright (c) Aymeric Augustin
+
+
+
+Requests(https://pypi.org/project/requests/)
+accelerate(https://pypi.org/project/accelerate/)
+Apache Software License 
+Copyright (c)  Kenneth Reitz
+
+
+
+Faster Whisper transcription with CTranslate2(https://pypi.org/project/faster-whisper/)
+MIT License
+Copyright (c) 2023 SYSTRAN
+
+
+
+Transformers(https://pypi.org/project/transformers/)
+Apache Software License
+Copyright 2018- The Hugging Face team. All rights reserved.
+
+
+
+py-webrtcvad(https://pypi.org/project/webrtcvad/)
+MIT License
+Copyright (c) 2016 John Wiseman
+
+
+
+sounddevice(https://pypi.org/project/sounddevice/)
+MIT License
+Copyright (c) 2015-2024 Matthias Geier
+
+
+
+Stabilizing Timestamps for Whisper(https://pypi.org/project/stable-ts/)
+MIT License
+Copyright (c) 2022 jian
+
+
+
+obs-websocket-py(https://pypi.org/project/obs-websocket-py/)
+MIT License
+Copyright (c) 2017 Guillaume "Elektordi" Genty
+
+
+
+python-osc(https://pypi.org/project/python-osc/)
+Copyright (c) attwad
+
+
+
+
+◆recognize-gui.exe(ランチャー)は次のライブラリを使用させて頂いています。
+
+LivetCask.Messaging(https://www.nuget.org/packages/LivetCask.Messaging)
+zlib/libpngライセンス
+Livet Copyright (c) 2010-2011 Livet Project
+
+
+
+Newtonsoft.Json(https://www.nuget.org/packages/newtonsoft.json/)
+MIT License
+Copyright (c) 2007 James Newton-King
+
+
+
+Prism.Unity(https://www.nuget.org/packages/Prism.Unity)
+Prism.Wpf(https://www.nuget.org/packages/Prism.Wpf)
+Prism Commercial license. https://cdn.prismlibrary.com/downloads/prism_license.pdf
+
+
+ReactiveProperty.WPF(https://www.nuget.org/packages/ReactiveProperty.WPF)
+MIT License
+Copyright (c) 2018 neuecc, xin9le, okazuki
+
+
+
+
+◆illuminate.exe(合成音声連携)は次のライブラリを使用させて頂いています。
+
+CommandLineParser(https://www.nuget.org/packages/CommandLineParser)
+MIT License
+Copyright (c) 2005 - 2015 Giacomo Stelluti Scala & Contributors
+
+
+
+Fleck(https://www.nuget.org/packages/Fleck)
+MIT License
+Copyright (c) 2010-2018 Jason Staten
+
+
+
+NAudio.Wasapi(https://www.nuget.org/packages/NAudio.Wasapi/)
+MIT License
+Copyright (c) Mark Heath
+
+
+
+Newtonsoft.Json(https://www.nuget.org/packages/newtonsoft.json/)
+MIT License
+Copyright (c) 2007 James Newton-King
+
+
+
+
+◆インストーラは次のライブラリを使用させて頂いています。
+
+Newtonsoft.Json(https://www.nuget.org/packages/newtonsoft.json/)
+MIT License
+Copyright (c) 2007 James Newton-King
+
+
+
+ReactiveProperty.WPF(https://www.nuget.org/packages/ReactiveProperty.WPF)
+MIT License
+Copyright (c) 2018 neuecc, xin9le, okazuki
+
+
+
+System.Net.Http(https://www.nuget.org/packages/System.Net.Http)
+MIT License
+Copyright (c) Microsoft
+
+
