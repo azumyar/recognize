@@ -7,6 +7,28 @@ using System.Runtime.InteropServices;
 
 namespace VoiceLink;
 internal static class Interop {
+	internal class ComObject<T> : IDisposable where T : class {
+		private T? value;
+
+		public ComObject(T value) {
+			this.value = value;
+		}
+
+		public T Ptr {
+			get {
+				ObjectDisposedException.ThrowIf(this.value == null, this);
+				return this.value;
+			}
+		}
+
+		public void Dispose() {
+			if(this.value != null) {
+				Marshal.ReleaseComObject(this.value);
+				this.value = null;
+			}
+		}
+	}
+
 	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
 	public static extern bool IsWindow(nint hwnd);
 

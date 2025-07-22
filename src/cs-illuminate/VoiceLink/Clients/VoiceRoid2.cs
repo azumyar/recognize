@@ -13,9 +13,10 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 	private readonly string VoiceRoid2EditorClass = "HwndWrapper[VoiceroidEditor.exe;;4cc5cceb-49d9-4fbf-8374-11d461e38c4c]";
 	private string exe = "";
 	private nint hTargetWindow;
-	private Accessibility.IAccessible? textBox;
-	private Accessibility.IAccessible? playButton;
-	private Accessibility.IAccessible? caretStartButton;
+	private Interop.ComObject<Accessibility.IAccessible>? textBox;
+	private Interop.ComObject<Accessibility.IAccessible>? playButton;
+	private Interop.ComObject<Accessibility.IAccessible>? stopButton;
+	private Interop.ComObject<Accessibility.IAccessible>? caretStartButton;
 
 	public override bool StartClient(bool isLaunch, AudioCaptreStart extra) {
 		this.exe = extra.TargetExe;
@@ -96,10 +97,24 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 					throw new VoiceLinkException("VoiceRoid2オブジェクトの取得に失敗(3/3)");
 				}
 
-				this.textBox = (Accessibility.IAccessible?)obj3[0];
-				this.playButton = (Accessibility.IAccessible?)obj3[1];
-				this.caretStartButton = (Accessibility.IAccessible?)obj3[3];
-				obj3[0] = obj3[1] = obj3[3] = null; 
+				if(obj3[0] is not Accessibility.IAccessible obj3_0) {
+					throw new VoiceLinkException("VoiceRoid2オブジェクトの取得において想定しないケース[0]");
+				}
+				if (obj3[1] is not Accessibility.IAccessible obj3_1) {
+					throw new VoiceLinkException("VoiceRoid2オブジェクトの取得において想定しないケース[1]");
+				}
+				if (obj3[2] is not Accessibility.IAccessible obj3_2) {
+					throw new VoiceLinkException("VoiceRoid2オブジェクトの取得において想定しないケース[2]");
+				}
+				if (obj3[3] is not Accessibility.IAccessible obj3_3) {
+					throw new VoiceLinkException("VoiceRoid2オブジェクトの取得において想定しないケース[3]");
+				}
+
+				this.textBox = new(obj3_0);
+				this.playButton = new(obj3_1);
+				this.stopButton = new(obj3_2);
+				this.caretStartButton = new(obj3_3);
+				obj3[0] = obj3[1] = obj3[2] = obj3[3] = null; 
 
 				return;
 			}
@@ -125,8 +140,8 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 		}
 
 		foreach(var it in new (int Index, Action Action)[] {
-			(1, () => { this.textBox.accSelect(0x1, 0); this.textBox.accValue[0] = text; }),
-			(2, () => { this.playButton.accSelect(0x1, 0); this.playButton.accDoDefaultAction(0); }),
+			(1, () => { this.textBox.Ptr.accSelect(0x1, 0); this.textBox.Ptr.accValue[0] = text; }),
+			(2, () => { this.playButton.Ptr.accSelect(0x1, 0); this.playButton.Ptr.accDoDefaultAction(0); }),
 		}) {
 			try {
 				it.Action();
@@ -154,32 +169,34 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 			if (this.textBox == null) {
 				return;
 			}
+			try {
+				this.stopButton?.Ptr.accDoDefaultAction(0);
+			}
+			catch { }
 
 			try {
-				this.textBox.accValue[0] = "";
+				this.textBox.Ptr.accValue[0] = "";
 			}
 			catch { }
 		}
 		finally {
-			if (this.textBox != null) {
-				Marshal.ReleaseComObject(this.textBox);
-				this.textBox = null;
-			}
-			if (this.playButton != null) {
-				Marshal.ReleaseComObject(this.playButton);
-				this.playButton = null;
-			}
-			if (this.caretStartButton != null) {
-				Marshal.ReleaseComObject(this.caretStartButton);
-				this.caretStartButton = null;
-			}
+			this.textBox?.Dispose();
+			this.playButton?.Dispose();
+			this.stopButton?.Dispose();
+			this.caretStartButton?.Dispose();
+
+			this.textBox
+				= this.playButton
+				= this.stopButton
+				= this.caretStartButton
+				= null;
 		}
 	}
 
 	private bool IsSpeak() {
 		if (this.caretStartButton != null) {
 			try {
-				var state = (int)this.caretStartButton.accState[0];
+				var state = (int)this.caretStartButton.Ptr.accState[0];
 				if (state == 0x1) {
 					return true;
 				}
