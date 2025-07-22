@@ -125,8 +125,8 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 		}
 
 		foreach(var it in new (int Index, Action Action)[] {
-			(1, () => { this.textBox.accValue[0] = text; }),
-			(2, () => { this.playButton.accDoDefaultAction(0); }),
+			(1, () => { this.textBox.accSelect(0x1, 0); this.textBox.accValue[0] = text; }),
+			(2, () => { this.playButton.accSelect(0x1, 0); this.playButton.accDoDefaultAction(0); }),
 		}) {
 			try {
 				it.Action();
