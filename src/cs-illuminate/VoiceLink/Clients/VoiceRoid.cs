@@ -25,18 +25,14 @@ public abstract class VoiceRoid<TStartObj, TSpeechObj> : VoiceClient<TStartObj, 
 		}
 	}
 
+	public override IAudioCaptireClient ClientParameter { get; }
+
+
 	public VoiceRoid() {
 		this.ClientParameter = new AudioCaptireClient(this);
 	}
 
 	protected int ProcessId { get; set; }
-
-	public IAudioCaptireClient ClientParameter { get; }
-	public abstract bool StartClient(bool isLaunch, TStartObj extra);
-	public abstract void EndClient();
-	public abstract void BeginSpeech(string text, TSpeechObj extra);
-	public abstract void Speech(string text, TSpeechObj extra);
-	public abstract void EndSpeech(string text, TSpeechObj extra);
 }
 
 public class VoiceRoid : VoiceRoid<AudioCaptreStart, NopVoiceObject> {

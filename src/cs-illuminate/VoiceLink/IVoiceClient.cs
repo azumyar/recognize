@@ -8,7 +8,7 @@ namespace VoiceLink;
 public interface IVoiceClient<TStartObj, TSpeechObj, TClientObj>
 	where TStartObj:IStartObject
 	where TSpeechObj:ISpeechObject
-	where TClientObj:ICleentObject
+	where TClientObj:IClientObject
 	{
 
 	/// <summary>INFOレベルログを出力したい場合設定</summary>
@@ -40,10 +40,10 @@ public interface IVoiceClient<TStartObj, TSpeechObj, TClientObj>
 
 public interface IStartObject { }
 public interface ISpeechObject { }
-public interface ICleentObject { }
+public interface IClientObject { }
 
 /// <summary>VoiceClientはなにも要求しません</summary>
-public record NopVoiceObject() : IStartObject, ISpeechObject, ICleentObject;
+public record NopVoiceObject() : IStartObject, ISpeechObject, IClientObject;
 
 /// <summary>
 /// VoiceClientはオーディオキャプチャを要求します
@@ -65,6 +65,6 @@ public record CeVioSpeechClient(string Cast, uint Volume, uint Speed, uint Tone,
 
 
 /// <summary>オーディオキャプチャのためのクライアントパラメータ</summary>
-public interface IAudioCaptireClient : ICleentObject {
+public interface IAudioCaptireClient : IClientObject {
 	int ProcessId { get; }
 }
