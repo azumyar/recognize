@@ -79,6 +79,8 @@ class Microphone:
             filter_highPass:filter.HighPassFilter | None,
             phase2_sec:float,
             record_min_sec:float,
+            push_talk:bool,
+            push_talk_params:list[str],
             device:int|None,
             logger:Logger) -> None:
         self.__energy_threshold = energy_threshold
@@ -94,6 +96,8 @@ class Microphone:
         self.__chunk_size = 1024
         self.__logger = logger
         self.__indicator = _Indicator()
+        self.__push_talk = push_talk and (0 < len(push_talk_params))
+        self.__push_talk_params = push_talk_params
 
         d = sounddevice.query_devices(
             device=device) if not device is None else sounddevice.query_devices(
@@ -138,6 +142,26 @@ class Microphone:
         return r
 
     def listen(
+        self,
+        onrecord:Callable[[int, ListenResultParam], None],
+        cancel:CancellationObject,
+        opt_enable_energy_threshold:bool = True,
+        opt_enable_indicator:bool|None = None):
+
+        if self.__push_talk:
+            self.__listen_push_to(
+                onrecord,
+                cancel,
+                opt_enable_energy_threshold,
+                opt_enable_indicator)
+        else:
+            self.__listen(
+                onrecord,
+                cancel,
+                opt_enable_energy_threshold,
+                opt_enable_indicator)
+
+    def __listen(
         self,
         onrecord:Callable[[int, ListenResultParam], None],
         cancel:CancellationObject,
@@ -259,6 +283,64 @@ class Microphone:
                         max(map(lambda x: x[1], frames)),
                         min(map(lambda x: x[1], frames)))))
 
+    def __listen_push_to(
+        self,
+        onrecord:Callable[[int, ListenResultParam], None],
+        cancel:CancellationObject,
+        opt_enable_energy_threshold:bool = True,
+        opt_enable_indicator:bool|None = None):
+        index = 0
+
+        if opt_enable_energy_threshold:
+            energy_threshold = self.energy_threshold
+        else:
+            energy_threshold = 0
+        if not opt_enable_indicator is None and opt_enable_indicator:
+            _print = print
+        else:
+            _print = self.__logger.notice
+
+        with sounddevice.RawInputStream(
+            samplerate=self.__sample_rate,
+            blocksize=self.__chunk_size,
+            channels=1,
+            dtype="int16",
+            device=self.__device) as stream:
+            while cancel.alive:
+                dB = 0.0
+                is_overflowed = False
+                frames = collections.deque()
+
+                self.__indicate(dB, _print)
+                while self.__is_input():
+                    _buffer, overflowed = stream.read(self.__chunk_size)
+                    if(overflowed):
+                        self.__logger.error("overflowed")
+                        is_overflowed = True
+                        break
+                    buffer = self.filter(bytes(_buffer)) # type: ignore
+                    en = audioop.rms(buffer, val.MIC_SAMPLE_WIDTH)
+                    dB = rms2db(en)
+                    frames.append((buffer, en))
+                    self.__indicate_pahse2(dB, _print)
+
+                if is_overflowed:
+                    continue
+
+                if len(frames):
+                    print("\033[1G\033[0K", end="", flush=True)
+
+                    # 先頭末尾無音追加処理
+                    frame_data = b"".join(map(lambda x: x[0], frames))
+                    index += 1
+                    onrecord(index, ListenResultParam(
+                        frame_data,
+                        ListenEnergy(
+                            sum(map(lambda x: x[1], frames)) / len(frames),
+                            max(map(lambda x: x[1], frames)),
+                            min(map(lambda x: x[1], frames)))))
+
+
     def listen_ambient(self, record_sec:float) -> ListenEnergy:
         with sounddevice.RawInputStream(
             samplerate=self.__sample_rate,
@@ -288,6 +370,78 @@ class Microphone:
             fft = np.fft.fft(np.frombuffer(buffer, np.int16).flatten())
             self.__filter_highPass.filter(fft)
             return np.real(np.fft.ifft(fft)).astype(np.uint16, order="C").tobytes()
+
+    def __is_input(self) -> bool:
+        for it in self.__push_talk_params:
+            type, pm = it.split(":")
+            if type.upper() == "KEYBOARD":
+                import ctypes
+                v1, _ = pm.split(",")
+                r = (ctypes.windll.user32.GetAsyncKeyState(val.VK[v1.upper()]) >> 8) != 0
+                if r:
+                    return True
+            elif (type.upper() == "VR") or (type.upper() == "QUEST") or (type.upper() == "INDEX"):
+                import src.vr as vr
+
+                action_name, role_name, v3, _ = pm.split(",")
+                role = None
+                if role_name.upper() == "LEFT":
+                    role = vr.TARACK_ROLE_LEFT
+                elif role_name.upper() == "RIGHT":
+                    role = vr.TARACK_ROLE_RIGHT
+
+                controller_type = None
+                target = None
+                #knuckles
+                if type.upper() == "INDEX":
+                    controller_type = "knuckles"
+                    if v3.upper() == "TRIGGER":
+                        target = vr.BUTTON_INDEX_TRIGGER
+                    elif v3.upper() == "STICK":
+                        target = vr.BUTTON_INDEX_STICK
+                    elif v3.upper() == "A":
+                        target = vr.BUTTON_INDEX_A
+                    elif v3.upper() == "B":
+                        target = vr.BUTTON_INDEX_B
+
+                if type.upper() == "QUEST":
+                    controller_type = "oculus_touch"
+                    if v3.upper() == "STICK":
+                        target = vr.BUTTON_QUEST_STICK
+                    elif v3.upper() == "GRIP":
+                        target = vr.BUTTON_QUEST_GRIP
+                    elif v3.upper() == "TRIGGER":
+                        target = vr.BUTTON_QUEST_TRIGGER
+                    elif v3.upper() == "A":
+                        target = vr.BUTTON_QUEST_A
+                    elif v3.upper() == "B":
+                        target = vr.BUTTON_QUEST_B
+                    elif v3.upper() == "X":
+                        intargetddex = vr.BUTTON_QUEST_X
+                    elif v3.upper() == "Y":
+                        index = vr.BUTTON_QUEST_Y
+                elif type.upper() == "VR":
+                    target = int(v3)
+
+                if role == None:
+                    continue
+                if target == None:
+                    continue
+
+                if action_name.upper() == "TOUCH":
+                    if vr.is_touch(
+                        index = target,
+                        role = role,
+                        target_device = controller_type):
+                        return True
+                elif action_name.upper() == "PRESS":
+                    if vr.is_touch(
+                        index = target,
+                        role = role,
+                        target_device = controller_type):
+                        return True
+        return False
+
 
     def __indicate(self, dB, print:Any):
         if rms2db(self.energy_threshold) < dB:
