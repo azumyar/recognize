@@ -26,14 +26,6 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 	private bool Load(string targetExe, bool isLaunch) {
 		this.ProcessId = 0;
 		this.hTargetWindow = 0;
-		if(this.textBox != null) {
-			Marshal.ReleaseComObject(this.textBox);
-			this.textBox = null;
-		}
-		if (this.playButton != null) {
-			Marshal.ReleaseComObject(this.playButton);
-			this.playButton = null;
-		}
 
 		var p = Util.GetProcess(targetExe);
 		var h = p?.MainWindowHandle ?? 0;
@@ -66,6 +58,16 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 				throw new VoiceLinkException("VoiceRoid2が見つかりません");
 			}
 		}
+
+		this.textBox?.Dispose();
+		this.playButton?.Dispose();
+		this.stopButton?.Dispose();
+		this.caretStartButton?.Dispose();
+		this.textBox
+			= this.playButton
+			= this.stopButton
+			= this.caretStartButton
+			= null;
 		Interop.AccessibleObjectFromWindow(
 			this.hTargetWindow,
 			0,
@@ -131,6 +133,7 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 				}
 			}
 		}
+		System.Threading.Thread.Sleep(1000);
 		throw new VoiceLinkException("読み上げ開始準備に失敗");
 	}
 
@@ -148,6 +151,7 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 			}
 			catch (COMException e) {
 				// 0x80040200が確認されている
+				System.Threading.Thread.Sleep(1000);
 				throw new VoiceLinkException($"VoiceRoid2読み上げ連携に失敗({it.Index}/2)", e);
 			}
 		}
@@ -172,12 +176,18 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 			try {
 				this.stopButton?.Ptr.accDoDefaultAction(0);
 			}
-			catch { }
+			catch {
+				LogDebug("停止ボタン呼び出しに失敗");
+				System.Threading.Thread.Sleep(1000);
+			}
 
 			try {
 				this.textBox.Ptr.accValue[0] = "";
 			}
-			catch { }
+			catch {
+				LogDebug("テキストボックス初期化に失敗");
+				System.Threading.Thread.Sleep(1000);
+			}
 		}
 		finally {
 			this.textBox?.Dispose();

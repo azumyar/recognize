@@ -9,7 +9,7 @@ namespace VoiceLink.Clients;
 /// <summary>ボイスロイド系の基底クラス</summary>
 /// <typeparam name="TStartObj"></typeparam>
 /// <typeparam name="TSpeechObj"></typeparam>
-public abstract class VoiceRoid<TStartObj, TSpeechObj> : IVoiceClient<TStartObj, TSpeechObj, IAudioCaptireClient>
+public abstract class VoiceRoid<TStartObj, TSpeechObj> : VoiceClient<TStartObj, TSpeechObj, IAudioCaptireClient>
 	where TStartObj : IStartObject
 	where TSpeechObj : ISpeechObject {
 	class AudioCaptireClient : IAudioCaptireClient {
@@ -32,7 +32,6 @@ public abstract class VoiceRoid<TStartObj, TSpeechObj> : IVoiceClient<TStartObj,
 	protected int ProcessId { get; set; }
 
 	public IAudioCaptireClient ClientParameter { get; }
-
 	public abstract bool StartClient(bool isLaunch, TStartObj extra);
 	public abstract void EndClient();
 	public abstract void BeginSpeech(string text, TSpeechObj extra);
