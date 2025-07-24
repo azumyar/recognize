@@ -68,7 +68,7 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 			= this.stopButton
 			= this.caretStartButton
 			= null;
-		Interop.AccessibleObjectFromWindow(
+		_ = Interop.AccessibleObjectFromWindow(
 			this.hTargetWindow,
 			0,
 			in Interop.IID_IAccessible,
@@ -80,21 +80,24 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 			object?[]? obj3 = default;
 			try {
 				obj1 = new object[acc.accChildCount];
-				Interop.AccessibleChildren(acc, 0, obj1.Length, obj1, out var c);
+				_ = Interop.AccessibleChildren(acc, 0, obj1.Length, obj1, out var c);
 				if ((obj1.Length != c) || (c < 3)) {
 					throw new VoiceLinkException("VoiceRoid2オブジェクトの取得に失敗(1/3)");
 				}
 
 				var acc2 = (Accessibility.IAccessible)obj1[3];
 				obj2 = new object[acc2.accChildCount];
-				Interop.AccessibleChildren(acc2, 0, obj2.Length, obj2, out c);
+				_ = Interop.AccessibleChildren(acc2, 0, obj2.Length, obj2, out c);
 				if ((obj2.Length != c) || (c < 3)) {
 					throw new VoiceLinkException("VoiceRoid2オブジェクトの取得に失敗(2/3)");
 				}
 
 				var acc3 = (Accessibility.IAccessible)obj2[3];
-				obj3 = new object[acc3.accChildCount];
-				Interop.AccessibleChildren(acc3, 0, obj3.Length, obj3, out c);
+				{
+					var _obj3 = new object[acc3.accChildCount];
+					_ = Interop.AccessibleChildren(acc3, 0, _obj3.Length, _obj3, out c);
+					obj3 = _obj3;
+				}
 				if ((obj3.Length != c) || (c < 2)) {
 					throw new VoiceLinkException("VoiceRoid2オブジェクトの取得に失敗(3/3)");
 				}
@@ -121,9 +124,14 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 				return;
 			}
 			finally {
-				var rls = (obj3 ?? Array.Empty<object>()).ToList<object?>();
-				rls.AddRange(obj2 ?? Array.Empty<object>());
-				rls.AddRange(obj1 ?? Array.Empty<object>());
+				static void range<T>(List<T> list, IEnumerable<T>? it) {
+					if (it != null) {
+						list.AddRange(it);
+					}
+				}
+				var rls = (obj3 ?? []).ToList<object?>();
+				range(rls, obj2);
+				range(rls, obj1);
 				rls.Add(o);
 
 				foreach (var it in rls) {

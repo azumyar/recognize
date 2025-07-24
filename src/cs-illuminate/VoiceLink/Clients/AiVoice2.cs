@@ -59,7 +59,7 @@ public class AiVoice2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 		if (aivoiceTarget == 0) {
 			throw new VoiceLinkException();
 		}
-		Interop.AccessibleObjectFromWindow(
+		_ = Interop.AccessibleObjectFromWindow(
 			aivoiceTarget,
 			0,
 			in Interop.IID_IAccessible,
@@ -84,7 +84,7 @@ public class AiVoice2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 			try {
 				static object[] get(Accessibility.IAccessible a, Action<Accessibility.IAccessible, object[], int> judge) {
 					var obj = new object[a.accChildCount];
-					Interop.AccessibleChildren(a, 0, obj.Length, obj, out int c);
+					_ = Interop.AccessibleChildren(a, 0, obj.Length, obj, out int c);
 					judge(a, obj, c);
 					return obj;
 				}
@@ -181,19 +181,24 @@ public class AiVoice2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 				return;
 			}
 			finally {
-				var rls = (obj1 ?? Array.Empty<object>()).ToList<object?>();
-				rls.AddRange(obj2 ?? Array.Empty<object>());
-				rls.AddRange(obj3 ?? Array.Empty<object>());
-				rls.AddRange(obj4 ?? Array.Empty<object>());
-				rls.AddRange(obj5 ?? Array.Empty<object>());
-				rls.AddRange(obj6 ?? Array.Empty<object>());
-				rls.AddRange(obj7 ?? Array.Empty<object>());
-				rls.AddRange(o6_1 ?? Array.Empty<object>());
-				rls.AddRange(o6_1_1 ?? Array.Empty<object>());
-				rls.AddRange(o6_2 ?? Array.Empty<object>());
-				rls.AddRange(o6_2_1 ?? Array.Empty<object>());
-				rls.AddRange(o6_2_2 ?? Array.Empty<object>());
-				rls.AddRange(o6_2_3 ?? Array.Empty<object>());
+				static void range<T>(List<T> list, IEnumerable<T>? it ) {
+					if (it != null) {
+						list.AddRange(it);
+					}
+				}
+				var rls = (obj1 ?? []).ToList<object?>();
+				range(rls, obj2);
+				range(rls, obj3);
+				range(rls, obj4);
+				range(rls, obj5);
+				range(rls, obj6);
+				range(rls, obj7);
+				range(rls, o6_1);
+				range(rls, o6_1_1);
+				range(rls, o6_2);
+				range(rls, o6_2_1);
+				range(rls, o6_2_1);
+				range(rls, o6_2_3);
 				rls.Add(o);
 
 				foreach (var it in rls) {
