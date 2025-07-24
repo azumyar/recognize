@@ -144,7 +144,6 @@ internal class ApplicationCapture {
 	private Thread? captureThread;
 	private DateTime? speakStartTime = default;
 	private DateTime? speakEndTime = default;
-	private bool isSpeak = false;
 	private readonly AutoResetEvent speakWait = new(false);
 
 	private int pauseSec;
@@ -217,7 +216,6 @@ internal class ApplicationCapture {
 			throw new InvalidOperationException("Previous recording still in progress");
 		}
 
-		isSpeak = false;
 		speakStartTime = speakEndTime = null;
 		speakWait.Reset();
 		captureState = CaptureState.Starting;

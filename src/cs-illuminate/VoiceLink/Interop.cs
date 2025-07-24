@@ -5,6 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 
+#pragma warning disable SYSLIB1054 // LibraryImportの警告はいったん抑制する
+
+
 namespace VoiceLink;
 internal static class Interop {
 	internal class ComObject<T> : IDisposable where T : class {
@@ -12,6 +15,12 @@ internal static class Interop {
 
 		public ComObject(T value) {
 			this.value = value;
+		}
+
+		~ComObject() {
+			lock (this) {
+				this.Dispose();
+			}
 		}
 
 		public T Ptr {
@@ -25,6 +34,7 @@ internal static class Interop {
 			if(this.value != null) {
 				Marshal.ReleaseComObject(this.value);
 				this.value = null;
+				GC.SuppressFinalize(this);
 			}
 		}
 	}
