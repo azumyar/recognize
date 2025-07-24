@@ -27,9 +27,9 @@ public class MainWindowViewModel : BindableBase {
 	public static string OpenFileKey = "OpenFile";
 	public static string SaveFileKey = "SaveFile";
 
-	private readonly string CONFIG_FILE = "frontend.conf";
-	private readonly string CONFIG2_FILE = "frontend.dev.v250717.conf";
-	private readonly string FILTER_FILE = "frontend-filter.conf";
+	private readonly string CONFIG_0_FILE = "frontend.conf";
+	private readonly string CONFIG_FILE = "recognize-gui.conf";
+	private readonly string FILTER_FILE = "recognize-filter.conf";
 	private readonly string BAT_FILE = "custom-recognize.bat";
 	private readonly string TEMP_BAT = global::System.IO.Path.Combine(
 		global::System.IO.Path.GetTempPath(),
@@ -88,8 +88,8 @@ public class MainWindowViewModel : BindableBase {
 		this.RuleAddClickCommand.Subscribe(x => this.OnRuleAdd(x));
 		this.RuleEditClickCommand.Subscribe(x => this.OnRuleEdit(x));
 		this.RuleRemoveClickCommand.Subscribe(x => this.OnRuleRemove(x));
-		this.RuleImportCommand.Subscribe(() => this.OnRuleImport());
-		this.RuleExportCommand.Subscribe(() => this.OnRuleExport());
+		this.RuleImportCommand.Subscribe(async () => await this.OnRuleImport());
+		this.RuleExportCommand.Subscribe(async () => await this.OnRuleExport());
 
 		this.SelectedFilterItem.Subscribe(x => {
 			if((x == null) && (this.Filter.Value.Filters?.FirstOrDefault() is Models.FilterItem it)) {
@@ -113,8 +113,67 @@ public class MainWindowViewModel : BindableBase {
 		this.ConnectYukaConeCommand.Subscribe(() => this.OnConnectYukaCone());
 
 		try {
-			if(File.Exists(this.CONFIG2_FILE)) {
-				var json = File.ReadAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.CONFIG2_FILE));
+			var conf0Path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.CONFIG_0_FILE);
+			if(File.Exists(conf0Path)) {
+				// 旧設定ファイルからのマイグレ
+				var conf0 = this.LoadConfig0(conf0Path);
+				this.Config = new();
+				this.Config.TranscribeModel = conf0.ArgMethod switch {
+					"faster_whisper" => "kotoba_whisper",
+					"kotoba_whisper" => "kotoba_whisper",
+					"google" => "google_mix",
+					"google_duplex" => "google_mix",
+					"google_mix" => "google_mix",
+					_ => ""
+				};
+				this.Config.GoogleLanguage = conf0.ArgGoogleLanguage;
+				this.Config.GoogleTimeout = conf0.ArgGoogleTimeout;
+				this.Config.GoogleProfanityFilter = conf0.ArgGoogleProfanityFilter ?? false;
+				this.Config.TranslateModel = conf0.ArgTranslate;
+				this.Config.Microphone = conf0.ArgMicV2;
+				this.Config.MicrophoneThresholdDb = conf0.ArgMicDbThresholdV2;
+				this.Config.MicrophoneRecordMinDuration = conf0.ArgMicRecordMinDuration;
+				{
+					if(int.TryParse(conf0.ArgVadParamaterV2, out var v1)) {
+						this.Config.VadGoogleParamater = v1;
+					}
+					if(Enum.TryParse<HpfArgGenerater.HpfParamater>(conf0.ArgVadParamaterV2, out var v2)) {
+						this.Config.HpfParamater = v2 switch {
+							HpfArgGenerater.HpfParamater.無効 => ConfigBinder.HpfParamDisable,
+							HpfArgGenerater.HpfParamater.弱い => ConfigBinder.HpfParamLow,
+							HpfArgGenerater.HpfParamater.普通 => ConfigBinder.HpfParamNormal,
+							HpfArgGenerater.HpfParamater.強め => ConfigBinder.HpfParamHi,
+							_ => null
+						};
+					} else {
+						this.Config.HpfParamater = null;
+					}
+				}
+				this.Config.IsUsedYukarinette = conf0.ArgOutWithYukarinette ?? false;
+				this.Config.YukatinettePort = conf0.ArgOutYukarinette;
+				this.Config.IsUsedYukaCone = conf0.ArgOutWithYukacone ?? false;
+				this.Config.YukaConePort = conf0.ArgOutYukacone;
+				this.Config.IsUsedObsSubtitle = conf0.ArgSubtitle?.Length != 0;
+				this.Config.ObsSubtitleTruncate = conf0.ArgSubtitleTruncate;
+				this.Config.ObsSubtitleTextEn = conf0.ArgSubtitleObsTextEn;
+				this.Config.ObsSubtitlePort = conf0.ArgSubtitlePort;
+				this.Config.ObsSubtitlePassword = conf0.ArgSubtitlePassword;
+				this.Config.Extra.RecognizeExePath = conf0.RecognizeExePath;
+				this.Config.Extra.ArgVerbose = conf0.ArgVerbose;
+				this.Config.Extra.ArgLogDirectory = conf0.ArgLogDirectory;
+				this.Config.Extra.ArgRecord = conf0.ArgRecord;
+				this.Config.Extra.ArgRecordFile = conf0.ArgRecordFile;
+				this.Config.Extra.ArgRecordDirectory = conf0.ArgRecordDirectory;
+				this.Config.Extra.ArgTorchCache = conf0.ArgTorchCache;
+				this.Config.UserArguments = conf0.ExtraArgument;
+
+				try {
+					this.SaveConfig((this.CONFIG_FILE, this.Config));
+					File.Delete(conf0Path);
+				}
+				catch { }
+			} else if(File.Exists(this.CONFIG_FILE)) {
+				var json = File.ReadAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, this.CONFIG_FILE));
 				this.Config = Newtonsoft.Json.JsonConvert.DeserializeObject<Models.Config>(json) switch {
 					Models.Config v => v,
 					_ => new Config(),
@@ -130,6 +189,54 @@ public class MainWindowViewModel : BindableBase {
 		this.ConfigBinder = new(this.Config);
 		this.LoadMicList();
 	}
+
+	/// <summary>旧設定フォーマットからの読み込み</summary>
+	/// <param name="path"></param>
+	/// <returns></returns>
+	private RecognizeExeArgument LoadConfig0(string path) {
+		var convDic = new Dictionary<Type, Func<string, object?>>();
+		convDic.Add(typeof(string), (x) => x);
+		convDic.Add(typeof(bool?), (x) => bool.TryParse(x, out var v) ? v : null);
+		convDic.Add(typeof(int?), (x) => int.TryParse(x, out var v) ? v : null);
+		convDic.Add(typeof(float?), (x) => float.TryParse(x, out var v) ? v : null);
+
+		var list = new List<Tuple<string, string>>();
+		try {
+			var save = File.ReadAllText(path);
+			foreach(var line in save.Replace("\r\n", "\n").Split('\n')) {
+				var c = line.IndexOf(':');
+				if(0 < c) {
+					var tp = new Tuple<string, string>(line.Substring(0, c), line.Substring(c + 1));
+					list.Add(tp);
+				}
+			}
+		}
+		catch(IOException) { }
+
+		var prop = typeof(RecognizeExeArgument).GetProperties().Where(x => x.CanWrite);
+		var pr = typeof(RecognizeExeArgument).GetProperty("RecognizeExePath");
+		var exe = list.Where(x => x.Item1 == pr.Name).FirstOrDefault();
+		var arg = new RecognizeExeArgument();
+		foreach(var tp in list) {
+			var p = prop.Where(x => x.Name == tp.Item1).FirstOrDefault();
+			if(p != null) {
+				var svattr = p.GetCustomAttribute<SaveAttribute>();
+				if((svattr != null) && !svattr.IsRestore) {
+					continue;
+				}
+
+				Func<string, object> f;
+				if(convDic.TryGetValue(p.PropertyType, out f)) {
+					var v = f(tp.Item2);
+					if(v != null) {
+						p.SetValue(arg, v);
+					}
+				}
+			}
+		}
+		return arg;
+	}
+
 
 	private string GetCommandLine() {
 		var sb = new StringBuilder(this.Config.ToCommandOption());
@@ -203,7 +310,9 @@ public class MainWindowViewModel : BindableBase {
 	}
 
 	private void OnClosing() {
-		this.SaveConfig();
+		this.SaveConfig(
+			(this.CONFIG_FILE, this.Config),
+			(this.FILTER_FILE, this.Filter.Value));
 		try {
 			if(File.Exists(this.TEMP_BAT)) {
 				File.Delete(this.TEMP_BAT);
@@ -302,7 +411,7 @@ public class MainWindowViewModel : BindableBase {
 		catch(PathTooLongException) { return false; }
 	}
 
-	private void SaveConfig() {
+	private void SaveConfig(params (string File, object Obj)[] objs) {
 		static bool json(string fileName, object o) {
 			try {
 				System.IO.File.WriteAllText(
@@ -315,12 +424,15 @@ public class MainWindowViewModel : BindableBase {
 			}
 		}
 
-		json(this.CONFIG2_FILE, this.Config);
-		json(this.FILTER_FILE, this.Filter.Value);
+		foreach(var it in objs) {
+			json(it.File, it.Obj);
+		}
 	}
 
 	private void OnExec() {
-		this.SaveConfig();
+		this.SaveConfig(
+			(this.CONFIG_FILE, this.Config),
+			(this.FILTER_FILE, this.Filter.Value));
 
 		var bat = new StringBuilder()
 			.AppendLine("@echo off")
@@ -421,11 +533,10 @@ public class MainWindowViewModel : BindableBase {
 					if(File.Exists(file)) {
 						try {
 							var json = File.ReadAllText(file);
-							var item = Newtonsoft.Json.JsonConvert.DeserializeObject<Models.FilterItem>(json);
+							var item = Newtonsoft.Json.JsonConvert.DeserializeObject<Models.FilterExporter>(json);
 							System.Diagnostics.Debug.Assert(item != null);
 							this.SelectedFilterItem.Value.Rules?.Clear();
-							this.SelectedFilterItem.Value.Rules?.AddRangeOnScheduler(
-								item.Rules as IEnumerable<Models.FilterRule> ?? Array.Empty<Models.FilterRule>());
+							this.SelectedFilterItem.Value.Rules?.AddRangeOnScheduler(item.Rules ?? []);
 						}
 						catch(Exception ex) when ((ex is Newtonsoft.Json.JsonException) || (ex is IOException)) {
 							await Messenger.RaiseAsync(new ConfirmationMessage(
@@ -467,8 +578,9 @@ public class MainWindowViewModel : BindableBase {
 			};
 			await Messenger.RaiseAsync(c1);
 			if(c1.Response is IEnumerable<string> rs && rs.Any()) {
+				var exp = new FilterExporter(this.SelectedFilterItem.Value?.Rules?.ToArray() ?? []);
 				var file = rs.First();
-				var json = Newtonsoft.Json.JsonConvert.SerializeObject(this.SelectedFilterItem.Value);
+				var json = Newtonsoft.Json.JsonConvert.SerializeObject(exp);
 				File.WriteAllText(file, json);
 			}
 		}

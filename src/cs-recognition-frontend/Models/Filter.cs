@@ -14,7 +14,7 @@ using Reactive.Bindings;
 
 namespace Haru.Kei.Models;
 
-public class ReactivePropertyConverter<T> : JsonConverter {
+file class ReactivePropertyConverter<T> : JsonConverter {
 	public override bool CanConvert(Type objectType) => objectType == typeof(ReactiveProperty<T>);
 
 	public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
@@ -29,7 +29,7 @@ public class ReactivePropertyConverter<T> : JsonConverter {
 }
 
 
-public class ReactiveCollectionConverter<T> : JsonConverter {
+file class ReactiveCollectionConverter<T> : JsonConverter {
 	public override bool CanConvert(Type objectType) => objectType == typeof(ReactiveCollection<T>);
 
 	public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
@@ -61,10 +61,6 @@ public class Filter : INotifyPropertyChanged {
 
 public class FilterItem : INotifyPropertyChanged {
 	public event PropertyChangedEventHandler? PropertyChanged;
-	public const int CurrentRuleVersion = 2025071400;
-
-	[JsonProperty("version")]
-	public int Version { get; private set; } = CurrentRuleVersion;
 
 	[JsonProperty("name")]
 	[JsonConverter(typeof(ReactivePropertyConverter<string?>))]
@@ -110,5 +106,13 @@ public class FilterRule : INotifyPropertyChanged {
 	public ReactiveProperty<string?> Dst { get; private set; } = new(initialValue: "");
 }
 
+public class FilterExporter(IEnumerable<FilterRule> rules) {
+	public const int CurrentRuleVersion = 2025071400;
 
+	[JsonProperty("version")]
+	public int Version { get; private set; } = CurrentRuleVersion;
+
+	[JsonProperty("rules")]
+	public IEnumerable<FilterRule> Rules { get; private set; } = rules;
+}
 
