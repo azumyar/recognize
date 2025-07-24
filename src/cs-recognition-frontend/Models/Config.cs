@@ -74,8 +74,18 @@ public class Config {
 	public bool IsUsedIlluminate { get; set; } = false;
 	[JsonProperty("out_illuminate_voice")]
 	public string IlluminateVoice { get; set; } = "voiceroid";
-	[JsonProperty("out_illuminate_client")]
-	public string IlluminateClient { get; set; } = "";
+
+	[JsonProperty("out_illuminate_client:voiceroid")]
+	public string IlluminateClientVoiceRoid { get; set; } = "";
+	[JsonProperty("out_illuminate_client:voiceroid2")]
+	public string IlluminateClientVoiceRoid2 { get; set; } = "";
+	[JsonProperty("out_illuminate_client:voicepeak")]
+	public string IlluminateClientVoicePeak { get; set; } = "";
+	[JsonProperty("out_illuminate_client:aivoice")]
+	public string IlluminateClientAiVoice { get; set; } = "";
+	[JsonProperty("out_illuminate_client:aivoice2")]
+	public string IlluminateClientAiVoice2 { get; set; } = "";
+
 
 	[JsonProperty("user_args")]
 	public string UserArguments { get; set; } = "";
@@ -293,7 +303,14 @@ public class Config {
 				arg(opt, "--out_illuminate_exe", this.Extra.IlluminateExePath);
 			}
 			arg(opt, "--out_illuminate_voice", this.IlluminateVoice);
-			arg(opt, "--out_illuminate_client", this.IlluminateClient);
+			arg(opt, "--out_illuminate_client", this.IlluminateVoice switch {
+				VoiroVoiceRoid => this.IlluminateClientVoiceRoid,
+				VoiroVoiceRoid2 => this.IlluminateClientVoiceRoid2,
+				VoiroVoicePeak => this.IlluminateClientVoicePeak,
+				VoiroAiVoice => this.IlluminateClientAiVoice,
+				VoiroAiVoice2 => this.IlluminateClientAiVoice2,
+				_ => throw new NotImplementedException($"--out_illuminate_voice {this.IlluminateVoice}")
+			});
 
 			arg(opt, "--out_illuminate_port", this.Extra.IlluminatePort);
 			arg(opt, "--out_illuminate_notify_icon", this.Extra.IlluminateNotifyIcon);
@@ -573,15 +590,41 @@ public class ConfigBinder : INotifyPropertyChanged {
 			Config.VoiroAiVoice2 => VoiceIndexAiVoice2,
 			_ => VoiceIndexVoiceRoid
 		});
-		this.IlluminateVoiceIndex.Subscribe(x => config.IlluminateVoice = x switch {
-			VoiceIndexVoiceRoid2 => Config.VoiroVoiceRoid2,
-			VoiceIndexVoicePeak => Config.VoiroVoicePeak,
-			VoiceIndexAiVoice => Config.VoiroAiVoice,
-			VoiceIndexAiVoice2 => Config.VoiroAiVoice2,
-			_ => Config.VoiroVoiceRoid
+		this.IlluminateVoiceIndex.Subscribe(x => {
+			(string Voice, string Client) v = x switch {
+				VoiceIndexVoiceRoid2 => (Config.VoiroVoiceRoid2, config.IlluminateClientVoiceRoid2),
+				VoiceIndexVoicePeak => (Config.VoiroVoicePeak, config.IlluminateClientVoicePeak),
+				VoiceIndexAiVoice => (Config.VoiroAiVoice, config.IlluminateClientAiVoice),
+				VoiceIndexAiVoice2 => (Config.VoiroAiVoice2, config.IlluminateClientAiVoice2),
+				_ => (Config.VoiroVoiceRoid, config.IlluminateClientVoiceRoid),
+			};
+			config.IlluminateVoice = v.Voice;
 		});
+		this.IlluminateClientBinding = this.IlluminateVoiceIndex.Select(x => {
+			(string Voice, string Client) v = x switch {
+				VoiceIndexVoiceRoid2 => (Config.VoiroVoiceRoid2, config.IlluminateClientVoiceRoid2),
+				VoiceIndexVoicePeak => (Config.VoiroVoicePeak, config.IlluminateClientVoicePeak),
+				VoiceIndexAiVoice => (Config.VoiroAiVoice, config.IlluminateClientAiVoice),
+				VoiceIndexAiVoice2 => (Config.VoiroAiVoice2, config.IlluminateClientAiVoice2),
+				_ => (Config.VoiroVoiceRoid, config.IlluminateClientVoiceRoid),
+			};
+			return v.Client;
+		}).ToReactiveProperty<string>();
+		this.IlluminateClientBinding.Subscribe(x => {
+			Action<string> aply = this.IlluminateVoiceIndex.Value switch {
+				VoiceIndexVoiceRoid2 => (y) => config.IlluminateClientVoiceRoid2 = y,
+				VoiceIndexVoicePeak => (y) => config.IlluminateClientVoicePeak = y,
+				VoiceIndexAiVoice => (y) => config.IlluminateClientAiVoice = y,
+				VoiceIndexAiVoice2 => (y) => config.IlluminateClientAiVoice2 = y,
+				_ => (y) => config.IlluminateClientVoiceRoid = y,
+			};
+			aply(x);
+		});
+
+		/*
 		this.IlluminateClientBinding = new(initialValue: config.IlluminateClient);
 		this.IlluminateClientBinding.Subscribe(x => config.IlluminateClient = x);
+		*/
 
 		this.IlluminateClientDialogFilter = this.IlluminateVoiceIndex.Select(x => x switch {
 			VoiceIndexVoiceRoid => "VOICEROID|VOICEROID.exe",
