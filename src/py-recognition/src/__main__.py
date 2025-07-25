@@ -99,8 +99,7 @@ def __whiper_help(s:str) -> str:
 #@click.option("--mic_sampling_rate", default=16000, help="-", type=int)
 @click.option("--mic_head_insert_duration", default=None, help="-", type=float)
 @click.option("--mic_tail_insert_duration", default=None, help="-", type=float)
-@click.option("--mic_push_talk", default=None, help="マイクをプッシュトークモードで使用します", is_flag=True, type=bool)
-@click.option("--mic_push_talk_param", default=None, help="プッシュトーク監視パラメータ", type=str, multiple=True)
+@click.option("--mic_push_talk", default=None, help="マイクをプッシュトゥトークで使用するための監視パラメータ", type=str, multiple=True)
 
 
 @click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice(val.ARG_CHOICE_OUT), multiple=True)
@@ -174,8 +173,7 @@ def main(
     mic_record_min_duration:float,
     mic_head_insert_duration:Optional[float],
     mic_tail_insert_duration:Optional[float],
-    mic_push_talk:bool,
-    mic_push_talk_param:list[str],
+    mic_push_talk:list[str],
 
     out:list[str],
     out_yukarinette:int,
@@ -262,14 +260,15 @@ def main(
 
         print("\033[?25l", end="") # カーソルを消す
 
-        if 0 < len(mic_push_talk_param):
-            for it in mic_push_talk_param:
+        if 0 < len(mic_push_talk):
+            for it in mic_push_talk:
                 v, _ = it.split(":")
                 v = v.lower()
                 if (v == "vr") or (v == "index") or (v == "quest"):
                     ilm_logger.info("VR連携の初期化")
                     import src.vr
                     src.vr.init()
+                    break
 
         #sampling_rate = src.mic.Mic.update_sample_rate(mic, mic_sampling_rate) #16000
         sampling_rate = 16000
@@ -330,7 +329,6 @@ def main(
             mic_pause_duration,
             mic_record_min_duration,
             mic_push_talk,
-            mic_push_talk_param,
             mp_mic,
             ilm_logger)
         ilm_logger.print(f"マイクは{mc.device_name}を使用します")
