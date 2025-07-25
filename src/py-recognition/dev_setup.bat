@@ -12,7 +12,7 @@ echo pyinstaller==6.13.0 >> requirements.txt
 echo pyinstaller-hooks-contrib==2025.3 >> requirements.txt
 
 popd
-exit
+exit /b 0
 
 error:
 popd
