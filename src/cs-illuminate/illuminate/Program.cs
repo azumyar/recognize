@@ -106,7 +106,9 @@ class Program {
 				true => KanaConv.Current.Convert(recogObj.Transcript),
 				false => recogObj.Transcript,
 			};
-			Logger.Current.Info($"カナ変換:{recogObj.Transcript} => {transcript}");
+			if (this.opt.Kana) {
+				Logger.Current.Info($"カナ変換:{recogObj.Transcript} => {transcript}");
+			}
 
 			try {
 				Logger.Current.Info($"合成音声呼び出し開始:{transcript}");
