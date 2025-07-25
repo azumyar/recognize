@@ -79,8 +79,7 @@ class Microphone:
             filter_highPass:filter.HighPassFilter | None,
             phase2_sec:float,
             record_min_sec:float,
-            push_talk:bool,
-            push_talk_params:list[str],
+            push_talk:list[str],
             device:int|None,
             logger:Logger) -> None:
         self.__energy_threshold = energy_threshold
@@ -96,8 +95,7 @@ class Microphone:
         self.__chunk_size = 1024
         self.__logger = logger
         self.__indicator = _Indicator()
-        self.__push_talk = push_talk and (0 < len(push_talk_params))
-        self.__push_talk_params = push_talk_params
+        self.__push_talk = push_talk
 
         d = sounddevice.query_devices(
             device=device) if not device is None else sounddevice.query_devices(
@@ -148,7 +146,7 @@ class Microphone:
         opt_enable_energy_threshold:bool = True,
         opt_enable_indicator:bool|None = None):
 
-        if self.__push_talk:
+        if 0 < len(self.__push_talk):
             self.__listen_push_to(
                 onrecord,
                 cancel,
@@ -372,7 +370,7 @@ class Microphone:
             return np.real(np.fft.ifft(fft)).astype(np.uint16, order="C").tobytes()
 
     def __is_input(self) -> bool:
-        for it in self.__push_talk_params:
+        for it in self.__push_talk:
             type, pm = it.split(":")
             if type.upper() == "KEYBOARD":
                 import ctypes
