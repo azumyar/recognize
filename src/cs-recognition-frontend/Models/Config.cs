@@ -70,6 +70,7 @@ public class Config {
 	[JsonProperty("out:vrc")]
 	public bool IsUsedVrcSubtitle { get; set; } = false;
 
+	// illuminate
 	[JsonProperty("out:illuminate")]
 	public bool IsUsedIlluminate { get; set; } = false;
 	[JsonProperty("out_illuminate_voice")]
@@ -85,6 +86,16 @@ public class Config {
 	public string IlluminateClientAiVoice { get; set; } = "";
 	[JsonProperty("out_illuminate_client:aivoice2")]
 	public string IlluminateClientAiVoice2 { get; set; } = "";
+	[JsonProperty("out_illuminate_kana:voiceroid")]
+	public bool IlluminateKanaVoiceRoid { get; set; } = false;
+	[JsonProperty("out_illuminate_kana:voiceroid2")]
+	public bool IlluminateKanaVoiceRoid2 { get; set; } = false;
+	[JsonProperty("out_illuminate_kana:voicepeak")]
+	public bool IlluminateKanaVoicePeak { get; set; } = true;
+	[JsonProperty("out_illuminate_kana:aivoice")]
+	public bool IlluminateKanaAiVoice { get; set; } = false;
+	[JsonProperty("out_illuminate_kana:aivoice2")]
+	public bool IlluminateKanaAiVoice2 { get; set; } = false;
 
 
 	[JsonProperty("user_args")]
@@ -309,6 +320,14 @@ public class Config {
 				VoiroVoicePeak => this.IlluminateClientVoicePeak,
 				VoiroAiVoice => this.IlluminateClientAiVoice,
 				VoiroAiVoice2 => this.IlluminateClientAiVoice2,
+				_ => throw new NotImplementedException($"--out_illuminate_voice {this.IlluminateVoice}")
+			});
+			arg(opt, "--out_illuminate_kana", this.IlluminateVoice switch {
+				VoiroVoiceRoid => this.IlluminateKanaVoiceRoid,
+				VoiroVoiceRoid2 => this.IlluminateKanaVoiceRoid2,
+				VoiroVoicePeak => this.IlluminateKanaVoicePeak,
+				VoiroAiVoice => this.IlluminateKanaAiVoice,
+				VoiroAiVoice2 => this.IlluminateKanaAiVoice2,
 				_ => throw new NotImplementedException($"--out_illuminate_voice {this.IlluminateVoice}")
 			});
 

@@ -148,8 +148,10 @@ class IlluminateSpeechOutputer(WebSocketOutputer):
             exe_path:str,
             exe_voice:str,
             exe_client:str,
-            exe_lunch:bool,
+            exe_launch:bool,
+            kana:bool,
             notify_icon:bool,
+            debug:bool,
             capture_pause:float):
         super().__init__( f"ws://{host}:{port}", "Illuminate")
         args =  [
@@ -162,6 +164,10 @@ class IlluminateSpeechOutputer(WebSocketOutputer):
         ]
         if notify_icon:
             args.append("--notify_icon")
+        if kana:
+            args.append("--kana")
+        if debug:
+            args.append("--debug")
         subprocess.Popen(args)
 
     def output(self, text_ja:str, text_en:str) -> str:

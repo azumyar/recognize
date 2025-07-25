@@ -5,16 +5,19 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace VoiceLink;
-public interface IVoiceClient<TStartObj, TSpeechObj, TClientObj>
-	where TStartObj:IStartObject
-	where TSpeechObj:ISpeechObject
-	where TClientObj:IClientObject
-	{
 
+public interface IVoiceLogger {
 	/// <summary>INFOレベルログを出力したい場合設定</summary>
 	Action<string>? LogInfo { get; set; }
 	/// <summary>DEBUGレベルログを出力したい場合設定</summary>
 	Action<string>? LogDebug { get; set; }
+}
+
+public interface IVoiceClient<TStartObj, TSpeechObj, TClientObj> : IVoiceLogger
+	where TStartObj:IStartObject
+	where TSpeechObj:ISpeechObject
+	where TClientObj:IClientObject
+	{
 
 	/// <summary>合成音声クライアント依存パラメータ</summary>
 	TClientObj ClientParameter { get; }
@@ -61,7 +64,7 @@ public record AudioCaptreStart(string TargetExe) : IStartObject;
 /// <param name="ToneScale">抑揚（0～100）</param>
 /// <param name="Alpha">声質（0～100）</param>
 /// <param name="Components">感情パラメータ(パラメータ名, 値)</param>
-public record CeVioSpeechClient(string Cast, uint Volume, uint Speed, uint Tone, uint ToneScale, uint Alpha, (string Name, uint Value)[] Components) : ISpeechObject;
+public record CeVioSpeechClient(string Cast, uint Volume, uint Speed, uint Tone, uint ToneScale, uint Alpha, IEnumerable<(string Name, uint Value)> Components) : ISpeechObject;
 
 
 /// <summary>オーディオキャプチャのためのクライアントパラメータ</summary>

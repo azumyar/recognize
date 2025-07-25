@@ -103,15 +103,19 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 				}
 
 				if(obj3[0] is not Accessibility.IAccessible obj3_0) {
+					LogDebug("テキストボックスのインスタンスが不正");
 					throw new VoiceLinkException("VoiceRoid2オブジェクトの取得において想定しないケース[0]");
 				}
 				if (obj3[1] is not Accessibility.IAccessible obj3_1) {
+					LogDebug("再生ボタンのインスタンスが不正");
 					throw new VoiceLinkException("VoiceRoid2オブジェクトの取得において想定しないケース[1]");
 				}
 				if (obj3[2] is not Accessibility.IAccessible obj3_2) {
+					LogDebug("停止ボタンのインスタンスが不正");
 					throw new VoiceLinkException("VoiceRoid2オブジェクトの取得において想定しないケース[2]");
 				}
 				if (obj3[3] is not Accessibility.IAccessible obj3_3) {
+					LogDebug("先頭ボタンのインスタンスが不正");
 					throw new VoiceLinkException("VoiceRoid2オブジェクトの取得において想定しないケース[3]");
 				}
 
@@ -150,7 +154,35 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 			throw new VoiceLinkException("");
 		}
 
-		foreach(var it in new (int Index, Action Action)[] {
+		for (int i = 0; i < 10; i++) {
+			try {
+				var s = this.textBox.Ptr.accValue[0];
+				if (string.IsNullOrEmpty(s)) {
+					break;
+				} else {
+					LogDebug($"以前のテキストが残っています=>{s}");
+					Thread.Sleep(500);
+				}
+			}
+			catch(COMException e) {
+				LogDebug("テキスト取得に失敗");
+				LogDebug($"{e}");
+			}
+			try {
+				this.textBox.Ptr.accValue[0] = "";
+			}
+			catch (COMException e) {
+				LogDebug("テキスト初期化に失敗");
+				LogDebug($"{e}");
+			}
+		}
+
+		if (this.textBox.Ptr.accValue[0] != "") {
+			//LogDebug("なにか文字が残っています");
+			//throw new VoiceLinkException($"VoiceRoid2読み上げ連携に失敗(0/2)");
+		}
+
+		foreach (var it in new (int Index, Action Action)[] {
 			(1, () => { this.textBox.Ptr.accSelect(0x1, 0); this.textBox.Ptr.accValue[0] = text; }),
 			(2, () => { this.playButton.Ptr.accSelect(0x1, 0); this.playButton.Ptr.accDoDefaultAction(0); }),
 		}) {
@@ -184,17 +216,23 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 			try {
 				this.stopButton?.Ptr.accDoDefaultAction(0);
 			}
-			catch {
+			catch (Exception e) {
 				LogDebug("停止ボタン呼び出しに失敗");
+				LogDebug($"{e}");
 				System.Threading.Thread.Sleep(1000);
 			}
 
-			try {
-				this.textBox.Ptr.accValue[0] = "";
-			}
-			catch {
-				LogDebug("テキストボックス初期化に失敗");
-				System.Threading.Thread.Sleep(1000);
+			// 5回試行する
+			for (var i = 0; i < 5; i++) {
+				try {
+					this.textBox.Ptr.accValue[0] = "";
+					break;
+				}
+				catch (Exception e) {
+					LogDebug("テキストボックス初期化に失敗");
+					LogDebug($"{e}");
+					System.Threading.Thread.Sleep(200);
+				}
 			}
 		}
 		finally {
@@ -219,7 +257,10 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 					return true;
 				}
 			}
-			catch(COMException) {}
+			catch(COMException e) {
+				LogDebug("再生状況の取得に失敗");
+				LogDebug($"{e}");
+			}
 		}
 		return false;
 	}

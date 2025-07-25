@@ -10,13 +10,13 @@ public abstract class VoiceClient<TStartObj, TSpeechObj, TClientObj> : IVoiceCli
 	where TSpeechObj : ISpeechObject
 	where TClientObj : IClientObject {
 
-	Action<string>? IVoiceClient<TStartObj, TSpeechObj, TClientObj>.LogInfo { get; set; }
-	Action<string>? IVoiceClient<TStartObj, TSpeechObj, TClientObj>.LogDebug { get; set; }
+	Action<string>? IVoiceLogger.LogInfo { get; set; }
+	Action<string>? IVoiceLogger.LogDebug { get; set; }
 
 	public abstract TClientObj ClientParameter { get; }
 
-	protected void LogInfo(string s) => ((IVoiceClient<TStartObj, TSpeechObj, TClientObj>)this).LogInfo?.Invoke(s);
-	protected void LogDebug(string s) => ((IVoiceClient<TStartObj, TSpeechObj, TClientObj>)this).LogDebug?.Invoke(s);
+	protected void LogInfo(string s) => ((IVoiceClient<TStartObj, TSpeechObj, TClientObj>)this).LogInfo?.Invoke($"[{GetType().Name}]{s}");
+	protected void LogDebug(string s) => ((IVoiceClient<TStartObj, TSpeechObj, TClientObj>)this).LogDebug?.Invoke($"[{GetType().Name}]{s}");
 
 	public abstract bool StartClient(bool isLaunch, TStartObj extra);
 	public abstract void EndClient();

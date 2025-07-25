@@ -112,6 +112,8 @@ def __whiper_help(s:str) -> str:
 @click.option("--out_illuminate_launch",default=False, help="-", type=str)
 @click.option("--out_illuminate_port",default=49514, help="-",type=int)
 @click.option("--out_illuminate_notify_icon",default=False, help="-",type=bool, is_flag=True)
+@click.option("--out_illuminate_debug",default=False, help="-",type=bool, is_flag=True)
+@click.option("--out_illuminate_kana",default=False, help="-",type=bool, is_flag=True)
 @click.option("--out_illuminate_capture_pause",default=0.75, help="-",type=float)
 @click.option("--out_file_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
 @click.option("--out_file_directory", default=None, help="ファイル字幕連携で保存先", type=str)
@@ -184,7 +186,8 @@ def main(
     out_illuminate_launch:bool,
     out_illuminate_port:int,
     out_illuminate_notify_icon:bool,
-    out_illuminate_capture_pause:float,
+    out_illuminate_kana:bool,
+    out_illuminate_debug:bool,    out_illuminate_capture_pause:float,
     out_file_truncate:float,
     out_file_directory:str,
     out_obs_truncate:float,
@@ -250,7 +253,9 @@ def main(
                     out_illuminate_voice,
                     out_illuminate_client,
                     out_illuminate_launch,
+                    out_illuminate_kana,
                     out_illuminate_notify_icon,
+                    out_illuminate_debug,
                     out_illuminate_capture_pause),
                 ilm_logger,
                 feature)
@@ -437,6 +442,8 @@ def main(
                     out_illuminate_client,
                     out_illuminate_launch,
                     out_illuminate_notify_icon,
+                    out_illuminate_kana,
+                    out_illuminate_debug,
                     out_illuminate_capture_pause),
                 val.OUT_VALUE_OBS: lambda: output_subtitle.ObsV5SubtitleOutputer(
                     out_obs_host,

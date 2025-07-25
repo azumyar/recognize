@@ -55,7 +55,6 @@ public class VoicePeak : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 	}
 
 	public override void Speech(string text, NopVoiceObject extra) {
-		var len = text.Length;
 		Util.PlatformClick(this.hTargetWindow, 400, 140);
 		foreach (var c in text) {
 			Interop.SendMessage(this.hTargetWindow, Interop.WM_IME_CHAR, c, 0);
