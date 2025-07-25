@@ -39,7 +39,7 @@ class Program {
 			this.ShowInTaskbar = false;
 
 			this.opt = opt;
-			this.client = Models.IClient.Get(opt);
+			this.client = Models.IClient.Get(opt, Logger.Current);
 			this.client.StartClient(this.opt.Launch);
 			this.capture = Models.IVoiceWaitable.Get(opt, this.client);
 			cancellationSource = new CancellationTokenSource();
@@ -52,10 +52,10 @@ class Program {
 					IWebSocketConnection? soc = null;
 					server.Start(socket => {
 						soc = socket;
-						Logger.Current.Log("WebSocketサーバが起動しました");
+						Logger.Current.Info("WebSocketサーバが起動しました");
 						socket.OnMessage = message => {
 							try {
-								Logger.Current.Log($"メッセージ受信=>{message}");
+								Logger.Current.Info($"メッセージ受信=>{message}");
 								if (message == "ping") {
 									var _ = socket.Send("pong");
 								} else {
@@ -66,13 +66,13 @@ class Program {
 								}
 							}
 							catch (Exception e) {
-								Logger.Current.Log("WebSocketで予期しない例外");
-								Logger.Current.Log(e);
+								Logger.Current.Info("WebSocketで予期しない例外");
+								Logger.Current.Info(e);
 							}
 						};
 					});
 					cancellationSource.Token.WaitHandle.WaitOne();
-					Logger.Current.Log("WebSocketサーバをシャットダウンします。");
+					Logger.Current.Info("WebSocketサーバをシャットダウンします。");
 					try {
 						soc?.Send("exit").Wait();
 					}
@@ -88,7 +88,11 @@ class Program {
 							new DispatcherSynchronizationContext());
 					}
 
-					await RunVoiceRoid(x);
+					if (string.IsNullOrWhiteSpace(x.Transcript)) {
+						Logger.Current.Info($"読み上げは空文字列です。スキップします");
+					} else {
+						await RunVoiceRoid(x);
+					}
 				});
 
 			// 親プロセスの死活監視
@@ -97,16 +101,24 @@ class Program {
 			}
 		}
 
-		private async Task RunVoiceRoid(Models.RecognitionObject x) {
+		private async Task RunVoiceRoid(Models.RecognitionObject recogObj) {
+			var transcript = this.opt.Kana switch {
+				true => KanaConv.Current.Convert(recogObj.Transcript),
+				false => recogObj.Transcript,
+			};
+			if (this.opt.Kana) {
+				Logger.Current.Info($"カナ変換:{recogObj.Transcript} => {transcript}");
+			}
+
 			try {
-				Logger.Current.Log($"合成音声呼び出し開始:{x.Transcript}");
+				Logger.Current.Info($"合成音声呼び出し開始:{transcript}");
 				this.autoResetEvent.Reset();
 				try {
-					this.client.BeginSpeech(x.Transcript);
+					this.client.BeginSpeech(transcript);
 				}
 				catch (VoiceLink.VoiceLinkException e) {
-					Logger.Current.Log($"！！合成音声クライアントの読み上げ準備に失敗しました");
-					Logger.Current.Log($"{e}");
+					Logger.Current.Info($"！！合成音声クライアントの読み上げ準備に失敗しました");
+					Logger.Current.Info($"{e}");
 					return;
 				}
 
@@ -118,27 +130,27 @@ class Program {
 							this.capture.Stop();
 							this.autoResetEvent.Set();
 						});
-						this.client.Speech(x.Transcript);
+						this.client.Speech(transcript);
 						this.autoResetEvent.WaitOne();
 					} else {
-						Logger.Current.Log($"！！音声キャプチャの準備ができていません。スキップします。");
+						Logger.Current.Info($"！！音声キャプチャの準備ができていません。スキップします");
 					}
 				}
 				catch (VoiceLink.VoiceLinkException e) {
-					Logger.Current.Log($"！！合成音声クライアントの呼び出しに失敗");
-					Logger.Current.Log($"{e}");
+					Logger.Current.Info($"！！合成音声クライアントの呼び出しに失敗");
+					Logger.Current.Info($"{e}");
 				}
 				finally {
 					try {
 						this.capture?.Stop();
-						this.client.EndSpeech(x.Transcript);
+						this.client.EndSpeech(transcript);
 					}
 					catch (VoiceLink.VoiceLinkException) { }
 				}
 
 			}
 			finally {
-				Logger.Current.Log($"合成音声呼び出し終了:{x.Transcript}");
+				Logger.Current.Info($"合成音声呼び出し終了:{transcript}");
 			}
 		}
 
@@ -149,7 +161,7 @@ class Program {
 					.Subscribe(_ => {
 						try {
 							if (p.HasExited) {
-								Logger.Current.Log("親プロセスの終了を確認しました");
+								Logger.Current.Info("親プロセスの終了を確認しました");
 								Application.Exit();
 								masterMoniter?.Dispose();
 							}
@@ -213,12 +225,12 @@ class Program {
 			var parsed = (Parsed<Models.CommandOptions>)result;
 			if (parsed != null) {
 				AppDomain.CurrentDomain.UnhandledException += (_, e) => {
-					Logger.Current.Log("致命的なエラー");
-					Logger.Current.Log(e.ExceptionObject);
+					Logger.Current.Info("致命的なエラー");
+					Logger.Current.Info(e.ExceptionObject);
 				};
 
-				Logger.Current.Log("illuminateが起動しました");
-				Logger.Current.Log(string.Join(' ', args));
+				Logger.Current.Info("illuminateが起動しました");
+				Logger.Current.Info(string.Join(' ', args));
 
 				{
 					var vld = parsed.Value.Validate();

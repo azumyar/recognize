@@ -761,7 +761,7 @@
                                 <TextBlock
                                     Grid.Row="0"
                                     FontSize="{DynamicResource YsrFontSize}"
-                                    Text="ここにフィルタの説明を書く"
+                                    Text="フィルタの設定を行えます。下のボタンから開始してください。"
                                     />
 
                                 <TextBlock

@@ -15,4 +15,7 @@
   <ItemGroup>
     <SupportedPlatform Include="windows" />
   </ItemGroup>
+	
+  <ItemGroup>
+  </ItemGroup>
 </Project>

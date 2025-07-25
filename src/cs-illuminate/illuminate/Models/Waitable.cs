@@ -59,7 +59,7 @@ internal class AudioCaptureWait : IVoiceWaitable {
 		if ((this.capture == null && this.targetProcess != 0)
 			|| (this.targetProcess != this.voiceClient.ClientParameter.ProcessId)) {
 
-			Logger.Current.Log($"！！合成音声クライアントの再起動が確認されました");
+			Logger.Current.Info($"！！合成音声クライアントの再起動が確認されました");
 			this.targetProcess = this.voiceClient.ClientParameter.ProcessId;
 			this.capture = await ApplicationCapture.Get(this.targetProcess, this.opt.CapturePauseSec);
 		}

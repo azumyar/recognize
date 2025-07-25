@@ -7,10 +7,7 @@ using System.Text;
 using System.IO;
 
 namespace VoiceLink;
-
-
 internal static class Util {
-
 	public static Process? GetProcess(string targetExe) {
 		return Process.GetProcesses().Where(x => {
 			try {
@@ -69,4 +66,3 @@ internal static class Util {
 	}
 
 }
-
