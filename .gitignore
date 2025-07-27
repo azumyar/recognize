@@ -12,8 +12,8 @@ src/cs-recognition-frontend/dist/
 
 *.csproj.user
 recognize-gui.exe
-frontend.conf
-frontend-filter.conf
+recognize-gui.conf
+recognize-filter.conf
 recognize.log
 custom-recognize.bat
 

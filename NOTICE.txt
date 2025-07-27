@@ -101,6 +101,12 @@ Copyright (c) attwad
 
 
 
+openvr(https://pypi.org/project/openvr/)
+BSD-3-Clause license
+Copyright (c) 2016, Christopher Bruns
+
+
+
 
 ◆recognize-gui.exe(ランチャー)は次のライブラリを使用させて頂いています。
 
@@ -124,6 +130,12 @@ Prism Commercial license. https://cdn.prismlibrary.com/downloads/prism_license.p
 ReactiveProperty.WPF(https://www.nuget.org/packages/ReactiveProperty.WPF)
 MIT License
 Copyright (c) 2018 neuecc, xin9le, okazuki
+
+
+
+Microsoft.Xaml.Behaviors.Wpf(https://www.nuget.org/packages/Microsoft.Xaml.Behaviors.Wpf/)
+MIT License
+Copyright (c) Microsoft
 
 
 
@@ -151,6 +163,18 @@ Copyright (c) Mark Heath
 Newtonsoft.Json(https://www.nuget.org/packages/newtonsoft.json/)
 MIT License
 Copyright (c) 2007 James Newton-King
+
+
+
+Lucene.Net.Analysis.Kuromoji(https://www.nuget.org/packages/Lucene.Net.Analysis.Kuromoji/)
+Apache-2.0 license
+Copyright © 2024 The Apache Software Foundation
+
+
+
+System.Reactive(https://www.nuget.org/packages/System.Reactive)
+MIT License
+Copyright (c) Microsoft
 
 
 

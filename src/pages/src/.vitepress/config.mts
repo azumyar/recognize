@@ -35,7 +35,21 @@ export default defineConfig({
           items: [
             { text: "はじめに", link: "/usage/" },
             { text: "簡単スタート", link: "/usage/kantan" },
-            { text: "FAQ", link: "/usage/faq"}
+            { text: "合成音声連携", link: "/usage/illuminate" },
+            { text: "FAQ", link: "/usage/faq"},
+          ]
+        },
+        {
+          text: "Tips",
+          items: [
+            { text: "自由記入欄", link: "/usage/tips-free_input"},
+          ]
+        },
+        {
+          text: "高度なお話",
+          items: [
+            { text: "-", },
+            //{ text: "VAD機能", link: "/usage/advanced-vad" },
           ]
         },
       ],
