@@ -31,8 +31,7 @@ def run(
     recognition_model:recognition.RecognitionModel,
     translate_model:None|recognition_translate.TranslateModel,
     filter_transcribe:filter_t.TranscribeFilter,
-    outputer:output.RecognitionOutputer,
-    subtitle_outputer:output_subtitle.SubtitleOutputer,
+    outputers:list[output.RecognitionOutputer],
     record:Record,
     env:Enviroment,
     cancel:CancellationObject,
@@ -149,8 +148,8 @@ def run(
                     logger.notice(f"#{index}", end=" ")
                 logger.notice(fill_right(f"フィルタ: {transcribe_filter}"))
             if transcribe_filter != "":
-                outputer.output(transcribe_filter, translate)
-                subtitle_outputer.output(transcribe_filter, translate)
+                for ot in outputers:
+                    ot.output(transcribe_filter, translate)
         except recognition.TranscribeException as e:
             if env.verbose == val.VERBOSE_INFO:
                 logger.notice(f"#{index}", end=" ")

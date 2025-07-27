@@ -86,7 +86,7 @@ echo ok
 echo ""
 
 echo exeâªÇé¿çsÇµÇ‹Ç∑
-pyinstaller -n recognize --noconfirm src/__main__.py
+pyinstaller -n recognize --noconfirm  --add-binary "./.venv/Lib/site-packages/openvr/*.dll;./openvr" src/__main__.py
 if($LASTEXITCODE -ne 0) {
     echo exeâªÇ…é∏îsÇµÇ‹ÇµÇΩ
     popd

@@ -2,6 +2,8 @@ import os
 import json
 from websockets.sync.client import connect, ClientConnection
 from typing import Callable
+import pythonosc.udp_client as osc
+import subprocess
 
 import src.exception as ex
 
@@ -20,6 +22,21 @@ class PrintOutputer(RecognitionOutputer):
     標準出力に出力する
     """
     pass
+
+class VrChatOutputer(RecognitionOutputer):
+    """
+    VRC OSCに字幕を出力するための機構
+    """
+    def __init__(self):
+        self.__client = osc.SimpleUDPClient("127.0.0.1", 9000)
+
+
+    def __del__(self):
+        self.__client = None
+
+    def output(self, text_ja:str, text_en:str) -> str:
+        self.__client.send_message("/chatbox/input", [text_ja, True, True])
+        return text_ja
 
 class WebSocketOutputer(RecognitionOutputer):
     """
@@ -123,11 +140,35 @@ class YukaconeOutputer(WebSocketOutputer):
         else:
             return get()
 
-
-
 class IlluminateSpeechOutputer(WebSocketOutputer):
-    def __init__(self, uri:str):
-        super().__init__(uri, "IlluminateSpeech")
+    def __init__(
+            self,
+            host:str,
+            port:int,
+            exe_path:str,
+            exe_voice:str,
+            exe_client:str,
+            exe_launch:bool,
+            kana:bool,
+            notify_icon:bool,
+            debug:bool,
+            capture_pause:float):
+        super().__init__( f"ws://{host}:{port}", "Illuminate")
+        args =  [
+            exe_path,
+             f"--master", f"{os.getpid()}",
+             f"--port", f"{port}",
+             f"--voice", exe_voice,
+             f"--client", exe_client,
+             f"--capture_pause", f"{capture_pause}",
+        ]
+        if notify_icon:
+            args.append("--notify_icon")
+        if kana:
+            args.append("--kana")
+        if debug:
+            args.append("--debug")
+        subprocess.Popen(args)
 
     def output(self, text_ja:str, text_en:str) -> str:
         return self._send(json.dumps({
