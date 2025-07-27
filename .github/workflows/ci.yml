@@ -37,7 +37,9 @@ jobs:
         .venv\Scripts\activate.ps1
         pip install -r requirements.txt --no-cache-dir
         Expand-Archive -Path bootloader\bootloader.zip -DestinationPath .venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel -Force
-        pyinstaller -n recognize --noconfirm src/__main__.py
+        pyinstaller -n recognize --noconfirm `
+          --add-binary "./.venv/Lib/site-packages/openvr/*.dll;./openvr" `
+          src/__main__.py
         copy c\mm-interop.dll dist\recognize\
         deactivate
         popd
