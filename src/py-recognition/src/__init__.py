@@ -286,11 +286,10 @@ ilm_logger:Logger = Logger.init_system(ilm_enviroment.verbose, ilm_enviroment.ro
 
 import ctypes
 if ilm_enviroment.is_exe:
-    import os
-    os.add_dll_directory(ilm_enviroment.project_root)
+    pass
 else:
     import os
-    os.add_dll_directory(f"{ilm_enviroment.project_root}{os.sep}c")
+    os.add_dll_directory(f"{ilm_enviroment.project_root}{os.sep}src{os.sep}c")
 
 _mm_attach_callback1_t = ctypes.WINFUNCTYPE(None, ctypes.c_int32, ctypes.c_int32, ctypes.c_wchar_p, ctypes.c_wchar_p)
 _mm_attach_callback2_t = ctypes.WINFUNCTYPE(None, ctypes.c_wchar_p, ctypes.c_wchar_p)
