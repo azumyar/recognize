@@ -54,12 +54,12 @@ torch==2.7.0+cu128
 torchaudio==2.7.0+cu128
 torchvision==0.22.0+cu128
 tqdm==4.67.1; python_version >= '3.7'
-transformers==4.51.3; python_full_version >= '3.9.0'
+transformers==4.54.0; python_full_version >= '3.9.0'
 typer==0.3.2; python_version >= '3.6'
 typing-extensions==4.14.1; python_version >= '3.9'
 urllib3==2.5.0; python_version >= '3.9'
 webrtcvad==2.0.10
 websocket-client==1.8.0; python_version >= '3.8'
 websockets==15.0.1; python_version >= '3.9'
-pyinstaller==6.13.0 
-pyinstaller-hooks-contrib==2025.3 
+pyinstaller==6.14.2 
+pyinstaller-hooks-contrib==2025.8 

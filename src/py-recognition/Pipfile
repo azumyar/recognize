@@ -23,7 +23,7 @@ requests = "*"
 faster-whisper = "*"
 #openai-whisper = {git = "git+https://github.com/openai/whisper.git"}
 #faster-whisper = {git = "git+https://github.com/guillaumekln/faster-whisper.git"}
-transformers = "4.51.3"
+transformers = "*"
 accelerate = "*"
 webrtcvad = "*"
 sounddevice = "*"
@@ -33,8 +33,8 @@ python-osc = "*"
 openvr = "*"
 
 [dev-packages]
-pyinstaller = "==6.13.0"
-pyinstaller-hooks-contrib = "==2025.3"
+pyinstaller = "==6.14.2"
+pyinstaller-hooks-contrib = "==2025.8"
 nuitka = "*"
 #[requires]
 #python_version = "3.10"
