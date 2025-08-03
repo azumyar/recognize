@@ -36,7 +36,7 @@ features:
         return res.json();
       }).then(function (json) {
         for(const release of json) {
-          if(!release.draft || !release.prerelease) {
+          if(!release.draft && !release.prerelease) {
             for(const asset of release.assets) {
                 console.log(asset.name);
               if(asset.name.match(/^setup-v.+\.exe$/)) {
