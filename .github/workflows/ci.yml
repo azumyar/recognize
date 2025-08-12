@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v.*'
+      - 'pre.*'
 jobs:
   build:
     runs-on: windows-latest 
@@ -38,9 +39,8 @@ jobs:
         pip install -r requirements.txt --no-cache-dir
         Expand-Archive -Path bootloader\bootloader.zip -DestinationPath .venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel -Force
         pyinstaller -n recognize --noconfirm `
-          --add-binary "./.venv/Lib/site-packages/openvr/*.dll;./openvr" `
-          src/__main__.py
-        copy c\mm-interop.dll dist\recognize\
+          --additional-hooks-dir src\__pyinstaller `
+          src\__main__.py
         deactivate
         popd
 
@@ -86,9 +86,19 @@ jobs:
         mv src/cs-installer/bin/Release/net8.0-windows/win-x64/publish/cs-installer.exe setup-${{github.ref_name}}.exe
       shell: bash # powershellの構文よくわからない
 
+    - name: Pre Release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/pre.')
+      with:
+        body: β:${{github.ref_name}}
+        files: |
+          setup-${{github.ref_name}}.exe
+          recognize-${{github.ref_name}}.zip.*
+        prerelease: true
+
     - name: Release
       uses: softprops/action-gh-release@v2
-      if: startsWith(github.ref, 'refs/tags/')
+      if: startsWith(github.ref, 'refs/tags/v.')
       with:
         body: リリース:${{github.ref_name}}
         files: |
