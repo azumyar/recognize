@@ -42,7 +42,7 @@ class CommandOptions {
 	[Option("debug", Required = false, HelpText = "-")]
 	public bool Debug { get; set; } = false;
 	[Option("capture_pause", Required = false, HelpText = "-")]
-	public float CapturePauseSec { get; set; } = 0.75f;
+	public float CapturePauseSec { get; set; } = 1.0f;
 
 
 	[Option("cevio_cast", Required = false, HelpText = "-")]

@@ -113,7 +113,7 @@ def __whiper_help(s:str) -> str:
 @click.option("--out_illuminate_notify_icon",default=False, help="-",type=bool, is_flag=True)
 @click.option("--out_illuminate_debug",default=False, help="-",type=bool, is_flag=True)
 @click.option("--out_illuminate_kana",default=False, help="-",type=bool, is_flag=True)
-@click.option("--out_illuminate_capture_pause",default=0.75, help="-",type=float)
+@click.option("--out_illuminate_capture_pause",default=1.0, help="-",type=float)
 @click.option("--out_file_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
 @click.option("--out_file_directory", default=None, help="ファイル字幕連携で保存先", type=str)
 @click.option("--out_obs_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
@@ -185,7 +185,8 @@ def main(
     out_illuminate_port:int,
     out_illuminate_notify_icon:bool,
     out_illuminate_kana:bool,
-    out_illuminate_debug:bool,    out_illuminate_capture_pause:float,
+    out_illuminate_debug:bool,
+    out_illuminate_capture_pause:float,
     out_file_truncate:float,
     out_file_directory:str,
     out_obs_truncate:float,
