@@ -2,10 +2,12 @@ import os
 import json
 from websockets.sync.client import connect, ClientConnection
 from typing import Callable
+import threading
 import pythonosc.udp_client as osc
 import subprocess
 
 import src.exception as ex
+from src.cancellation import CancellationObject
 
 class RecognitionOutputer:
     """
@@ -70,6 +72,12 @@ class WebSocketOutputer(RecognitionOutputer):
 
         self.__soc = connect(self.__uri)
 
+    @property
+    def _socket(self):
+        self.__con()
+        return self.__soc
+
+
     def output(self, text_ja:str, text_en:str) -> str:
         ...
 
@@ -91,6 +99,16 @@ class WebSocketOutputer(RecognitionOutputer):
             self.__soc = None
             raise WsOutputException(f"リモート[{self.__remote_name}]への送信に失敗しました。{os.linesep}認識結果: {text}", e)
         return text
+    
+    def _recv(self, timeout:float) -> str | None:
+        try:
+            if isinstance(self.__soc, ClientConnection):
+                return str(self.__soc.recv(timeout))
+        except Exception as e:
+            self.__soc = None
+            raise WsOutputException(f"リモート[{self.__remote_name}]からの受信に失敗しました。{os.linesep}", e)
+        return None
+
 
 
 # ゆかりねっとws仕様
@@ -152,8 +170,13 @@ class IlluminateSpeechOutputer(WebSocketOutputer):
             kana:bool,
             notify_icon:bool,
             debug:bool,
-            capture_pause:float):
+            capture_pause:float,
+            cancel:CancellationObject):
         super().__init__( f"ws://{host}:{port}", "Illuminate")
+        self.__cancel = cancel
+        self.__cooperation_outputers:list[RecognitionOutputer] = []
+        self.__thread:threading.Thread|None = None
+
         args =  [
             exe_path,
              f"--master", f"{os.getpid()}",
@@ -176,6 +199,28 @@ class IlluminateSpeechOutputer(WebSocketOutputer):
             "translate": text_en,
             "finish": True,
         }, ensure_ascii=False))
+    
+    def set_subtitle_cooperation(self, outputers:list[RecognitionOutputer]):
+        for it in outputers:
+            self.__cooperation_outputers.append(it)
+        self.__thread = threading.Thread(target=self.__thread_proc)
+        self.__thread.setDaemon(True)
+        self.__thread.start()
+
+    def __thread_proc(self):
+        while self.__cancel:
+            try:
+                soc = self._socket
+                if soc != None:
+                    o = json.loads(str(soc.recv()))
+                    if not o["finish"]:
+                        for it in self.__cooperation_outputers:
+                            it.output(
+                                o["transcript"],
+                                o["translate"])
+            except:
+                pass
+
 
 class WsOutputException(ex.IlluminateException):
     """
