@@ -113,7 +113,7 @@ class ObsV5SubtitleOutputer(SubtitleOutputer):
                 if self.__target_starts_with:
                     try:
                         ret = self.__obs.call(obswebsocket.requests.GetInputList())
-                        targets = list(map(lambda x: x["inputName"], [x for x in ret.getInputs() if x["inputKind"] == "text_gdiplus_v2"]))
+                        targets = list(map(lambda x: x["inputName"], [x for x in ret.getInputs() if x["inputKind"].startswith("text_gdiplus")]))
                     except:
                         pass
                 if self.__target_text_ja is not None:
