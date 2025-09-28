@@ -122,6 +122,7 @@ def __whiper_help(s:str) -> str:
 @click.option("--out_obs_password", default="", help="OBS Web Socket APIのパスワード", type=str)
 @click.option("--out_obs_text_ja", default=None, help="字幕(ja_JP)テキストオブジェクトの名前", type=str)
 @click.option("--out_obs_text_en", default=None, help="字幕(en_US)テキストオブジェクトの名前", type=str)
+@click.option("--out_obs_text_starts_with", default=False, help="", type=bool, is_flag=True)
 
 @click.option("--filter_hpf", default=None, help="ハイパスフィルタのカットオフ周波数を設定、ハイパスフィルタを有効化", type=int)
 
@@ -195,6 +196,7 @@ def main(
     out_obs_password:str,
     out_obs_text_ja:Optional[str],
     out_obs_text_en:Optional[str],
+    out_obs_text_starts_with:bool,
 
     filter_hpf:Optional[int],
     vad:str,
@@ -454,6 +456,7 @@ def main(
                     out_obs_password,
                     out_obs_text_ja,
                     out_obs_text_en,
+                    out_obs_text_starts_with,
                     out_obs_truncate,
                     ilm_logger),
                 val.OUT_VALUE_FILE: lambda: output_subtitle.FileSubtitleOutputer(
