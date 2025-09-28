@@ -504,6 +504,8 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="8" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="24" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
@@ -587,9 +589,22 @@
                             FontSize="{DynamicResource YsrFontSize}"
                             Text="{Binding ConfigBinder.ObsSubtitleTextEnBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
+                        <CheckBox
+                            Grid.Column="3" Grid.Row="8"
+                            HorizontalAlignment="Left"
+                            IsChecked="{Binding ConfigBinder.ObsSubtitleTextStartsWithBinder.Value, Mode=TwoWay}"
+                            >
+                            <CheckBox.Content>
+                                <TextBlock
+                                    FontSize="{DynamicResource YsrFontSize}"
+                                    >
+                                    <Run Text="指定されたソース名と先頭が一致するOBSテキストソースを全て更新" />
+                                </TextBlock>
+                            </CheckBox.Content>
+                        </CheckBox>
 
                         <TextBlock
-                            Grid.Column="0" Grid.Row="8"
+                            Grid.Column="0" Grid.Row="10"
                             FontSize="{DynamicResource YsrFontSize}"
                             >
                             <Run Text="Webソケットポート" />
@@ -601,7 +616,7 @@
                                 ToolTip="OBSのWeb Socketポートを指定します" />                        
                         </TextBlock>
                         <TextBlock
-                            Grid.Column="2" Grid.Row="8"
+                            Grid.Column="2" Grid.Row="10"
                             Margin="4,0,4,0"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center"
@@ -612,13 +627,13 @@
                             Visibility="{Binding ConfigBinder.ObsSubtitlePortError.Value, Mode=OneWay}"
                             />
                         <TextBox
-                            Grid.Column="3" Grid.Row="8"                            
+                            Grid.Column="3" Grid.Row="10"                            
                             FontSize="{DynamicResource YsrFontSize}"
                             Text="{Binding ConfigBinder.ObsSubtitlePortBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
 
                         <TextBlock
-                            Grid.Column="0" Grid.Row="10"
+                            Grid.Column="0" Grid.Row="12"
                             FontSize="{DynamicResource YsrFontSize}"
                             >
                             <Run Text="Webソケットパスワード" />
@@ -630,13 +645,13 @@
                                 ToolTip="OBSのWeb Socketパスワードを指定します" />                        
                         </TextBlock>
                         <TextBox
-                            Grid.Column="3" Grid.Row="10"                            
+                            Grid.Column="3" Grid.Row="12"                            
                             FontSize="{DynamicResource YsrFontSize}"
                             Text="{Binding ConfigBinder.ObsSubtitlePasswordBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
 
                         <CheckBox
-                            Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="12"
+                            Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="14"
                             HorizontalAlignment="Left"
                             IsChecked="{Binding ConfigBinder.IsUsedVrcSubtitleBinder.Value, Mode=TwoWay}"
                             >
@@ -693,8 +708,10 @@
                             SelectedIndex="{Binding ConfigBinder.IlluminateVoiceIndex.Value, Mode=TwoWay}"
                             />
 
+                        <!-- ボイロ系オプション -->
                         <TextBlock
                             Grid.Column="0" Grid.Row="4"
+                            Visibility="{Binding ConfigBinder.IlluminateOptionVoiceRoidVisibility.Value, Mode=OneWay}"
                             FontSize="{DynamicResource YsrFontSize}"
                             >
                             <Run Text="合成音声パス" />
@@ -707,11 +724,13 @@
                         </TextBlock>
                         <TextBox
                             Grid.Column="3" Grid.Row="4"
+                            Visibility="{Binding ConfigBinder.IlluminateOptionVoiceRoidVisibility.Value, Mode=OneWay}"
                             FontSize="{DynamicResource YsrFontSize}"
                             Text="{Binding ConfigBinder.IlluminateClientBinding.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
                         <Button
                             Grid.Column="4" Grid.Row="4"
+                            Visibility="{Binding ConfigBinder.IlluminateOptionVoiceRoidVisibility.Value, Mode=OneWay}"
                             FontSize="{DynamicResource YsrFontSize}"
                             Content="選択"
                             >
@@ -726,6 +745,35 @@
                                                 MultiSelect="False"/>
                                         </l:DirectInteractionMessage>
                                     </l:OpenFileDialogInteractionMessageAction>
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                        </Button>
+
+
+                        <!-- CeVio系オプション -->
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="4"
+                            Visibility="{Binding ConfigBinder.IlluminateOptionCeVioVisibility.Value, Mode=OneWay}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            >
+                            <Run Text="CeVioオプション" />
+                            <!--
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="使用する合成音声クライアントのexeファイルを指定します" />
+                            -->
+                        </TextBlock>
+                        <Button
+                            Grid.Column="4" Grid.Row="4"
+                            Visibility="{Binding ConfigBinder.IlluminateOptionCeVioVisibility.Value, Mode=OneWay}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            Content="オプション"
+                            >
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="Click">
                                 </i:EventTrigger>
                             </i:Interaction.Triggers>
                         </Button>

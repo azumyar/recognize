@@ -1,0 +1,406 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
+using System.Linq;
+using System.Reactive.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+
+using Reactive.Bindings;
+
+
+namespace Haru.Kei.Models;
+public class ConfigBinder : INotifyPropertyChanged {
+	public event PropertyChangedEventHandler? PropertyChanged;
+
+	private readonly string[] TranscribeModels = {
+		"設定しない",
+		"AI音声認識",
+		"google音声認識",
+	};
+	public const int TranscribeIndexNull = 0;
+	public const int TranscribeIndexAi = 1;
+	public const int TranscribeIndexGoogle = 2;
+	private readonly string[] TranslateModels = {
+		"設定しない",
+		"AI翻訳",
+	};
+	public const int TranslateIndexNull = 0;
+	public const int TranslateIndexAi = 1;
+	private readonly string[] VadGoogleParamaters = {
+		"設定しない",
+		"0",
+		"1",
+		"2",
+		"3",
+	};
+	public const int VadGoogleLevel0 = 1;
+	public const int VadGoogleLevel1 = 2;
+	public const int VadGoogleLevel2 = 3;
+	public const int VadGoogleLevel3 = 4;
+	private readonly string[] HpfParamaters = {
+		"設定しない",
+		"無効",
+		"弱い",
+		"普通",
+		"強め",
+	};
+	public const int HpfIndexNull = 0;
+	public const int HpfIndexDisable = 1;
+	public const int HpfIndexLow = 2;
+	public const int HpfIndexNormal = 3;
+	public const int HpfIndexHi = 4;
+	public const int HpfParamDisable = 0;
+	public const int HpfParamLow = 80;
+	public const int HpfParamNormal = 120;
+	public const int HpfParamHi = 200;
+	private readonly string[] IlluminateVoices = {
+		"VOICEROID1/PLUS/EX",
+		"VOICEROID2",
+		"VOICEPEAK",
+		"A.I.VOICE",
+		"A.I.VOICE2",
+	//	"CeVio CS7",
+	//	"CeVio AI",
+	};
+	public const int VoiceIndexVoiceRoid = 0;
+	public const int VoiceIndexVoiceRoid2 = 1;
+	public const int VoiceIndexVoicePeak = 2;
+	public const int VoiceIndexAiVoice = 3;
+	public const int VoiceIndexAiVoice2 = 4;
+	public const int VoiceIndexCeVioCs = 5;
+	public const int VoiceIndexCeVioAi = 6;
+
+	// モデル
+	public ReactiveCollection<string> TranscribeModelsBinder { get; }
+	public ReactiveProperty<int> TranscribeModeIndex { get; }
+	public ReactiveProperty<string> GoogleLanguageBinding { get; }
+	public ReactiveProperty<string> GoogleTimeoutBinding { get; set; }
+	public ReactiveProperty<bool> GoogleProfanityFilterBinder { get; set; }
+	public ReactiveCollection<string> TranslateModelsBinder { get; set; }
+	public ReactiveProperty<int> TranslateModelIndex { get; }
+	public ReactiveProperty<Visibility> GoogleItemVisibility { get; }
+	public ReactiveProperty<Visibility> GoogleTimeoutError { get; }
+
+	// マイク
+	public ReactiveCollection<string> MicDevicesBinder { get; }
+	public ReactiveProperty<int> MicDeviceIndex { get; }
+	public ReactiveProperty<string> MicrophoneThresholdDbBinder { get; }
+	public ReactiveProperty<string> MicrophoneRecordMinDurationBinder { get; }
+	public ReactiveCollection<string> VadGoogleParamatersBinder { get; }
+	public ReactiveProperty<int> VadGoogleParamaterIndex { get; }
+	public ReactiveCollection<string> HpfParamatersBinder { get; }
+	public ReactiveProperty<int> HpfParamaterIndex { get; }
+	public ReactiveProperty<Visibility> MicrophoneThresholdDbError { get; }
+	public ReactiveProperty<Visibility> MicrophoneRecordMinDurationError { get; }
+
+	// ゆかりねっと連携
+	public ReactiveProperty<bool> IsUsedYukarinetteBinding { get; }
+	public ReactiveProperty<string> YukarinettePortBinding { get; }
+	public ReactiveProperty<Visibility> YukarinettePortError { get; }
+
+	// ゆかこね連携
+	public ReactiveProperty<bool> IsUsedYukaConeBinding { get; }
+	public ReactiveProperty<string> YukaConePortBinding { get; }
+	public ReactiveProperty<Visibility> YukaConePortError { get; }
+
+	// 字幕
+	public ReactiveProperty<bool> IsUsedObsSubtitleBinder { get; }
+	public ReactiveProperty<string> ObsSubtitleTruncateBinder { get; }
+	public ReactiveProperty<string> ObsSubtitleTextJpBinder { get; }
+	public ReactiveProperty<string> ObsSubtitleTextEnBinder { get; }
+	public ReactiveProperty<string> ObsSubtitlePortBinder { get; }
+	public ReactiveProperty<string> ObsSubtitlePasswordBinder { get; }
+	public ReactiveProperty<bool> ObsSubtitleTextStartsWithBinder { get; }
+	public ReactiveProperty<bool> IsUsedVrcSubtitleBinder { get; }
+	public ReactiveProperty<Visibility> ObsSubtitleTruncateError { get; }
+	public ReactiveProperty<Visibility> ObsSubtitlePortError { get; }
+
+
+	// ボイロ連携
+	public ReactiveProperty<bool> IsUsedIlluminateBinding { get; }
+	public ReactiveCollection<string> IlluminateVoiceBinding { get; }
+	public ReactiveProperty<int> IlluminateVoiceIndex { get; }
+	public ReactiveProperty<string> IlluminateClientBinding { get; }
+	public ReadOnlyReactiveProperty<Visibility> IlluminateOptionVoiceRoidVisibility { get; }
+	public ReadOnlyReactiveProperty<Visibility> IlluminateOptionCeVioVisibility { get; }
+
+	// 自由記入欄
+	public ReactiveProperty<string> UserArgumentsBinding { get; }
+
+	public ConfigBinder(Config config) {
+		// モデル
+		this.TranscribeModelsBinder = new();
+		this.TranscribeModelsBinder.AddRangeOnScheduler(TranscribeModels);
+		this.TranscribeModeIndex = new(initialValue: config.TranscribeModel switch {
+			"kotoba_whisper" => TranscribeIndexAi,
+			"google_mix" => TranscribeIndexGoogle,
+			_ => TranscribeIndexNull
+		});
+		this.TranscribeModeIndex.Subscribe(x => config.TranscribeModel = x switch {
+			TranscribeIndexAi => "kotoba_whisper",
+			TranscribeIndexGoogle => "google_mix",
+			_ => ""
+		});
+		this.GoogleLanguageBinding = new(initialValue: config.GoogleLanguage);
+		this.GoogleLanguageBinding.Subscribe(x => config.GoogleLanguage = x);
+		this.GoogleTimeoutBinding = new(initialValue: this.ToString(config.GoogleTimeout));
+		this.GoogleTimeoutBinding.Subscribe(x => config.GoogleTimeout = this.ToFloat(x));
+		this.GoogleProfanityFilterBinder = new(initialValue: config.GoogleProfanityFilter);
+		this.GoogleProfanityFilterBinder.Subscribe(x => config.GoogleProfanityFilter = x);
+
+		this.TranslateModelsBinder = new();
+		this.TranslateModelsBinder.AddRangeOnScheduler(TranslateModels);
+		this.TranslateModelIndex = new(initialValue: config.TranslateModel switch {
+			"kotoba_whisper" => TranslateIndexAi,
+			_ => TranslateIndexNull
+		});
+		this.TranslateModelIndex.Subscribe(x => config.TranslateModel = x switch {
+			TranslateIndexAi => "kotoba_whisper",
+			_ => "",
+		});
+
+		this.GoogleItemVisibility = this.TranscribeModeIndex
+			.Select(x => x switch {
+				TranscribeIndexGoogle => Visibility.Visible,
+				_ => Visibility.Hidden,
+			}).ToReactiveProperty();
+		this.GoogleTimeoutError = this.GoogleTimeoutBinding
+			.Select(x => this.ToFloatError(x))
+			.ToReactiveProperty();
+
+		// マイク
+		this.MicDevicesBinder = new();
+		this.MicDeviceIndex = new(initialValue: config.Microphone switch {
+			int v => v + 1,
+			_ => 0
+		});
+		this.MicDeviceIndex.Subscribe(x => config.Microphone = (x - 1) switch {
+			int v when(0 <= v) => v,
+			_ => null
+		});
+		this.MicrophoneThresholdDbBinder = new(initialValue: this.ToString(config.MicrophoneThresholdDb));
+		this.MicrophoneThresholdDbBinder.Subscribe(x => {
+			config.MicrophoneThresholdDb = this.ToFloat(x);
+		});
+		this.MicrophoneRecordMinDurationBinder = new(initialValue: this.ToString(config.MicrophoneRecordMinDuration));
+		this.MicrophoneRecordMinDurationBinder.Subscribe(x => {
+			config.MicrophoneRecordMinDuration = this.ToFloat(x);
+		});
+		this.VadGoogleParamatersBinder = new();
+		this.VadGoogleParamatersBinder.AddRangeOnScheduler(this.VadGoogleParamaters);
+		this.VadGoogleParamaterIndex = new(initialValue: config.VadGoogleParamater switch {
+			int v => v + 1,
+			_ => 0
+		});
+		this.HpfParamatersBinder = new();
+		this.HpfParamatersBinder.AddRangeOnScheduler(this.HpfParamaters);
+		this.HpfParamaterIndex = new(initialValue: config.HpfParamater switch {
+			int v when(HpfParamDisable <= v) && (v < HpfParamLow) => HpfIndexDisable,
+			int v when(HpfParamLow <= v) && (v < HpfParamNormal) => HpfIndexLow,
+			int v when(HpfParamNormal <= v) && (v < HpfParamHi) => HpfIndexNormal,
+			int v when(HpfParamHi <= v) => HpfIndexHi,
+			_ => HpfIndexNull
+		});
+		this.HpfParamaterIndex.Subscribe(x => config.HpfParamater = x switch {
+			HpfIndexDisable => HpfParamDisable,
+			HpfIndexLow => HpfParamLow,
+			HpfIndexNormal => HpfParamNormal,
+			HpfIndexHi => HpfParamHi,
+			_ => null
+		});
+		this.MicrophoneThresholdDbError = this.MicrophoneThresholdDbBinder
+			.Select(x => this.ToFloatError(x))
+			.ToReactiveProperty();
+		this.MicrophoneRecordMinDurationError = this.MicrophoneRecordMinDurationBinder
+			.Select(x => this.ToFloatError(x))
+			.ToReactiveProperty();
+
+		// ゆかりねっと連携
+		this.IsUsedYukarinetteBinding = new(initialValue: config.IsUsedYukarinette);
+		this.IsUsedYukarinetteBinding.Subscribe(x => config.IsUsedYukarinette = x);
+		this.YukarinettePortBinding = new(initialValue: ToString(config.YukatinettePort));
+		this.YukarinettePortBinding.Subscribe(x => config.YukatinettePort = ToInt(x));
+		this.YukarinettePortError = this.YukarinettePortBinding
+			.Select(x => ToIntError(x))
+			.ToReactiveProperty();
+
+		this.IsUsedYukaConeBinding = new(initialValue: config.IsUsedYukaCone);
+		this.IsUsedYukaConeBinding.Subscribe(x => config.IsUsedYukaCone = x);
+		this.YukaConePortBinding = new(initialValue: ToString(config.YukaConePort));
+		this.YukaConePortBinding.Subscribe(x => config.YukaConePort = ToInt(x));
+		this.YukaConePortError = this.YukaConePortBinding
+			.Select(x => ToIntError(x))
+			.ToReactiveProperty();
+
+		// 字幕
+		this.IsUsedObsSubtitleBinder = new(initialValue: config.IsUsedObsSubtitle);
+		this.IsUsedObsSubtitleBinder.Subscribe(x => config.IsUsedObsSubtitle = x);
+		this.ObsSubtitleTruncateBinder = new(initialValue: ToString(config.ObsSubtitleTruncate));
+		this.ObsSubtitleTruncateBinder.Subscribe(x => config.ObsSubtitleTruncate = ToFloat(x));
+		this.ObsSubtitleTruncateError = this.ObsSubtitleTruncateBinder
+			.Select(x => ToFloatError(x))
+			.ToReactiveProperty();
+		this.ObsSubtitleTextJpBinder = new(initialValue: config.ObsSubtitleTextJp);
+		this.ObsSubtitleTextJpBinder.Subscribe(x => config.ObsSubtitleTextJp = x);
+		this.ObsSubtitleTextEnBinder = new(initialValue: config.ObsSubtitleTextEn);
+		this.ObsSubtitleTextEnBinder.Subscribe(x => config.ObsSubtitleTextEn = x);
+		this.ObsSubtitlePortBinder = new(initialValue: ToString(config.ObsSubtitlePort));
+		this.ObsSubtitlePortBinder.Subscribe(x => config.ObsSubtitlePort = ToInt(x));
+		this.ObsSubtitlePortError = this.ObsSubtitlePortBinder
+			.Select(x => ToIntError(x))
+			.ToReactiveProperty();
+		this.ObsSubtitlePasswordBinder = new(initialValue: config.ObsSubtitlePassword);
+		this.ObsSubtitlePasswordBinder.Subscribe(x => config.ObsSubtitlePassword = x);
+		this.ObsSubtitleTextStartsWithBinder = new(initialValue: config.ObsSubtitleTextStartsWith);
+		this.ObsSubtitleTextStartsWithBinder.Subscribe(x => config.ObsSubtitleTextStartsWith = x);
+		this.IsUsedVrcSubtitleBinder = new(initialValue: config.IsUsedVrcSubtitle);
+		this.IsUsedVrcSubtitleBinder.Subscribe(x => config.IsUsedVrcSubtitle = x);
+
+		// ボイロ連携
+		this.IsUsedIlluminateBinding = new(initialValue: config.IsUsedIlluminate);
+		this.IsUsedIlluminateBinding.Subscribe(x => config.IsUsedIlluminate = x);
+		this.IlluminateVoiceBinding = new();
+		this.IlluminateVoiceBinding.AddRangeOnScheduler(IlluminateVoices);
+		this.IlluminateVoiceIndex = new(initialValue: config.IlluminateVoice switch {
+			Config.VoiroVoiceRoid => VoiceIndexVoiceRoid,
+			Config.VoiroVoiceRoid2 => VoiceIndexVoiceRoid2,
+			Config.VoiroVoicePeak => VoiceIndexVoicePeak,
+			Config.VoiroAiVoice => VoiceIndexAiVoice,
+			Config.VoiroAiVoice2 => VoiceIndexAiVoice2,
+			Config.VoiroCeVioCs => VoiceIndexCeVioCs,
+			Config.VoiroCeVioAi => VoiceIndexCeVioAi,
+			_ => VoiceIndexVoiceRoid
+		});
+		this.IlluminateVoiceIndex.Subscribe(x => {
+			(string Voice, string Client) v = x switch {
+				VoiceIndexVoiceRoid2 => (Config.VoiroVoiceRoid2, config.IlluminateClientVoiceRoid2),
+				VoiceIndexVoicePeak => (Config.VoiroVoicePeak, config.IlluminateClientVoicePeak),
+				VoiceIndexAiVoice => (Config.VoiroAiVoice, config.IlluminateClientAiVoice),
+				VoiceIndexAiVoice2 => (Config.VoiroAiVoice2, config.IlluminateClientAiVoice2),
+				VoiceIndexCeVioCs => (Config.VoiroCeVioCs, ""),
+				VoiceIndexCeVioAi => (Config.VoiroCeVioAi, ""),
+				_ => (Config.VoiroVoiceRoid, config.IlluminateClientVoiceRoid),
+			};
+			config.IlluminateVoice = v.Voice;
+		});
+		this.IlluminateClientBinding = this.IlluminateVoiceIndex.Select(x => {
+			(string Voice, string Client) v = x switch {
+				VoiceIndexVoiceRoid2 => (Config.VoiroVoiceRoid2, config.IlluminateClientVoiceRoid2),
+				VoiceIndexVoicePeak => (Config.VoiroVoicePeak, config.IlluminateClientVoicePeak),
+				VoiceIndexAiVoice => (Config.VoiroAiVoice, config.IlluminateClientAiVoice),
+				VoiceIndexAiVoice2 => (Config.VoiroAiVoice2, config.IlluminateClientAiVoice2),
+				VoiceIndexCeVioCs => (Config.VoiroCeVioCs, ""),
+				VoiceIndexCeVioAi => (Config.VoiroCeVioAi, ""),
+				_ => (Config.VoiroVoiceRoid, config.IlluminateClientVoiceRoid),
+			};
+			return v.Client;
+		}).ToReactiveProperty<string>();
+		this.IlluminateClientBinding.Subscribe(x => {
+			Action<string> aply = this.IlluminateVoiceIndex.Value switch {
+				VoiceIndexVoiceRoid2 => (y) => config.IlluminateClientVoiceRoid2 = y,
+				VoiceIndexVoicePeak => (y) => config.IlluminateClientVoicePeak = y,
+				VoiceIndexAiVoice => (y) => config.IlluminateClientAiVoice = y,
+				VoiceIndexAiVoice2 => (y) => config.IlluminateClientAiVoice2 = y,
+				VoiceIndexCeVioCs => (_) => { },
+				VoiceIndexCeVioAi => (_) => { },
+				_ => (y) => config.IlluminateClientVoiceRoid = y,
+			};
+			aply(x);
+		});
+
+		/*
+		this.IlluminateClientBinding = new(initialValue: config.IlluminateClient);
+		this.IlluminateClientBinding.Subscribe(x => config.IlluminateClient = x);
+		*/
+
+		this.IlluminateClientDialogFilter = this.IlluminateVoiceIndex.Select(x => x switch {
+			VoiceIndexVoiceRoid => "VOICEROID|VOICEROID.exe",
+			VoiceIndexVoiceRoid2 => "VOICEROID2|VoiceroidEditor.exe",
+			VoiceIndexVoicePeak => "VOICEPEAK|voicepeak.exe",
+			VoiceIndexAiVoice => "A.I.VOICE|AIVoiceEditor.exe",
+			VoiceIndexAiVoice2 => "A.I.VOICE2|aivoice.exe",
+			_ => "",
+		}).Select(x => $"{x}|すべてのファイル(*.*)|*.*").ToReactiveProperty<string>();
+		this.IlluminateClientDialogDirectory = this.IlluminateVoiceIndex.Select(x => x switch {
+			VoiceIndexVoiceRoid => @"C:\Program Files (x86)\AHS\",
+			VoiceIndexVoiceRoid2 => @"C:\Program Files (x86)\AHS\VOICEROID2",
+			VoiceIndexVoicePeak => @"C:\Program Files\VOICEPEAK",
+			VoiceIndexAiVoice => @"C:\Program Files\AI\AIVoice\AIVoiceEditor",
+			VoiceIndexAiVoice2 => @"C:\Program Files\AI\AIVoice2\AIVoice2Editor",
+			_ => null,
+		}).Select(x => Directory.Exists(x) switch {
+			true => x,
+			_ => null,
+		}).ToReactiveProperty();
+
+		this.IlluminateOptionVoiceRoidVisibility = this.IlluminateVoiceIndex.Select(x => x switch {
+			VoiceIndexVoiceRoid => Visibility.Visible,
+			VoiceIndexVoiceRoid2 => Visibility.Visible,
+			VoiceIndexVoicePeak => Visibility.Visible,
+			VoiceIndexAiVoice => Visibility.Visible,
+			VoiceIndexAiVoice2 => Visibility.Visible,
+			_ => Visibility.Collapsed,
+		}).ToReadOnlyReactiveProperty();
+		this.IlluminateOptionCeVioVisibility = this.IlluminateVoiceIndex.Select(x => x switch {
+			VoiceIndexCeVioCs => Visibility.Visible,
+			VoiceIndexCeVioAi => Visibility.Visible,
+			_ => Visibility.Collapsed,
+		}).ToReadOnlyReactiveProperty();
+
+		this.UserArgumentsBinding = new(initialValue: config.UserArguments);
+		this.UserArgumentsBinding.Subscribe(x => config.UserArguments = x);
+	}
+	public ReactiveProperty<string> IlluminateClientDialogFilter { get; }
+	public ReactiveProperty<string?> IlluminateClientDialogDirectory { get; }
+
+	private string ToString<T>(T v) {
+		if(v == null) {
+			return "";
+		} else {
+			return $"{v}";
+		}
+	}
+
+	private int? ToInt(string s) {
+		if(int.TryParse(s, out var v)) {
+			return v;
+		} else {
+			return null;
+		}
+	}
+
+	private Visibility ToIntError(string s) {
+		if(string.IsNullOrEmpty(s)) {
+			return Visibility.Collapsed;
+		}
+
+		if(int.TryParse(s, out var v)) {
+			return Visibility.Collapsed;
+		} else {
+			return Visibility.Visible;
+		}
+	}
+
+	private float? ToFloat(string s) {
+		if(float.TryParse(s, out var v)) {
+			return v;
+		} else {
+			return null;
+		}
+	}
+
+	private Visibility ToFloatError(string s) {
+		if(string.IsNullOrEmpty(s)) {
+			return Visibility.Collapsed;
+		}
+
+		if(float.TryParse(s, out var _)) {
+			return Visibility.Collapsed;
+		} else {
+			return Visibility.Visible;
+		}
+	}
+}
