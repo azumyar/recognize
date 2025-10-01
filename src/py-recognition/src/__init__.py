@@ -42,6 +42,7 @@ def _root_path() -> tuple[str, str]:
 
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
 from typing import Any, Callable, Iterable, Optional, NamedTuple, Literal
 import src.val as val
