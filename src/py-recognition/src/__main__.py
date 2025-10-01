@@ -126,7 +126,7 @@ def __whiper_help(s:str) -> str:
 
 @click.option("--filter_hpf", default=None, help="ハイパスフィルタのカットオフ周波数を設定、ハイパスフィルタを有効化", type=int)
 
-@click.option("--vad", default=val.VAD_VALUE_GOOGLE, help="VADエンジンの選択", type=click.Choice(val.ARG_CHOICE_VAD))
+@click.option("--vad", default=val.VAD_VALUE_SILERO, help="VADエンジンの選択", type=click.Choice(val.ARG_CHOICE_VAD))
 @click.option("--vad_google_mode", default="0", help="VADの強度",type=click.Choice(["0", "1", "2", "3"]))
 @click.option("--vad_silero_threshold", default=0.5, help="-",type=float)
 @click.option("--vad_silero_min_speech_duration", default=0.25, help="-",type=float)
@@ -287,19 +287,15 @@ def main(
                 filter_hpf)
             filters.append(filter_highPass)
         # VADフィルタの準備
-        filter_vad_inst:filter.VoiceActivityDetectorFilter
-        if vad == val.VAD_VALUE_GOOGLE:
-            filter_vad_inst = filter.GoogleVadFilter(
+        filter_vad_inst:filter.VoiceActivityDetectorFilter = {
+            val.VAD_VALUE_GOOGLE: lambda: filter.GoogleVadFilter(
                 val.MIC_SAMPLE_RATE,
-                int(vad_google_mode))
-        elif vad == val.VAD_VALUE_SILERO:
-            import src.filter_torch as fil_torch
-            filter_vad_inst = fil_torch.SileroVadFilter(
-                val.MIC_SAMPLE_RATE,
-                vad_silero_threshold,
-                vad_silero_min_speech_duration)
-        else:
-            raise ValueError(f"vad:{vad} is not support")
+                int(vad_google_mode)),
+            val.VAD_VALUE_SILERO: lambda: filter.SileroVadFilter(
+                val.MIC_SAMPLE_RATE),
+            val.VAD_VALUE_YAMNET: lambda: filter.YAMNetVadFilter(
+                val.MIC_SAMPLE_RATE),
+        }[vad]()
         filters.append(filter_vad_inst)
 
         ilm_logger.print("マイクの初期化")
