@@ -224,11 +224,13 @@ def main(
     if torch_cache == "" or torch_cache == None:
         os.environ["TORCH_HOME"] = \
             os.environ["HUGGINGFACE_HUB_CACHE"] = \
-                f"{ilm_enviroment.root}{os.sep}.cache"
+            os.environ['TFHUB_CACHE_DIR'] = \
+            f"{ilm_enviroment.root}{os.sep}.cache"
     else:
         os.environ["TORCH_HOME"] = \
             os.environ["HUGGINGFACE_HUB_CACHE"] = \
-                f"{torch_cache}{os.sep}.cache"     
+            os.environ['TFHUB_CACHE_DIR'] = \
+            f"{torch_cache}{os.sep}.cache"     
 
     if out_illuminate_exe == "":
         out_illuminate_exe = "" 
