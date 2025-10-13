@@ -71,7 +71,7 @@ class WebSocketOutputer(RecognitionOutputer):
         if not self.__soc is None:
             return
 
-        self.__soc = connect(self.__uri)
+        self.__soc = connect(self.__uri, ping_timeout=None)
 
     @property
     def _socket(self):
