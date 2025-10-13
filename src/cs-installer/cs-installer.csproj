@@ -12,9 +12,10 @@
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
 
+    <PublishDir>dist</PublishDir>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
   </PropertyGroup>	
 
   <ItemGroup>
