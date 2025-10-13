@@ -82,8 +82,8 @@ jobs:
         echo "}" >> Const.ci.cs
         dotnet publish -p:Configuration=Release
         popd
-        ls src/cs-installer/bin/Release/net8.0-windows/win-x64/publish
-        mv src/cs-installer/bin/Release/net8.0-windows/win-x64/publish/cs-installer.exe setup-${{github.ref_name}}.exe
+        ls src/cs-installer/dist/
+        mv src/cs-installer/dist/cs-installer.exe setup-${{github.ref_name}}.exe
       shell: bash # powershellの構文よくわからない
 
     - name: Pre Release
