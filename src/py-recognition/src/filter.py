@@ -72,6 +72,10 @@ class VadFrame(object):
 
 
 class VoiceActivityDetectorFilter:
+    @property
+    def mic_pause_duration(self) -> float:
+        ...
+
     def check(self, data:bytes) -> bool:
         ...
 
@@ -86,6 +90,10 @@ class GoogleVadFilter(VoiceActivityDetectorFilter):
         vad_mode:int):
         self.__vad = webrtcvad.Vad(vad_mode)
         self.__sampling_rate = sampling_rate
+
+    @property
+    def mic_pause_duration(self) -> float:
+        return 0.8
 
     def check(self, data:bytes) -> bool:
         frame_duration_ms = 30
@@ -242,6 +250,10 @@ class SileroVadFilter(VoiceActivityDetectorFilter):
 
         self.__model = load_silero_vad()
 
+    @property
+    def mic_pause_duration(self) -> float:
+        return 1.0
+
     def check(self, data:bytes) -> bool:
         bytes_io = io.BytesIO()
         raw_data = numpy.frombuffer(
@@ -279,6 +291,10 @@ class YAMNetVadFilter(VoiceActivityDetectorFilter):
         with tensorflow.io.gfile.GFile(self.__model.class_map_path().numpy()) as csvfile:
             reader = csv.DictReader(csvfile)
             self.__class_names = list(map(lambda x: x["display_name"], reader))
+
+    @property
+    def mic_pause_duration(self) -> float:
+        return 0.2
 
     def check(self, data:bytes) -> bool:
         wav = numpy.frombuffer(data, dtype=numpy.int16)

@@ -94,7 +94,7 @@ def __whiper_help(s:str) -> str:
 #@click.option("--mic_api", default=val.MIC_API_VALUE_MME, help="--mic_nameで検索するマイクのAPIを指定します", type=click.Choice(val.ARG_CHOICE_MIC_API))
 @click.option("--mic_energy_threshold", default=None, help="互換性のため残されています", type=float)
 @click.option("--mic_db_threshold", default=0, help="設定した値より小さい音を無言として扱う閾値", type=float)
-@click.option("--mic_pause_duration", default=0.8, help="声認識後VADにかけていいく塊の秒数", type=float)
+@click.option("--mic_pause_duration", default=None, help="声認識後VADにかけていいく塊の秒数", type=float)
 @click.option("--mic_record_min_duration", default=0.0, help="マイクの入力がこの値より短い場合無視する秒数", type=float)
 #@click.option("--mic_sampling_rate", default=16000, help="-", type=int)
 @click.option("--mic_head_insert_duration", default=None, help="-", type=float)
@@ -170,7 +170,7 @@ def main(
 
     mic_energy_threshold:Optional[float],
     mic_db_threshold:float,
-    mic_pause_duration:float,
+    mic_pause_duration:Optional[float],
     mic_record_min_duration:float,
     mic_head_insert_duration:Optional[float],
     mic_tail_insert_duration:Optional[float],
