@@ -72,6 +72,15 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public const int VoiceIndexAiVoice2 = 4;
 	public const int VoiceIndexCeVioCs = 5;
 	public const int VoiceIndexCeVioAi = 6;
+	private readonly string[] VadMethods = {
+		"設定しない",
+		"Silero VAD",
+		"YAMNet",
+		"WebRTC VAD(削除予定)",
+	};
+	public const int VadMethodSilero = 0;
+	public const int VadMethodYAMNet = 1;
+	public const int VadMethodWebRtcVad = 2;
 
 	// モデル
 	public ReactiveCollection<string> TranscribeModelsBinder { get; }
@@ -93,8 +102,11 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public ReactiveProperty<int> VadGoogleParamaterIndex { get; }
 	public ReactiveCollection<string> HpfParamatersBinder { get; }
 	public ReactiveProperty<int> HpfParamaterIndex { get; }
+	public ReactiveCollection<string> VadMethodsBinder { get; }
+	public ReactiveProperty<int> VadMethodsIndex { get; }
 	public ReactiveProperty<Visibility> MicrophoneThresholdDbError { get; }
 	public ReactiveProperty<Visibility> MicrophoneRecordMinDurationError { get; }
+	public ReactiveProperty<Visibility> VadGoogleItemVisibility { get; }
 
 	// ゆかりねっと連携
 	public ReactiveProperty<bool> IsUsedYukarinetteBinding { get; }
@@ -211,6 +223,25 @@ public class ConfigBinder : INotifyPropertyChanged {
 			HpfIndexHi => HpfParamHi,
 			_ => null
 		});
+		this.VadMethodsBinder = new();
+		this.VadMethodsBinder.AddRangeOnScheduler(this.VadMethods);
+		this.VadMethodsIndex = new(initialValue: config.Vad switch {
+			"silero" => 1,
+			"yamnet" => 2,
+			"google" => 3,
+			_ => 0
+		});
+		this.VadMethodsIndex.Subscribe(x => config.Vad = x switch {
+			1 => "silero",
+			2 => "yamnet",
+			3 => "google",
+			_ => null
+		});
+		this.VadGoogleItemVisibility = this.VadMethodsIndex.Select(x => x switch {
+			3 => Visibility.Visible,
+			_ => Visibility.Collapsed,
+		}).ToReactiveProperty();
+
 		this.MicrophoneThresholdDbError = this.MicrophoneThresholdDbBinder
 			.Select(x => this.ToFloatError(x))
 			.ToReactiveProperty();
