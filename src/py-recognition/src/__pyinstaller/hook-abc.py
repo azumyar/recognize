@@ -1,7 +1,11 @@
 from PyInstaller.utils.hooks import collect_dynamic_libs, collect_data_files
 
+hiddenimports = []
+hiddenimports += collect_submodules("scipy")
+
 datas = []
-datas = collect_data_files("silero_vad")
+datas += collect_data_files("silero_vad")
+datas += collect_data_files("scipy")
 
 binaries = []
 binaries += collect_dynamic_libs("openvr")
