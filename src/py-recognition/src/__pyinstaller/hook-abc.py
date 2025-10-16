@@ -1,4 +1,4 @@
-from PyInstaller.utils.hooks import collect_dynamic_libs, collect_data_files
+from PyInstaller.utils.hooks import collect_dynamic_libs, collect_data_files, collect_submodules
 
 hiddenimports = []
 hiddenimports += collect_submodules("scipy")
