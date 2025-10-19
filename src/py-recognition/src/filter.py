@@ -294,7 +294,7 @@ class YAMNetVadFilter(VoiceActivityDetectorFilter):
 
     @property
     def mic_pause_duration(self) -> float:
-        return 0.2
+        return 0.4
 
     def check(self, data:bytes) -> bool:
         wav = numpy.frombuffer(data, dtype=numpy.int16)
