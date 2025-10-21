@@ -7,7 +7,6 @@ import scipy
 import tensorflow
 import tensorflow_hub
 import csv
-import logging
 from silero_vad import load_silero_vad, get_speech_timestamps
 
 class NoiseFilter:
@@ -276,9 +275,6 @@ class YAMNetVadFilter(VoiceActivityDetectorFilter):
     def __init__(   
         self,
         sampling_rate:int):
-        tensorflow.get_logger().setLevel("INFO")
-        tensorflow.autograph.set_verbosity(0)
-        tensorflow.get_logger().setLevel(logging.ERROR)
 
         self.__model = tensorflow_hub.load("https://tfhub.dev/google/yamnet/1")
         self.__classes = [
