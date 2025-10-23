@@ -29,17 +29,6 @@ public class ConfigBinder : INotifyPropertyChanged {
 	};
 	public const int TranslateIndexNull = 0;
 	public const int TranslateIndexAi = 1;
-	private readonly string[] VadGoogleParamaters = {
-		"設定しない",
-		"0",
-		"1",
-		"2",
-		"3",
-	};
-	public const int VadGoogleLevel0 = 1;
-	public const int VadGoogleLevel1 = 2;
-	public const int VadGoogleLevel2 = 3;
-	public const int VadGoogleLevel3 = 4;
 	private readonly string[] HpfParamaters = {
 		"設定しない",
 		"無効",
@@ -76,11 +65,10 @@ public class ConfigBinder : INotifyPropertyChanged {
 		"設定しない",
 		"Silero VAD",
 		"YAMNet",
-		"WebRTC VAD(削除予定)",
 	};
-	public const int VadMethodSilero = 0;
-	public const int VadMethodYAMNet = 1;
-	public const int VadMethodWebRtcVad = 2;
+	public const int VadMethodIndexNone = 0;
+	public const int VadMethodIndexSilero = 1;
+	public const int VadMethodIndexYAMNet = 2;
 
 	// モデル
 	public ReactiveCollection<string> TranscribeModelsBinder { get; }
@@ -98,15 +86,12 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public ReactivePropertySlim<int> MicDeviceIndex { get; }
 	public ReactivePropertySlim<string> MicrophoneThresholdDbBinder { get; }
 	public ReactivePropertySlim<string> MicrophoneRecordMinDurationBinder { get; }
-	public ReactiveCollection<string> VadGoogleParamatersBinder { get; }
-	public ReactivePropertySlim<int> VadGoogleParamaterIndex { get; }
 	public ReactiveCollection<string> HpfParamatersBinder { get; }
 	public ReactivePropertySlim<int> HpfParamaterIndex { get; }
 	public ReactiveCollection<string> VadMethodsBinder { get; }
 	public ReactivePropertySlim<int> VadMethodsIndex { get; }
 	public ReadOnlyReactivePropertySlim<Visibility> MicrophoneThresholdDbError { get; }
 	public ReadOnlyReactivePropertySlim<Visibility> MicrophoneRecordMinDurationError { get; }
-	public ReadOnlyReactivePropertySlim<Visibility> VadGoogleItemVisibility { get; }
 
 	// ゆかりねっと連携
 	public ReactivePropertySlim<bool> IsUsedYukarinetteBinding { get; }
@@ -202,12 +187,6 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.MicrophoneRecordMinDurationBinder.Subscribe(x => {
 			config.MicrophoneRecordMinDuration = this.ToFloat(x);
 		});
-		this.VadGoogleParamatersBinder = new();
-		this.VadGoogleParamatersBinder.AddRangeOnScheduler(this.VadGoogleParamaters);
-		this.VadGoogleParamaterIndex = new(initialValue: config.VadGoogleParamater switch {
-			int v => v + 1,
-			_ => 0
-		});
 		this.HpfParamatersBinder = new();
 		this.HpfParamatersBinder.AddRangeOnScheduler(this.HpfParamaters);
 		this.HpfParamaterIndex = new(initialValue: config.HpfParamater switch {
@@ -227,21 +206,18 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.VadMethodsBinder = new();
 		this.VadMethodsBinder.AddRangeOnScheduler(this.VadMethods);
 		this.VadMethodsIndex = new(initialValue: config.Vad switch {
-			"silero" => 1,
-			"yamnet" => 2,
-			"google" => 3,
-			_ => 0
+			"silero" => VadMethodIndexSilero,
+			"yamnet" => VadMethodIndexYAMNet,
+
+			// マイグレ
+			"google" => VadMethodIndexNone,
+			_ => VadMethodIndexNone
 		});
 		this.VadMethodsIndex.Subscribe(x => config.Vad = x switch {
-			1 => "silero",
-			2 => "yamnet",
-			3 => "google",
+			VadMethodIndexSilero => "silero",
+			VadMethodIndexYAMNet => "yamnet",
 			_ => null
 		});
-		this.VadGoogleItemVisibility = this.VadMethodsIndex.Select(x => x switch {
-			3 => Visibility.Visible,
-			_ => Visibility.Collapsed,
-		}).ToReadOnlyReactivePropertySlim();
 
 		this.MicrophoneThresholdDbError = this.MicrophoneThresholdDbBinder
 			.Select(x => this.ToFloatError(x))
