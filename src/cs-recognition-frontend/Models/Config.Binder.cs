@@ -84,63 +84,64 @@ public class ConfigBinder : INotifyPropertyChanged {
 
 	// モデル
 	public ReactiveCollection<string> TranscribeModelsBinder { get; }
-	public ReactiveProperty<int> TranscribeModeIndex { get; }
-	public ReactiveProperty<string> GoogleLanguageBinding { get; }
-	public ReactiveProperty<string> GoogleTimeoutBinding { get; set; }
-	public ReactiveProperty<bool> GoogleProfanityFilterBinder { get; set; }
+	public ReactivePropertySlim<int> TranscribeModeIndex { get; }
+	public ReactivePropertySlim<string> GoogleLanguageBinding { get; }
+	public ReactivePropertySlim<string> GoogleTimeoutBinding { get; set; }
+	public ReactivePropertySlim<bool> GoogleProfanityFilterBinder { get; set; }
 	public ReactiveCollection<string> TranslateModelsBinder { get; set; }
-	public ReactiveProperty<int> TranslateModelIndex { get; }
-	public ReactiveProperty<Visibility> GoogleItemVisibility { get; }
-	public ReactiveProperty<Visibility> GoogleTimeoutError { get; }
+	public ReactivePropertySlim<int> TranslateModelIndex { get; }
+	public ReadOnlyReactivePropertySlim<Visibility> GoogleItemVisibility { get; }
+	public ReadOnlyReactivePropertySlim<Visibility> GoogleTimeoutError { get; }
 
 	// マイク
 	public ReactiveCollection<string> MicDevicesBinder { get; }
-	public ReactiveProperty<int> MicDeviceIndex { get; }
-	public ReactiveProperty<string> MicrophoneThresholdDbBinder { get; }
-	public ReactiveProperty<string> MicrophoneRecordMinDurationBinder { get; }
+	public ReactivePropertySlim<int> MicDeviceIndex { get; }
+	public ReactivePropertySlim<string> MicrophoneThresholdDbBinder { get; }
+	public ReactivePropertySlim<string> MicrophoneRecordMinDurationBinder { get; }
 	public ReactiveCollection<string> VadGoogleParamatersBinder { get; }
-	public ReactiveProperty<int> VadGoogleParamaterIndex { get; }
+	public ReactivePropertySlim<int> VadGoogleParamaterIndex { get; }
 	public ReactiveCollection<string> HpfParamatersBinder { get; }
-	public ReactiveProperty<int> HpfParamaterIndex { get; }
+	public ReactivePropertySlim<int> HpfParamaterIndex { get; }
 	public ReactiveCollection<string> VadMethodsBinder { get; }
-	public ReactiveProperty<int> VadMethodsIndex { get; }
-	public ReactiveProperty<Visibility> MicrophoneThresholdDbError { get; }
-	public ReactiveProperty<Visibility> MicrophoneRecordMinDurationError { get; }
-	public ReactiveProperty<Visibility> VadGoogleItemVisibility { get; }
+	public ReactivePropertySlim<int> VadMethodsIndex { get; }
+	public ReadOnlyReactivePropertySlim<Visibility> MicrophoneThresholdDbError { get; }
+	public ReadOnlyReactivePropertySlim<Visibility> MicrophoneRecordMinDurationError { get; }
+	public ReadOnlyReactivePropertySlim<Visibility> VadGoogleItemVisibility { get; }
 
 	// ゆかりねっと連携
-	public ReactiveProperty<bool> IsUsedYukarinetteBinding { get; }
-	public ReactiveProperty<string> YukarinettePortBinding { get; }
-	public ReactiveProperty<Visibility> YukarinettePortError { get; }
+	public ReactivePropertySlim<bool> IsUsedYukarinetteBinding { get; }
+	public ReactivePropertySlim<string> YukarinettePortBinding { get; }
+	public ReadOnlyReactivePropertySlim<Visibility> YukarinettePortError { get; }
 
 	// ゆかこね連携
-	public ReactiveProperty<bool> IsUsedYukaConeBinding { get; }
-	public ReactiveProperty<string> YukaConePortBinding { get; }
-	public ReactiveProperty<Visibility> YukaConePortError { get; }
+	public ReactivePropertySlim<bool> IsUsedYukaConeBinding { get; }
+	public ReactivePropertySlim<string> YukaConePortBinding { get; }
+	public ReadOnlyReactivePropertySlim<Visibility> YukaConePortError { get; }
 
 	// 字幕
-	public ReactiveProperty<bool> IsUsedObsSubtitleBinder { get; }
-	public ReactiveProperty<string> ObsSubtitleTruncateBinder { get; }
-	public ReactiveProperty<string> ObsSubtitleTextJpBinder { get; }
-	public ReactiveProperty<string> ObsSubtitleTextEnBinder { get; }
-	public ReactiveProperty<string> ObsSubtitlePortBinder { get; }
-	public ReactiveProperty<string> ObsSubtitlePasswordBinder { get; }
-	public ReactiveProperty<bool> ObsSubtitleTextStartsWithBinder { get; }
-	public ReactiveProperty<bool> IsUsedVrcSubtitleBinder { get; }
-	public ReactiveProperty<Visibility> ObsSubtitleTruncateError { get; }
-	public ReactiveProperty<Visibility> ObsSubtitlePortError { get; }
+	public ReactivePropertySlim<bool> IsUsedObsSubtitleBinder { get; }
+	public ReactivePropertySlim<string> ObsSubtitleTruncateBinder { get; }
+	public ReactivePropertySlim<string> ObsSubtitleTextJpBinder { get; }
+	public ReactivePropertySlim<string> ObsSubtitleTextEnBinder { get; }
+	public ReactivePropertySlim<string> ObsSubtitlePortBinder { get; }
+	public ReactivePropertySlim<string> ObsSubtitlePasswordBinder { get; }
+	public ReactivePropertySlim<bool> ObsSubtitleTextStartsWithBinder { get; }
+	public ReactivePropertySlim<bool> IsUsedVrcSubtitleBinder { get; }
+	public ReadOnlyReactivePropertySlim<Visibility> ObsSubtitleTruncateError { get; }
+	public ReadOnlyReactivePropertySlim<Visibility> ObsSubtitlePortError { get; }
 
 
 	// ボイロ連携
-	public ReactiveProperty<bool> IsUsedIlluminateBinding { get; }
+	public ReactivePropertySlim<bool> IsUsedIlluminateBinding { get; }
 	public ReactiveCollection<string> IlluminateVoiceBinding { get; }
-	public ReactiveProperty<int> IlluminateVoiceIndex { get; }
+	public ReactivePropertySlim<int> IlluminateVoiceIndex { get; }
+	// Value書き換えたいのでいったんSlimにしない
 	public ReactiveProperty<string> IlluminateClientBinding { get; }
-	public ReadOnlyReactiveProperty<Visibility> IlluminateOptionVoiceRoidVisibility { get; }
-	public ReadOnlyReactiveProperty<Visibility> IlluminateOptionCeVioVisibility { get; }
+	public ReadOnlyReactivePropertySlim<Visibility> IlluminateOptionVoiceRoidVisibility { get; }
+	public ReadOnlyReactivePropertySlim<Visibility> IlluminateOptionCeVioVisibility { get; }
 
 	// 自由記入欄
-	public ReactiveProperty<string> UserArgumentsBinding { get; }
+	public ReactivePropertySlim<string> UserArgumentsBinding { get; }
 
 	public ConfigBinder(Config config) {
 		// モデル
@@ -178,10 +179,10 @@ public class ConfigBinder : INotifyPropertyChanged {
 			.Select(x => x switch {
 				TranscribeIndexGoogle => Visibility.Visible,
 				_ => Visibility.Hidden,
-			}).ToReactiveProperty();
+			}).ToReadOnlyReactivePropertySlim();
 		this.GoogleTimeoutError = this.GoogleTimeoutBinding
 			.Select(x => this.ToFloatError(x))
-			.ToReactiveProperty();
+			.ToReadOnlyReactivePropertySlim();
 
 		// マイク
 		this.MicDevicesBinder = new();
@@ -240,14 +241,14 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.VadGoogleItemVisibility = this.VadMethodsIndex.Select(x => x switch {
 			3 => Visibility.Visible,
 			_ => Visibility.Collapsed,
-		}).ToReactiveProperty();
+		}).ToReadOnlyReactivePropertySlim();
 
 		this.MicrophoneThresholdDbError = this.MicrophoneThresholdDbBinder
 			.Select(x => this.ToFloatError(x))
-			.ToReactiveProperty();
+			.ToReadOnlyReactivePropertySlim();
 		this.MicrophoneRecordMinDurationError = this.MicrophoneRecordMinDurationBinder
 			.Select(x => this.ToFloatError(x))
-			.ToReactiveProperty();
+			.ToReadOnlyReactivePropertySlim();
 
 		// ゆかりねっと連携
 		this.IsUsedYukarinetteBinding = new(initialValue: config.IsUsedYukarinette);
@@ -256,7 +257,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.YukarinettePortBinding.Subscribe(x => config.YukatinettePort = ToInt(x));
 		this.YukarinettePortError = this.YukarinettePortBinding
 			.Select(x => ToIntError(x))
-			.ToReactiveProperty();
+			.ToReadOnlyReactivePropertySlim();
 
 		this.IsUsedYukaConeBinding = new(initialValue: config.IsUsedYukaCone);
 		this.IsUsedYukaConeBinding.Subscribe(x => config.IsUsedYukaCone = x);
@@ -264,7 +265,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.YukaConePortBinding.Subscribe(x => config.YukaConePort = ToInt(x));
 		this.YukaConePortError = this.YukaConePortBinding
 			.Select(x => ToIntError(x))
-			.ToReactiveProperty();
+			.ToReadOnlyReactivePropertySlim();
 
 		// 字幕
 		this.IsUsedObsSubtitleBinder = new(initialValue: config.IsUsedObsSubtitle);
@@ -273,7 +274,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.ObsSubtitleTruncateBinder.Subscribe(x => config.ObsSubtitleTruncate = ToFloat(x));
 		this.ObsSubtitleTruncateError = this.ObsSubtitleTruncateBinder
 			.Select(x => ToFloatError(x))
-			.ToReactiveProperty();
+			.ToReadOnlyReactivePropertySlim();
 		this.ObsSubtitleTextJpBinder = new(initialValue: config.ObsSubtitleTextJp);
 		this.ObsSubtitleTextJpBinder.Subscribe(x => config.ObsSubtitleTextJp = x);
 		this.ObsSubtitleTextEnBinder = new(initialValue: config.ObsSubtitleTextEn);
@@ -282,7 +283,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.ObsSubtitlePortBinder.Subscribe(x => config.ObsSubtitlePort = ToInt(x));
 		this.ObsSubtitlePortError = this.ObsSubtitlePortBinder
 			.Select(x => ToIntError(x))
-			.ToReactiveProperty();
+			.ToReadOnlyReactivePropertySlim();
 		this.ObsSubtitlePasswordBinder = new(initialValue: config.ObsSubtitlePassword);
 		this.ObsSubtitlePasswordBinder.Subscribe(x => config.ObsSubtitlePassword = x);
 		this.ObsSubtitleTextStartsWithBinder = new(initialValue: config.ObsSubtitleTextStartsWith);
@@ -354,7 +355,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 			VoiceIndexAiVoice => "A.I.VOICE|AIVoiceEditor.exe",
 			VoiceIndexAiVoice2 => "A.I.VOICE2|aivoice.exe",
 			_ => "",
-		}).Select(x => $"{x}|すべてのファイル(*.*)|*.*").ToReactiveProperty<string>();
+		}).Select(x => $"{x}|すべてのファイル(*.*)|*.*").ToReadOnlyReactivePropertySlim<string>();
 		this.IlluminateClientDialogDirectory = this.IlluminateVoiceIndex.Select(x => x switch {
 			VoiceIndexVoiceRoid => @"C:\Program Files (x86)\AHS\",
 			VoiceIndexVoiceRoid2 => @"C:\Program Files (x86)\AHS\VOICEROID2",
@@ -365,7 +366,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 		}).Select(x => Directory.Exists(x) switch {
 			true => x,
 			_ => null,
-		}).ToReactiveProperty();
+		}).ToReadOnlyReactivePropertySlim();
 
 		this.IlluminateOptionVoiceRoidVisibility = this.IlluminateVoiceIndex.Select(x => x switch {
 			VoiceIndexVoiceRoid => Visibility.Visible,
@@ -374,18 +375,18 @@ public class ConfigBinder : INotifyPropertyChanged {
 			VoiceIndexAiVoice => Visibility.Visible,
 			VoiceIndexAiVoice2 => Visibility.Visible,
 			_ => Visibility.Collapsed,
-		}).ToReadOnlyReactiveProperty();
+		}).ToReadOnlyReactivePropertySlim();
 		this.IlluminateOptionCeVioVisibility = this.IlluminateVoiceIndex.Select(x => x switch {
 			VoiceIndexCeVioCs => Visibility.Visible,
 			VoiceIndexCeVioAi => Visibility.Visible,
 			_ => Visibility.Collapsed,
-		}).ToReadOnlyReactiveProperty();
+		}).ToReadOnlyReactivePropertySlim();
 
 		this.UserArgumentsBinding = new(initialValue: config.UserArguments);
 		this.UserArgumentsBinding.Subscribe(x => config.UserArguments = x);
 	}
-	public ReactiveProperty<string> IlluminateClientDialogFilter { get; }
-	public ReactiveProperty<string?> IlluminateClientDialogDirectory { get; }
+	public ReadOnlyReactivePropertySlim<string> IlluminateClientDialogFilter { get; }
+	public ReadOnlyReactivePropertySlim<string?> IlluminateClientDialogDirectory { get; }
 
 	private string ToString<T>(T v) {
 		if(v == null) {
