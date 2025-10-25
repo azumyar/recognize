@@ -25,7 +25,6 @@ faster-whisper = "*"
 #faster-whisper = {git = "git+https://github.com/guillaumekln/faster-whisper.git"}
 transformers = "*"
 accelerate = "*"
-webrtcvad = "*"
 sounddevice = "*"
 stable-ts = "2.16.0"
 obs-websocket-py = "*"

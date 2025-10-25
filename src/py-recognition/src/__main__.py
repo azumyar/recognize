@@ -127,7 +127,6 @@ def __whiper_help(s:str) -> str:
 @click.option("--filter_hpf", default=None, help="ハイパスフィルタのカットオフ周波数を設定、ハイパスフィルタを有効化", type=int)
 
 @click.option("--vad", default=val.VAD_VALUE_SILERO, help="VADエンジンの選択", type=click.Choice(val.ARG_CHOICE_VAD))
-@click.option("--vad_google_mode", default="0", help="VADの強度",type=click.Choice(["0", "1", "2", "3"]))
 @click.option("--vad_silero_threshold", default=0.5, help="-",type=float)
 @click.option("--vad_silero_min_speech_duration", default=0.25, help="-",type=float)
 
@@ -200,7 +199,6 @@ def main(
 
     filter_hpf:Optional[int],
     vad:str,
-    vad_google_mode:str,
     vad_silero_threshold:float,
     vad_silero_min_speech_duration:float,
     verbose:str,
@@ -290,9 +288,6 @@ def main(
             filters.append(filter_highPass)
         # VADフィルタの準備
         filter_vad_inst:filter.VoiceActivityDetectorFilter = {
-            val.VAD_VALUE_GOOGLE: lambda: filter.GoogleVadFilter(
-                val.MIC_SAMPLE_RATE,
-                int(vad_google_mode)),
             val.VAD_VALUE_SILERO: lambda: filter.SileroVadFilter(
                 val.MIC_SAMPLE_RATE),
             val.VAD_VALUE_YAMNET: lambda: filter.YAMNetVadFilter(
