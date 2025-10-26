@@ -73,13 +73,6 @@ def __support_silero_vad() -> bool:
     else:
         return SUPPORT_CUDA
 
-def __choice_vad() -> list[str]:
-    r = [ VAD_VALUE_GOOGLE ]
-    if __support_silero_vad():
-        r.append(VAD_VALUE_SILERO)
-
-    return r
-
 class Console(Enum):
     Bold = "\033[1m"
     """太字"""
@@ -210,9 +203,12 @@ ARG_CHOICE_MIC_API = [
 MIC_SAMPLE_RATE = 16000
 MIC_SAMPLE_WIDTH = 2
 
-VAD_VALUE_GOOGLE = "google"
 VAD_VALUE_SILERO = "silero"
-ARG_CHOICE_VAD = __choice_vad()
+VAD_VALUE_YAMNET = "yamnet"
+ARG_CHOICE_VAD = [
+    VAD_VALUE_SILERO,
+    VAD_VALUE_YAMNET,
+]
 
 OUT_VALUE_PRINT = "print"
 OUT_VALUE_YUKARINETTE = "yukarinette"

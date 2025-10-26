@@ -1,5 +1,8 @@
-from PyInstaller.utils.hooks import collect_dynamic_libs
+from PyInstaller.utils.hooks import collect_dynamic_libs, collect_data_files
 
+
+datas = []
+datas += collect_data_files("silero_vad")
 
 
 binaries = []

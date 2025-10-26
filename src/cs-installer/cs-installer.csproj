@@ -15,7 +15,7 @@
     <PublishDir>dist</PublishDir>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
   </PropertyGroup>	
 
   <ItemGroup>

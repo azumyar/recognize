@@ -233,7 +233,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="12" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="12" />
+                            <RowDefinition Height="24" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="24" />
                             <RowDefinition Height="Auto" />
@@ -323,24 +323,6 @@
                         <TextBlock
                             Grid.Column="0" Grid.Row="6"
                             FontSize="{DynamicResource YsrFontSize}">
-                            <Run Text="雑音判定の積極性" />
-                            <Run
-                                Foreground="{DynamicResource YspInfoBrush}"
-                                BaselineAlignment="Bottom"
-                                FontFamily="{StaticResource SymbolFont}"
-                                Text="{StaticResource FontSymbolInfo}"
-                                ToolTip="VADフィルタの強度を設定します。数値が大きくなるほど積極的に雑音判定します" />
-                        </TextBlock>
-                        <ComboBox
-                            Grid.Column="3" Grid.Row="6"
-                            FontSize="{DynamicResource YsrFontSize}"
-                            ItemsSource="{Binding ConfigBinder.VadGoogleParamatersBinder, Mode=OneWay}"
-                            SelectedIndex="{Binding ConfigBinder.VadGoogleParamaterIndex.Value, Mode=TwoWay}"
-                            />
-
-                        <TextBlock
-                            Grid.Column="0" Grid.Row="8"
-                            FontSize="{DynamicResource YsrFontSize}">
                             <Run Text="HPFの強さ" />
                             <Run
                                 Foreground="{DynamicResource YspInfoBrush}"
@@ -350,11 +332,30 @@
                                 ToolTip="HPFフィルタの強度を設定します。google音声認識を使用する場合無効を推奨します" />
                         </TextBlock>
                         <ComboBox
-                            Grid.Column="3" Grid.Row="8"                            
+                            Grid.Column="3" Grid.Row="6"                            
                             FontSize="{DynamicResource YsrFontSize}"
                             ItemsSource="{Binding ConfigBinder.HpfParamatersBinder, Mode=OneWay}"
                             SelectedIndex="{Binding ConfigBinder.HpfParamaterIndex.Value, Mode=TwoWay}"
                             />
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="8"
+                            FontSize="{DynamicResource YsrFontSize}">
+                            <Run Text="音声検出方法" />
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="" />
+                        </TextBlock>
+                        <ComboBox
+                            Grid.Column="3" Grid.Row="8"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            ItemsSource="{Binding ConfigBinder.VadMethodsBinder, Mode=OneWay}"
+                            SelectedIndex="{Binding ConfigBinder.VadMethodsIndex.Value, Mode=TwoWay}"
+                            />
+
                         <Grid Grid.Column="3" Grid.Row="10" HorizontalAlignment="Right">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="92" />

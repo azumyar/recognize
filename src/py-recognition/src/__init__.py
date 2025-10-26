@@ -18,6 +18,7 @@ google.recognize_google = google.recognize_google_requests
 google.recognize_google_duplex = google.recognize_google_duplex_requests
 
 import os
+import logging as __logging
 def is_prod_or_debug() -> bool:
     '''
     exe化の際に__init.py__が実行されるので判定する
@@ -41,7 +42,12 @@ def _root_path() -> tuple[str, str]:
         return (__root, proj_root)
 
 
+# tensorflow のWARNINGがimport時点で走るものがあるので先行して抑制する
+__logging.getLogger("tensorflow").setLevel(__logging.ERROR)
+
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 from typing import Any, Callable, Iterable, Optional, NamedTuple, Literal
 import src.val as val

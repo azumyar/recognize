@@ -36,10 +36,10 @@ public class Config {
 	public float? MicrophoneThresholdDb { get; set; } = null;
 	[JsonProperty("mic_record_min_duration")]
 	public float? MicrophoneRecordMinDuration { get; set; } = null;
-	[JsonProperty("vad_google_mode")]
-	public int? VadGoogleParamater { get; set; } = null;
 	[JsonProperty("filter_hpf")]
 	public int? HpfParamater { get; set; } = null;
+	[JsonProperty("vad")]
+	public string? Vad { get; set; } = null;
 
 	// ゆかりねっと連携
 	[JsonProperty("out:yukarinette")]
@@ -282,7 +282,7 @@ public class Config {
 		arg(opt, "--mic", this.Microphone);
 		arg(opt, "--mic_db_threshold", this.MicrophoneThresholdDb);
 		arg(opt, "--mic_record_min_duration", this.MicrophoneRecordMinDuration);
-		arg(opt, "--vad_google_mode", this.VadGoogleParamater);
+		arg(opt, "--vad", this.Vad);
 		arg(opt, "--filter_hpf", this.HpfParamater);
 
 		opt.Append($"--out \"print\" "); // ないと本体が起動しないのでいったん付与する
