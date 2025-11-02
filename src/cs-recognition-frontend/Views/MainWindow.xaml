@@ -342,12 +342,6 @@
                             Grid.Column="0" Grid.Row="8"
                             FontSize="{DynamicResource YsrFontSize}">
                             <Run Text="音声検出方法" />
-                            <Run
-                                Foreground="{DynamicResource YspInfoBrush}"
-                                BaselineAlignment="Bottom"
-                                FontFamily="{StaticResource SymbolFont}"
-                                Text="{StaticResource FontSymbolInfo}"
-                                ToolTip="" />
                         </TextBlock>
                         <ComboBox
                             Grid.Column="3" Grid.Row="8"
