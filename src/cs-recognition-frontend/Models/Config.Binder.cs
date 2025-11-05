@@ -13,13 +13,21 @@ using Reactive.Bindings;
 
 namespace Haru.Kei.Models;
 public class ConfigBinder : INotifyPropertyChanged {
+	delegate int cuInit(int flags);
+	delegate int cuDeviceGetCount(ref int count);
+
+	public class TranscribeItem(string name, bool enabled) {
+		public ReactivePropertySlim<string> Name { get; } = new(initialValue: name);
+		public ReactivePropertySlim<bool> Enabled { get; } = new(initialValue: enabled);
+	}
+
 	public event PropertyChangedEventHandler? PropertyChanged;
 
-	private readonly string[] TranscribeModels = {
-		"設定しない",
-		"AI音声認識",
-		"google音声認識",
-	};
+	private readonly (string Name, bool Enabled)[] TranscribeModels = [
+		("設定しない", true),
+		("AI音声認識", CanUsedCuda()),
+		("google音声認識", true),
+	];
 	public const int TranscribeIndexNull = 0;
 	public const int TranscribeIndexAi = 1;
 	public const int TranscribeIndexGoogle = 2;
@@ -71,7 +79,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public const int VadMethodIndexYAMNet = 2;
 
 	// モデル
-	public ReactiveCollection<string> TranscribeModelsBinder { get; }
+	public ReactiveCollection<TranscribeItem> TranscribeModelsBinder { get; }
 	public ReactivePropertySlim<int> TranscribeModeIndex { get; }
 	public ReactivePropertySlim<string> GoogleLanguageBinding { get; }
 	public ReactivePropertySlim<string> GoogleTimeoutBinding { get; set; }
@@ -131,7 +139,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public ConfigBinder(Config config) {
 		// モデル
 		this.TranscribeModelsBinder = new();
-		this.TranscribeModelsBinder.AddRangeOnScheduler(TranscribeModels);
+		this.TranscribeModelsBinder.AddRangeOnScheduler(TranscribeModels.Select(x => new TranscribeItem(x.Name, x.Enabled)));
 		this.TranscribeModeIndex = new(initialValue: config.TranscribeModel switch {
 			"kotoba_whisper" => TranscribeIndexAi,
 			"google_mix" => TranscribeIndexGoogle,
@@ -363,6 +371,35 @@ public class ConfigBinder : INotifyPropertyChanged {
 	}
 	public ReadOnlyReactivePropertySlim<string> IlluminateClientDialogFilter { get; }
 	public ReadOnlyReactivePropertySlim<string?> IlluminateClientDialogDirectory { get; }
+
+	private static bool CanUsedCuda() {
+		var cudaDevice = 0;
+		var hNvcuda = default(nint);
+		try {
+			hNvcuda = Helpers.Interop.LoadLibrary("nvcuda.dll");
+			if(hNvcuda == 0) {
+				return false;
+			}
+
+			var pCuInit = Helpers.Interop.GetProcAddress(hNvcuda, "cuInit");
+			var pCuDeviceGetCount = Helpers.Interop.GetProcAddress(hNvcuda, "cuDeviceGetCount");
+			if((pCuInit == 0) || (pCuDeviceGetCount == 0)) {
+				return false;
+			}
+
+			var cuInit = System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer<cuInit>(pCuInit);
+			var cuDeviceGetCount = System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer<cuDeviceGetCount>(pCuDeviceGetCount);
+
+			cuInit(0);
+			cuDeviceGetCount(ref cudaDevice);
+		}
+		finally {
+			if(0 != hNvcuda) {
+				Helpers.Interop.FreeLibrary(hNvcuda);
+			}
+		}
+		return 0 < cudaDevice;
+	}
 
 	private string ToString<T>(T v) {
 		if(v == null) {

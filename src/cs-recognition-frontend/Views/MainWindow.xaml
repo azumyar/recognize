@@ -107,9 +107,16 @@
                         </TextBlock>
                         <ComboBox
                             Grid.Column="3" Grid.Row="0"
+                            DisplayMemberPath="Name"
                             ItemsSource="{Binding ConfigBinder.TranscribeModelsBinder, Mode=OneWay}"
                             SelectedIndex="{Binding ConfigBinder.TranscribeModeIndex.Value, Mode=TwoWay}"
-                            />
+                            >
+                            <ComboBox.ItemContainerStyle>
+                                <Style TargetType="{x:Type ComboBoxItem}">
+                                    <Setter Property="IsEnabled" Value="{Binding Enabled.Value}"/>
+                                </Style>
+                            </ComboBox.ItemContainerStyle>
+                        </ComboBox>
 
                         <TextBlock
                             Grid.Column="0" Grid.Row="2"
