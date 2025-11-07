@@ -99,8 +99,13 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public ReactivePropertySlim<int> HpfParamaterIndex { get; }
 	public ReactiveCollection<string> VadMethodsBinder { get; }
 	public ReactivePropertySlim<int> VadMethodsIndex { get; }
+	public ReactivePropertySlim<string> VadSileroThresholdBinder { get; }
+	public ReadOnlyReactivePropertySlim<Visibility> VadSileroOptionVisibility { get; }
 	public ReadOnlyReactivePropertySlim<Visibility> MicrophoneThresholdDbError { get; }
 	public ReadOnlyReactivePropertySlim<Visibility> MicrophoneRecordMinDurationError { get; }
+	// VadSileroThresholdErrorでRx合成用の一時プロパティ
+	private ReadOnlyReactivePropertySlim<Visibility> _VadSileroThresholdError { get; }
+	public ReadOnlyReactivePropertySlim<Visibility> VadSileroThresholdError { get; }
 
 	// ゆかりねっと連携
 	public ReactivePropertySlim<bool> IsUsedYukarinetteBinding { get; }
@@ -231,13 +236,42 @@ public class ConfigBinder : INotifyPropertyChanged {
 			VadMethodIndexYAMNet => "yamnet",
 			_ => null
 		});
-
+		this.VadSileroThresholdBinder = new(initialValue: this.ToString(config.VadSileroThreshold));
+		this.VadSileroThresholdBinder.Subscribe(x => {
+			config.VadSileroThreshold = this.ToFloat(x);
+		});
+		this.VadSileroOptionVisibility = this.VadMethodsIndex
+			.Select(x => x switch {
+				1 => Visibility.Visible,
+				_ => Visibility.Hidden,
+			}).ToReadOnlyReactivePropertySlim();
 		this.MicrophoneThresholdDbError = this.MicrophoneThresholdDbBinder
 			.Select(x => this.ToFloatError(x))
 			.ToReadOnlyReactivePropertySlim();
 		this.MicrophoneRecordMinDurationError = this.MicrophoneRecordMinDurationBinder
 			.Select(x => this.ToFloatError(x))
 			.ToReadOnlyReactivePropertySlim();
+		this._VadSileroThresholdError = this.VadSileroThresholdBinder
+			.Select(x => x switch {
+				string v when !string.IsNullOrEmpty(v) => ToFloat(v) switch {
+					null => Visibility.Visible,
+					float vv when(0 <= vv) && (vv <= 1.0f) => Visibility.Collapsed,
+					_ => Visibility.Visible,
+				},
+				_ => Visibility.Collapsed
+			}).ToReadOnlyReactivePropertySlim();
+		this.VadSileroThresholdError = this._VadSileroThresholdError
+			.CombineLatest(this.VadSileroOptionVisibility,
+				(p1, p2) => {
+					static bool conv(Visibility v) => v switch {
+						Visibility.Visible => true,
+						_ => false
+					};
+					return (conv(p1) && conv(p2)) switch {
+						true => Visibility.Visible,
+						_ => Visibility.Collapsed
+					};
+				}).ToReadOnlyReactivePropertySlim();
 
 		// ゆかりねっと連携
 		this.IsUsedYukarinetteBinding = new(initialValue: config.IsUsedYukarinette);
