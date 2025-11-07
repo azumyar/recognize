@@ -79,6 +79,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public ReactiveCollection<string> TranslateModelsBinder { get; set; }
 	public ReactivePropertySlim<int> TranslateModelIndex { get; }
 	public ReadOnlyReactivePropertySlim<Visibility> GoogleItemVisibility { get; }
+	private ReadOnlyReactivePropertySlim<Visibility> _GoogleTimeoutError { get; }
 	public ReadOnlyReactivePropertySlim<Visibility> GoogleTimeoutError { get; }
 
 	// マイク
@@ -165,9 +166,13 @@ public class ConfigBinder : INotifyPropertyChanged {
 				TranscribeIndexGoogle => Visibility.Visible,
 				_ => Visibility.Hidden,
 			}).ToReadOnlyReactivePropertySlim();
-		this.GoogleTimeoutError = this.GoogleTimeoutBinding
+		this._GoogleTimeoutError = this.GoogleTimeoutBinding
 			.Select(x => this.ToFloatError(x))
 			.ToReadOnlyReactivePropertySlim();
+		this.GoogleTimeoutError = this._GoogleTimeoutError
+			.CombineLatest(this.GoogleItemVisibility,
+				(p1, p2) => this.Visibilities2Visibility(p1, p2)
+			).ToReadOnlyReactivePropertySlim();
 
 		// マイク
 		this.MicDevicesBinder = new();
@@ -410,5 +415,17 @@ public class ConfigBinder : INotifyPropertyChanged {
 		} else {
 			return Visibility.Visible;
 		}
+	}
+
+	private Visibility Visibilities2Visibility(params Visibility[] visibilities) {
+		var ret = true;
+		foreach(var v in visibilities) {
+			ret &= (v == Visibility.Visible);
+		}
+
+		return ret switch {
+			true => Visibility.Visible,
+			_ => Visibility.Collapsed,
+		};
 	}
 }
