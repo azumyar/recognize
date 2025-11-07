@@ -369,7 +369,7 @@
                                 BaselineAlignment="Bottom"
                                 FontFamily="{StaticResource SymbolFont}"
                                 Text="{StaticResource FontSymbolInfo}"
-                                ToolTip="0.0～1.0の間で指定してください。初期値は0.5です" />
+                                ToolTip="音声検出の閾値を設定します。0.0～1.0の間で指定してください。0に近づくほど厳しく判定します。初期値は0.5です" />
                         </TextBlock>
                         <TextBlock
                             Grid.Column="2" Grid.Row="10"
