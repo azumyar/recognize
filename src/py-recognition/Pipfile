@@ -35,6 +35,7 @@ scipy = "*"
 soundfile = "*"
 tensorflow-hub = "*"
 tensorflow = "*"
+huggingface-hub = "*"
 
 [dev-packages]
 pyinstaller = "==6.14.2"

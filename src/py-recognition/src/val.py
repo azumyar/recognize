@@ -64,7 +64,8 @@ def __choice_method() -> list[str]:
 def __choice_translate() -> list[str]:
     r = [ "" ]
     if SUPPORT_LIB_WHISPER_KOTOBA:
-        r.append(METHOD_VALUE_WHISPER_KOTOBA)
+        r.append(TRANSLATE_VALUE_WHISPER_KOTOBA)
+        r.append(TRANSLATE_VALUE_GEMMA)
     return r
 
 def __support_silero_vad() -> bool:
@@ -183,6 +184,9 @@ METHOD_VALUE_GOOGLE_MIX = "google_mix"
 DEFALUT_METHOD_VALUE = __default_method_value()
 ARG_CHOICE_METHOD = __choice_method()
 
+TRANSLATE_VALUE_WHISPER_KOTOBA = "kotoba_whisper"
+TRANSLATE_VALUE_GEMMA = "gemma"
+DEFALUT_TRANSLATE_VALUE = ""
 ARG_CHOICE_TRANSLATE = __choice_translate()
 
 SUBTITLE_VALUE_FILE = "file"

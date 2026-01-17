@@ -85,9 +85,10 @@ def __whiper_help(s:str) -> str:
 
 @click.option("--transcribe_filter", default=None, help="変換フィルタルールファイル", type=str)
 
-@click.option("--translate", default="", help="使用する翻訳方法", type=click.Choice(val.ARG_CHOICE_TRANSLATE))
+@click.option("--translate", default=val.DEFALUT_TRANSLATE_VALUE, help="使用する翻訳方法", type=click.Choice(val.ARG_CHOICE_TRANSLATE))
 @click.option("--translate_whisper_device", default=__available_cuda(), help=__whiper_help("(whisper)翻訳に使用する演算装置"), type=click.Choice(["cpu","cuda"]))
 @click.option("--translate_whisper_device_index", default=0, help=__whiper_help("(whisper)翻訳に使用するデバイスindex"), type=int)
+@click.option("--translate_gemma_size", default=4, help=__whiper_help("(gemma)パラメータサイズ"), type=click.Choice([4,12,27]))
 
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
 @click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
@@ -102,7 +103,7 @@ def __whiper_help(s:str) -> str:
 @click.option("--mic_push_talk", default=None, help="マイクをプッシュトゥトークで使用するための監視パラメータ", type=str, multiple=True)
 
 
-@click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice(val.ARG_CHOICE_OUT), multiple=True)
+@click.option("--out", default=[val.OUT_VALUE_PRINT], help="認識結果の出力先", type=click.Choice(val.ARG_CHOICE_OUT), multiple=True)
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
 @click.option("--out_yukacone",default=None, help="ゆかコネNEOの外部連携ポートを指定", type=int)
 @click.option("--out_illuminate_exe",default="", help="-", type=str)
@@ -143,6 +144,11 @@ def __whiper_help(s:str) -> str:
 @click.option("--torch_cache", default="", help="torchがダウンロードするキャッシュの場所を指定します", type=str)
 @click.option("--feature", default="", help="-", type=str)
 @click.option("--ftr_transcribe_file", default="", help="-", type=str)
+
+
+@click.option("--huggingface_login", default="", help="huggingfaceログインコン", type=str)
+@click.option("--huggingface_logout", default=False, help="-", is_flag=True, type=bool)
+
 def main(
     test:str,
     method:str,
@@ -162,6 +168,7 @@ def main(
     translate:str,
     translate_whisper_device:str,
     translate_whisper_device_index:int,
+    translate_gemma_size:int,
 
     mic:Optional[int],
     mic_name:Optional[str],
@@ -211,7 +218,10 @@ def main(
 
     torch_cache:str,
     feature:str,
-    ftr_transcribe_file:str
+    ftr_transcribe_file:str,
+
+    huggingface_login:str,
+    huggingface_logout:bool
     ) -> None:
     from src import ilm_logger, ilm_enviroment, enable_virtual_terminal
 
@@ -221,17 +231,34 @@ def main(
     # torch/kotoba-whisperのダウンロード設定をする(torchのimport前に実施)
     if torch_cache == "" or torch_cache == None:
         os.environ["TORCH_HOME"] = \
-            os.environ["HUGGINGFACE_HUB_CACHE"] = \
             os.environ['TFHUB_CACHE_DIR'] = \
             f"{ilm_enviroment.root}{os.sep}.cache"
+        os.environ["HF_HOME"] = f"{ilm_enviroment.root}{os.sep}.cache{os.sep}huggingface"
     else:
         os.environ["TORCH_HOME"] = \
-            os.environ["HUGGINGFACE_HUB_CACHE"] = \
             os.environ['TFHUB_CACHE_DIR'] = \
             f"{torch_cache}{os.sep}.cache"     
+        os.environ["HF_HOME"] = f"{torch_cache}{os.sep}.cache{os.sep}huggingface"
 
     if out_illuminate_exe == "":
         out_illuminate_exe = "" 
+
+
+    #環境変数が設定されている必要がある
+    if huggingface_login is not None and huggingface_login != "":
+        from huggingface_hub import login
+
+        login(token=huggingface_login, add_to_git_credential=False)
+        print("done.")
+        return
+    
+    if huggingface_logout:
+        from huggingface_hub import logout
+
+        logout()
+        print("done.")
+        return
+
 
     cancel = CancellationObject()
     try:
@@ -417,9 +444,14 @@ def main(
                         is_loaded_torch = True
                     import src.recognition_torch as recognition_torch
                     translate_model = {
-                        val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition_torch.RecognizeAndTranslateModelKotobaWhisper(
+                        val.TRANSLATE_VALUE_WHISPER_KOTOBA: lambda: recognition_torch.RecognizeAndTranslateModelKotobaWhisper(
                             device=translate_whisper_device,
                             device_index=translate_whisper_device_index),
+                        val.TRANSLATE_VALUE_GEMMA: lambda: recognition_torch.TranslateModelTranslateGemma(
+                            device=translate_whisper_device,
+                            device_index=translate_whisper_device_index,
+                            parameter_size=translate_gemma_size,
+                            target="en")
                     }[translate]()
                 ilm_logger.debug(f"#翻訳モデルは{type(translate_model)}を使用", reset_console=True)
 
