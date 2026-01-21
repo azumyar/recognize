@@ -88,7 +88,7 @@ def __whiper_help(s:str) -> str:
 @click.option("--translate", default=val.DEFALUT_TRANSLATE_VALUE, help="使用する翻訳方法", type=click.Choice(val.ARG_CHOICE_TRANSLATE))
 @click.option("--translate_whisper_device", default=__available_cuda(), help=__whiper_help("(whisper)翻訳に使用する演算装置"), type=click.Choice(["cpu","cuda"]))
 @click.option("--translate_whisper_device_index", default=0, help=__whiper_help("(whisper)翻訳に使用するデバイスindex"), type=int)
-@click.option("--translate_gemma_size", default=4, help=__whiper_help("(gemma)パラメータサイズ"), type=click.Choice([4,12,27]))
+@click.option("--translate_gemma_size", default="4", help=__whiper_help("(gemma)パラメータサイズ"), type=click.Choice(["4","12","27"]))
 
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
 @click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
@@ -146,9 +146,8 @@ def __whiper_help(s:str) -> str:
 @click.option("--ftr_transcribe_file", default="", help="-", type=str)
 
 
-@click.option("--huggingface_login", default="", help="huggingfaceログインコン", type=str)
-@click.option("--huggingface_logout", default=False, help="-", is_flag=True, type=bool)
-
+@click.option("--huggingface_login", default="", help="huggingfaceログイン", type=str)
+@click.option("--huggingface_logout", default=False, help="huggingface", is_flag=True, type=bool)
 def main(
     test:str,
     method:str,
@@ -168,8 +167,7 @@ def main(
     translate:str,
     translate_whisper_device:str,
     translate_whisper_device_index:int,
-    translate_gemma_size:int,
-
+    translate_gemma_size:str,
     mic:Optional[int],
     mic_name:Optional[str],
     #mic_api:str,

@@ -465,7 +465,7 @@ else:
 
 
     class TranslateModelTranslateGemma(TranslateModel):
-        def __init__(self, device:str, device_index:int, parameter_size:int, target:str) -> None:
+        def __init__(self, device:str, device_index:int, parameter_size:str, target:str) -> None:
             torch_dtype = torch.bfloat16 if device == "cuda" else torch.float32
 
             if device == "cuda":
