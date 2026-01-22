@@ -8,8 +8,8 @@ python -m pipenv install --dev
 if %errorlevel% neq 0 goto error
 
 python -m pipenv requirements > requirements.txt
-echo pyinstaller==6.14.2 >> requirements.txt
-echo pyinstaller-hooks-contrib==2025.8 >> requirements.txt
+echo pyinstaller==6.18 >> requirements.txt
+echo pyinstaller-hooks-contrib==2025.11 >> requirements.txt
 
 popd
 exit /b 0
