@@ -37,7 +37,7 @@ class Logger {
 	private string Prefix() {
 		var pid = Process.GetCurrentProcess().Id;
 		var tid = Thread.CurrentThread.ManagedThreadId;
-		var time = DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+		var time = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
 		return $"{time}[{pid}][{tid}]";
 	}
 
