@@ -280,7 +280,19 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 				x = pxLeft,
 				y = pyTop,
 			};
+			{
+				var rc = new Interop.RECT();
+				var wpc = new Interop.WINDOWPLACEMENT() {
+					length = System.Runtime.InteropServices.Marshal.SizeOf(typeof(Interop.WINDOWPLACEMENT))
+				};
+				Interop.GetWindowRect(hTargetWindow, out rc);
+				Interop.GetWindowPlacement(hTargetWindow, ref wpc);
+				LogDebug($"ウインドウ情報：(l,t,r,b)=({rc.left}, {rc.top}, {rc.right}, {rc.bottom}), showCmd={wpc.showCmd}");
+				LogDebug($"テキストボックス情報：(x,y,w,h)=({pxLeft}, {pyTop}, {pcxWidth}, {pcyHeight})");
+			}
+			LogDebug($"スクリーン座標：{pt.x}, {pt.y}");
 			Interop.ScreenToClient(hTargetWindow, ref pt);
+			LogDebug($"ウインドウ座標：{pt.x}, {pt.y}");
 			Util.PlatformClick(
 				this.hTargetWindow,
 				pt.x + 4,
