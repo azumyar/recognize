@@ -66,6 +66,62 @@ class Device(NamedTuple):
         return f"{self.device_no} : {self.name}"
 
 class Microphone:
+    def __init__(self) -> None:
+        pass
+
+    @property
+    def device_name(self) -> str:
+        ...
+
+    @property
+    def energy_threshold(self) -> float:
+        ...
+
+    @property
+    def start_insert_sec(self) -> float:
+        ...
+
+    @property
+    def end_insert_sec(self) -> float:
+        ...
+
+    @property
+    def record_min_sec(self) -> float:
+        ...
+
+    @property
+    def sample_rate(self) -> int:
+        ...
+
+    @property
+    def sample_width(self) -> int:
+        ...
+
+    @property
+    def chunk_size(self) -> int:
+        ...
+
+    @staticmethod
+    def query_devices() -> list[Device]:
+        r:list[Device] = []
+        for hostapi in sounddevice.query_hostapis():
+            if hostapi["name"].lower() == "mme": #type: ignore
+                for device_numbar in hostapi["devices"]: #type: ignore
+                    device = sounddevice.query_devices(device=device_numbar)
+                    if 0 < device["max_input_channels"]: #type: ignore
+                        r.append(Device(device_numbar, hostapi["name"], device["name"])) #type: ignore
+        return r
+
+    def listen(
+        self,
+        onrecord:Callable[[int, ListenResultParam], None],
+        cancel:CancellationObject,
+        opt_enable_energy_threshold:bool = True,
+        opt_enable_indicator:bool|None = None):
+        ...
+
+
+class DeviceMicrophone(Microphone):
     __BAR_COLOR_NONE = val.Console.background_index(240)
     __BAR_COLOR_ENAGY_OK = val.Console.background_index(35)
     __BAR_COLOR_VAD_OK = val.Console.background_index(39)
@@ -130,17 +186,6 @@ class Microphone:
     def sample_width(self) -> int: return self.__sample_width
     @property
     def chunk_size(self) -> int: return self.__chunk_size
-
-    @staticmethod
-    def query_devices() -> list[Device]:
-        r:list[Device] = []
-        for hostapi in sounddevice.query_hostapis():
-            if hostapi["name"].lower() == "mme": #type: ignore
-                for device_numbar in hostapi["devices"]: #type: ignore
-                    device = sounddevice.query_devices(device=device_numbar)
-                    if 0 < device["max_input_channels"]: #type: ignore
-                        r.append(Device(device_numbar, hostapi["name"], device["name"])) #type: ignore
-        return r
 
     def listen(
         self,
@@ -446,13 +491,13 @@ class Microphone:
 
     def __indicate(self, dB, print:Any):
         if rms2db(self.energy_threshold) < dB:
-            color = Microphone.__BAR_COLOR_ENAGY_OK
+            color = DeviceMicrophone.__BAR_COLOR_ENAGY_OK
         else:
-            color = Microphone.__BAR_COLOR_NONE
+            color = DeviceMicrophone.__BAR_COLOR_NONE
         self.__print_dB("！", dB, color, print)
 
     def __indicate_pahse2(self, dB, print:Any):
-        self.__print_dB("＃", dB, Microphone.__BAR_COLOR_VAD_OK, print)
+        self.__print_dB("＃", dB, DeviceMicrophone.__BAR_COLOR_VAD_OK, print)
 
     def __print_dB(self, str, dB, color:str, print:Any):
-        self.__indicator.update(str, dB, color, Microphone.__BAR_COLOR_BACKGROUND, print)
+        self.__indicator.update(str, dB, color, DeviceMicrophone.__BAR_COLOR_BACKGROUND, print)

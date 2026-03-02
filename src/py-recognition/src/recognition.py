@@ -65,6 +65,15 @@ class GoogleMicrophoneConfig(RecognizeMicrophoneConfig):
             head_insert_duration if not head_insert_duration is None else GoogleMicrophoneConfig.__DEFAULT_HEAD_DULATION,
             tail_insert_duration if not tail_insert_duration is None else GoogleMicrophoneConfig.__DEFAULT_TAIL_DULATION)
 
+class ChromeMicrophoneConfig(RecognizeMicrophoneConfig):
+    __DEFAULT_HEAD_DULATION = 0.
+    __DEFAULT_TAIL_DULATION = 0.
+
+    def __init__(self, head_insert_duration:float | None = None, tail_insert_duration:float | None = None) -> None:
+        super().__init__(
+            head_insert_duration if not head_insert_duration is None else ChromeMicrophoneConfig.__DEFAULT_HEAD_DULATION,
+            tail_insert_duration if not tail_insert_duration is None else ChromeMicrophoneConfig.__DEFAULT_TAIL_DULATION)
+
 
 class RecognitionModel:
     """
@@ -436,6 +445,27 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
             raise raise_ex
         finally:
             thread_pool.shutdown(wait=False)
+
+class RecognitionModelChrome(RecognitionModel):
+    """
+    google系認識モデルの基底クラス    
+    """
+    def __init__(self):
+        pass
+
+    @property
+    def required_sample_rate(self) -> int | None:
+        return None
+
+    def get_verbose(self, verbose:int) -> str | None:
+        return None
+
+    def get_log_info(self) -> str | None:
+        return ""
+
+    def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
+        return TranscribeResult("", None)
+
 
 class TranscribeException(ex.IlluminateException):
     """

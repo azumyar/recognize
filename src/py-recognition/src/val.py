@@ -59,7 +59,7 @@ def __choice_method() -> list[str]:
     if SUPPORT_LIB_WHISPER_KOTOBA:
         r.append(METHOD_VALUE_WHISPER_KOTOBA)
 
-    return r + [METHOD_VALUE_GOOGLE, METHOD_VALUE_GOOGLE_DUPLEX, METHOD_VALUE_GOOGLE_MIX]
+    return r + [METHOD_VALUE_GOOGLE, METHOD_VALUE_GOOGLE_DUPLEX, METHOD_VALUE_GOOGLE_MIX, METHOD_VALUE_CHROME]
 
 def __choice_translate() -> list[str]:
     r = [ "" ]
@@ -181,6 +181,7 @@ METHOD_VALUE_WHISPER_KOTOBA = "kotoba_whisper"
 METHOD_VALUE_GOOGLE= "google"
 METHOD_VALUE_GOOGLE_DUPLEX = "google_duplex"
 METHOD_VALUE_GOOGLE_MIX = "google_mix"
+METHOD_VALUE_CHROME = "chrome"
 DEFALUT_METHOD_VALUE = __default_method_value()
 ARG_CHOICE_METHOD = __choice_method()
 

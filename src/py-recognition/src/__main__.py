@@ -333,6 +333,7 @@ def main(
             val.METHOD_VALUE_GOOGLE: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
+            val.METHOD_VALUE_CHROME: lambda: recognition.ChromeMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration)
         }[method]()
 
         def mp_value(db, en): return db if en is None else en
@@ -347,7 +348,7 @@ def main(
                 ilm_logger.info(f"マイク[{mic_name}]を検索しましたが見つかりませんでした", console=val.Console.Red, reset_console=True)
                 ilm_logger.log("query_devices() microphone not found")
 
-        mc = microphone.Microphone(
+        mc = microphone.DeviceMicrophone(
             mp_energy,
             mp_recog_conf,
             filter_vad_inst,
@@ -429,6 +430,7 @@ def main(
                         challenge=google_error_retry,
                         parallel_max_duplex=google_duplex_parallel_max,
                         parallel_reduce_count_duplex=google_duplex_parallel_reduce_count),
+                    val.METHOD_VALUE_CHROME: lambda: recognition.RecognitionModelChrome(),
                 }[method]()
             ilm_logger.debug(f"#認識モデルは{type(recognition_model)}を使用", reset_console=True)
 
