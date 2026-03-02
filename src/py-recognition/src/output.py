@@ -195,8 +195,6 @@ class IlluminateSpeechOutputer(WebSocketOutputer):
             args.append("--debug")
         if len(ext_args):
             args.append(ext_args)
-        print(ext_args)
-        print(args)
         subprocess.Popen(args)
 
     def output(self, text_ja:str, text_en:str) -> str:
