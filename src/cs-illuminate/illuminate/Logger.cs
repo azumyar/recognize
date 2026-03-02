@@ -13,7 +13,7 @@ namespace Haru.Kei;
 class Logger {
 	public static Logger Current { get; } = new();
 	public static string GenRotateLogFileName() =>
-		$"{DefaultLogName}.{DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss", System.Globalization.CultureInfo.InvariantCulture)}";
+		$"{DefaultLogName}.{DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss", System.Globalization.CultureInfo.InvariantCulture)}.log";
 
 	private const string DefaultLogName= "illuminate";
 	private const string DefaultLogFile = $"{DefaultLogName}.log";
