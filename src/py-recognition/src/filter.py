@@ -3,8 +3,6 @@ import io
 import numpy
 import torchaudio
 import scipy
-import tensorflow
-import tensorflow_hub
 import csv
 from silero_vad import load_silero_vad, get_speech_timestamps
 
@@ -112,38 +110,44 @@ class SileroVadFilter(VoiceActivityDetectorFilter):
         return 0 < len(speech_timestamps)
     
 
-class YAMNetVadFilter(VoiceActivityDetectorFilter):
-    """
-    YAMNet-VADフィルタ
-    """
+try:
+    import tensorflow
+    import tensorflow_hub
+except:
+    pass
+else:
+    class YAMNetVadFilter(VoiceActivityDetectorFilter):
+        """
+        YAMNet-VADフィルタ
+        """
 
-    def __init__(   
-        self,
-        sampling_rate:int):
+        def __init__(   
+            self,
+            sampling_rate:int):
 
-        self.__model = tensorflow_hub.load("https://tfhub.dev/google/yamnet/1")
-        self.__classes = [
-            "Speech",
-            "Speech synthesizer",
-            "Narration, monologue"
-        ]
+            self.__model = tensorflow_hub.load("https://tfhub.dev/google/yamnet/1")
+            self.__classes = [
+                "Speech",
+                "Speech synthesizer",
+                "Narration, monologue"
+            ]
 
-        # YAMNetクラス名一覧取得
-        with tensorflow.io.gfile.GFile(self.__model.class_map_path().numpy()) as csvfile:
-            reader = csv.DictReader(csvfile)
-            self.__class_names = list(map(lambda x: x["display_name"], reader))
+            # YAMNetクラス名一覧取得
+            with tensorflow.io.gfile.GFile(self.__model.class_map_path().numpy()) as csvfile:
+                reader = csv.DictReader(csvfile)
+                self.__class_names = list(map(lambda x: x["display_name"], reader))
 
-    @property
-    def mic_pause_duration(self) -> float:
-        return 0.4
+        @property
+        def mic_pause_duration(self) -> float:
+            return 0.4
 
-    def check(self, data:bytes) -> bool:
-        wav = numpy.frombuffer(data, dtype=numpy.int16)
-        waveform = wav / tensorflow.int16.max
+        def check(self, data:bytes) -> bool:
+            wav = numpy.frombuffer(data, dtype=numpy.int16)
+            waveform = wav / tensorflow.int16.max
 
-        scores, _, _ = self.__model(waveform)
-        scores_np = scores.numpy()
+            scores, _, _ = self.__model(waveform)
+            scores_np = scores.numpy()
 
-        class_scores = {cls: sc for cls, sc in zip(self.__class_names, scores_np.mean(axis=0))}
+            class_scores = {cls: sc for cls, sc in zip(self.__class_names, scores_np.mean(axis=0))}
 
-        return 0.1 < sum(map(lambda x: class_scores[x], self.__classes))
+            return 0.1 < sum(map(lambda x: class_scores[x], self.__classes))
