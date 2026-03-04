@@ -110,44 +110,41 @@ class SileroVadFilter(VoiceActivityDetectorFilter):
         return 0 < len(speech_timestamps)
     
 
-try:
-    import tensorflow
-    import tensorflow_hub
-except:
-    pass
-else:
-    class YAMNetVadFilter(VoiceActivityDetectorFilter):
-        """
-        YAMNet-VADフィルタ
-        """
+import tensorflow
+import tensorflow_hub
 
-        def __init__(   
-            self,
-            sampling_rate:int):
+class YAMNetVadFilter(VoiceActivityDetectorFilter):
+    """
+    YAMNet-VADフィルタ
+    """
 
-            self.__model = tensorflow_hub.load("https://tfhub.dev/google/yamnet/1")
-            self.__classes = [
-                "Speech",
-                "Speech synthesizer",
-                "Narration, monologue"
-            ]
+    def __init__(   
+        self,
+        sampling_rate:int):
 
-            # YAMNetクラス名一覧取得
-            with tensorflow.io.gfile.GFile(self.__model.class_map_path().numpy()) as csvfile:
-                reader = csv.DictReader(csvfile)
-                self.__class_names = list(map(lambda x: x["display_name"], reader))
+        self.__model = tensorflow_hub.load("https://tfhub.dev/google/yamnet/1")
+        self.__classes = [
+            "Speech",
+            "Speech synthesizer",
+            "Narration, monologue"
+        ]
 
-        @property
-        def mic_pause_duration(self) -> float:
-            return 0.4
+        # YAMNetクラス名一覧取得
+        with tensorflow.io.gfile.GFile(self.__model.class_map_path().numpy()) as csvfile:
+            reader = csv.DictReader(csvfile)
+            self.__class_names = list(map(lambda x: x["display_name"], reader))
 
-        def check(self, data:bytes) -> bool:
-            wav = numpy.frombuffer(data, dtype=numpy.int16)
-            waveform = wav / tensorflow.int16.max
+    @property
+    def mic_pause_duration(self) -> float:
+        return 0.4
 
-            scores, _, _ = self.__model(waveform)
-            scores_np = scores.numpy()
+    def check(self, data:bytes) -> bool:
+        wav = numpy.frombuffer(data, dtype=numpy.int16)
+        waveform = wav / tensorflow.int16.max
 
-            class_scores = {cls: sc for cls, sc in zip(self.__class_names, scores_np.mean(axis=0))}
+        scores, _, _ = self.__model(waveform)
+        scores_np = scores.numpy()
 
-            return 0.1 < sum(map(lambda x: class_scores[x], self.__classes))
+        class_scores = {cls: sc for cls, sc in zip(self.__class_names, scores_np.mean(axis=0))}
+
+        return 0.1 < sum(map(lambda x: class_scores[x], self.__classes))

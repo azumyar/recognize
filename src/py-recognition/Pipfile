@@ -20,7 +20,8 @@ pynput = "*"
 pyaudio = "*"
 websockets = "*"
 requests = "*"
-#faster-whisper = "*"
+faster-whisper = "*"
+openai-whisper = "*"
 #openai-whisper = {git = "git+https://github.com/openai/whisper.git"}
 #faster-whisper = {git = "git+https://github.com/guillaumekln/faster-whisper.git"}
 transformers = "*"
@@ -33,10 +34,9 @@ openvr = "*"
 silero-vad = "*"
 scipy = "*"
 soundfile = "*"
-#tensorflow-hub = "*"
-#tensorflow = "*"
+tensorflow-hub = "*"
+tensorflow = "*"
 huggingface-hub = "*"
-#openai-whisper = ""
 
 [dev-packages]
 pyinstaller = "==6.18.0"
