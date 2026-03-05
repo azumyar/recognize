@@ -68,7 +68,7 @@ def run_mic(
 
 
 def run_ambient(
-    mic:src.microphone.Microphone,
+    mic:src.microphone.DeviceMicrophone,
     timeout:float,
     logger:Logger,
     _:str) -> None:

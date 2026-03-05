@@ -37,6 +37,7 @@ soundfile = "*"
 tensorflow-hub = "*"
 tensorflow = "*"
 huggingface-hub = "*"
+lazyasd = "*"
 
 [dev-packages]
 pyinstaller = "==6.18.0"

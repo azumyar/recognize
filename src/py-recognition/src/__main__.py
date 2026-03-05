@@ -11,9 +11,9 @@ from typing import Any, Callable, Iterable, Optional, NamedTuple
 from src import Logger, Enviroment, db2rms, rms2db, ilm_logger, mm_atach, mm_is_capture_device
 import src.main_run as main_run
 import src.main_test as main_test
+import src.interface as inf
 import src.filter_transcribe as filter_t
 import src.recognition as recognition
-import src.recognition_translate as translate_
 import src.output as output
 import src.output_subtitle as output_subtitle
 import src.microphone as microphone
@@ -23,6 +23,7 @@ import src.exception
 from src.main_common import Record
 from src.cancellation import CancellationObject
 import src.filter as filter
+import src.filter_vad as filter_vad
 
 def select_google_tcp(ctx, param, value):
     import src.google_recognizers as google
@@ -307,7 +308,7 @@ def main(
         rec = Record(record, record_file, record_directory)
 
         # マイクにフィルタを渡すので先に用意
-        filter_highPass:filter.NoiseFilter | None = None
+        filter_highPass:inf.NoiseFilter | None = None
         filters = []
         if not filter_hpf is None:
             filter_highPass = filter.HighPassFilter(
@@ -315,11 +316,11 @@ def main(
                 filter_hpf)
             filters.append(filter_highPass)
         # VADフィルタの準備
-        filter_vad_inst:filter.VoiceActivityDetectorFilter = {
-            val.VAD_VALUE_SILERO: lambda: filter.SileroVadFilter(
+        filter_vad_inst:inf.VoiceActivityDetectorFilter = {
+            val.VAD_VALUE_SILERO: lambda: filter_vad.SileroVadFilter(
                 val.MIC_SAMPLE_RATE,
                 vad_silero_threshold),
-            val.VAD_VALUE_YAMNET: lambda: filter.YAMNetVadFilter(
+            val.VAD_VALUE_YAMNET: lambda: filter_vad.YAMNetVadFilter(
                 val.MIC_SAMPLE_RATE),
         }[vad]()
         filters.append(filter_vad_inst)
@@ -377,7 +378,7 @@ def main(
             is_loaded_torch = False
 
             ilm_logger.print("認識モデルの初期化")
-            if method in [val.METHOD_VALUE_WHISPER, val.METHOD_VALUE_WHISPER_FASTER, val.METHOD_VALUE_WHISPER_KOTOBA]:
+            if False and method in [val.METHOD_VALUE_WHISPER, val.METHOD_VALUE_WHISPER_FASTER, val.METHOD_VALUE_WHISPER_KOTOBA]:
                 if not is_loaded_torch:
                     ilm_logger.print("torchをロードします。この処理は時間がかかることがあります", console=val.Console.Yellow, reset_console=True)
                     is_loaded_torch = True
@@ -400,57 +401,73 @@ def main(
                         device_index=whisper_device_index),
                 }[method]()
             else:
-                recognition_model:recognition.RecognitionModel = {
-                    val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
-                        sample_rate=sampling_rate,
-                        sample_width=2,
-                        convert_sample_rete=google_convert_sampling_rate,
-                        language=google_language,
-                        profanity_filter=google_profanity_filter,
-                        timeout=google_timeout if 0 < google_timeout else None,
-                        challenge=google_error_retry),
-                    val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.RecognitionModelGoogleDuplex(
-                        sample_rate=sampling_rate,
-                        sample_width=2,
-                        convert_sample_rete=google_convert_sampling_rate,
-                        language=google_language,
-                        profanity_filter=google_profanity_filter,
-                        timeout=google_timeout if 0 < google_timeout else None,
-                        challenge=google_error_retry,
-                        is_parallel_run=google_duplex_parallel,
-                        parallel_max=google_duplex_parallel_max,
-                        parallel_reduce_count=google_duplex_parallel_reduce_count),
-                    val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.RecognitionModelGoogleMix(
-                        sample_rate=sampling_rate,
-                        sample_width=2,
-                        convert_sample_rete=google_convert_sampling_rate,
-                        language=google_language,
-                        profanity_filter=google_profanity_filter,
-                        timeout=google_timeout if 0 < google_timeout else None,
-                        challenge=google_error_retry,
-                        parallel_max_duplex=google_duplex_parallel_max,
-                        parallel_reduce_count_duplex=google_duplex_parallel_reduce_count),
-                    val.METHOD_VALUE_CHROME: lambda: recognition.RecognitionModelChrome(),
-                }[method]()
+                pass
+
+            recognition_model:inf.RecognitionModel = {
+                    val.METHOD_VALUE_WHISPER: lambda: recognition.RecognitionModelWhisper(
+                        model=whisper_model,
+                        language=whisper_language,
+                        device=whisper_device,
+                        download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
+                    val.METHOD_VALUE_WHISPER_FASTER: lambda:  recognition.RecognitionModelWhisperFaster(
+                        model=whisper_model,
+                        language=whisper_language,
+                        device=whisper_device,
+                        device_index=whisper_device_index,
+                        download_root=f"{ilm_enviroment.root}{os.sep}.cache"),
+                    val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition.RecognizeAndTranslateModelKotobaWhisper(
+                        device=whisper_device,
+                        device_index=whisper_device_index),
+                val.METHOD_VALUE_GOOGLE: lambda: recognition.RecognitionModelGoogle(
+                    sample_rate=sampling_rate,
+                    sample_width=2,
+                    convert_sample_rete=google_convert_sampling_rate,
+                    language=google_language,
+                    profanity_filter=google_profanity_filter,
+                    timeout=google_timeout if 0 < google_timeout else None,
+                    challenge=google_error_retry),
+                val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.RecognitionModelGoogleDuplex(
+                    sample_rate=sampling_rate,
+                    sample_width=2,
+                    convert_sample_rete=google_convert_sampling_rate,
+                    language=google_language,
+                    profanity_filter=google_profanity_filter,
+                    timeout=google_timeout if 0 < google_timeout else None,
+                    challenge=google_error_retry,
+                    is_parallel_run=google_duplex_parallel,
+                    parallel_max=google_duplex_parallel_max,
+                    parallel_reduce_count=google_duplex_parallel_reduce_count),
+                val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.RecognitionModelGoogleMix(
+                    sample_rate=sampling_rate,
+                    sample_width=2,
+                    convert_sample_rete=google_convert_sampling_rate,
+                    language=google_language,
+                    profanity_filter=google_profanity_filter,
+                    timeout=google_timeout if 0 < google_timeout else None,
+                    challenge=google_error_retry,
+                    parallel_max_duplex=google_duplex_parallel_max,
+                    parallel_reduce_count_duplex=google_duplex_parallel_reduce_count),
+                val.METHOD_VALUE_CHROME: lambda: recognition.RecognitionModelChrome(),
+            }[method]()
             ilm_logger.debug(f"#認識モデルは{type(recognition_model)}を使用", reset_console=True)
 
             if translate == "":
-                translate_model:None|translate_.TranslateModel = None
+                translate_model:None|inf.TranslateModel = None
             else:
                 ilm_logger.print("翻訳モデルの初期化")
                 if translate == method:
-                    assert(isinstance(recognition_model, translate_.TranslateModel))
+                    assert(isinstance(recognition_model, inf.TranslateModel))
                     translate_model = recognition_model
                 else:
-                    if not is_loaded_torch:
-                        ilm_logger.print("torchをロードします。この処理は時間がかかることがあります", console=val.Console.Yellow, reset_console=True)
-                        is_loaded_torch = True
-                    import src.recognition_torch as recognition_torch
+                    #if not is_loaded_torch:
+                    #    ilm_logger.print("torchをロードします。この処理は時間がかかることがあります", console=val.Console.Yellow, reset_console=True)
+                    #    is_loaded_torch = True
+                    #import src.recognition_torch as recognition_torch
                     translate_model = {
-                        val.TRANSLATE_VALUE_WHISPER_KOTOBA: lambda: recognition_torch.RecognizeAndTranslateModelKotobaWhisper(
+                        val.TRANSLATE_VALUE_WHISPER_KOTOBA: lambda: recognition.RecognizeAndTranslateModelKotobaWhisper(
                             device=translate_whisper_device,
                             device_index=translate_whisper_device_index),
-                        val.TRANSLATE_VALUE_GEMMA: lambda: recognition_torch.TranslateModelTranslateGemma(
+                        val.TRANSLATE_VALUE_GEMMA: lambda: recognition.TranslateModelTranslateGemma(
                             device=translate_whisper_device,
                             device_index=translate_whisper_device_index,
                             parameter_size=translate_gemma_size,
@@ -551,7 +568,7 @@ def main(
 
             if feature == "transcribe":
                 import src.feature_transcribe
-                assert(isinstance(recognition_model, recognition.RecognitionModel))
+                assert(isinstance(recognition_model, inf.RecognitionModel))
                 src.feature_transcribe.run(
                     ftr_transcribe_file,
                     recognition_model,
@@ -560,7 +577,7 @@ def main(
                     feature)
             else:
                 ilm_logger.print("認識中…")
-                assert(isinstance(recognition_model, recognition.RecognitionModel))
+                assert(isinstance(recognition_model, inf.RecognitionModel))
                 main_run.run(
                     mc,
                     recognition_model,

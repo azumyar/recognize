@@ -7,6 +7,7 @@ import numpy as np
 from typing import Any, Callable, Deque, NamedTuple
 
 from src import Logger, rms2db
+import src.interface as inf
 import src.recognition as recognition
 import src.filter as filter
 import src.val as val
@@ -131,7 +132,7 @@ class DeviceMicrophone(Microphone):
             self,
             energy_threshold:float,
             mp_recog_conf:recognition.RecognizeMicrophoneConfig,
-            filter_vad:filter.VoiceActivityDetectorFilter,
+            filter_vad:inf.VoiceActivityDetectorFilter,
             filter_highPass:filter.HighPassFilter | None,
             phase2_sec:float | None,
             record_min_sec:float,

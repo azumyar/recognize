@@ -1,7 +1,7 @@
 -i https://pypi.org/simple
 --extra-index-url https://download.pytorch.org/whl/cu128
 absl-py==2.4.0; python_version >= '3.10'
-accelerate==1.12.0; python_full_version >= '3.10.0'
+accelerate==1.13.0; python_full_version >= '3.10.0'
 anyio==4.12.1; python_version >= '3.9'
 astunparse==1.6.3
 av==16.1.0; python_version >= '3.10'
@@ -27,6 +27,7 @@ huggingface-hub==1.5.0; python_full_version >= '3.9.0'
 idna==3.11; python_version >= '3.8'
 jinja2==3.1.6; python_version >= '3.7'
 keras==3.13.2; python_version >= '3.11'
+lazyasd==0.1.4
 libclang==18.1.1
 llvmlite==0.46.0; python_version >= '3.10'
 markdown==3.10.2; python_version >= '3.10'
@@ -81,9 +82,8 @@ torch==2.7.0+cu128
 torchaudio==2.7.0+cu128
 torchvision==0.22.0+cu128
 tqdm==4.67.3; python_version >= '3.7'
-transformers==5.2.0; python_full_version >= '3.10.0'
+transformers==5.3.0; python_full_version >= '3.10.0'
 typer==0.3.2; python_version >= '3.6'
-typer-slim==0.0.1; python_version >= '3.7'
 typing-extensions==4.15.0; python_version >= '3.9'
 urllib3==2.6.3; python_version >= '3.9'
 websocket-client==1.9.0; python_version >= '3.9'

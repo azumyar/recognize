@@ -1,5 +1,14 @@
 from PyInstaller.utils.hooks import collect_dynamic_libs, collect_data_files
 
+hiddenimports = [
+    "whisper",
+    "faster_whisper",
+    "transformers",
+    "torch",
+    "tensorflow",
+    "tensorflow_hub",
+]
+
 
 datas = []
 datas += collect_data_files("silero_vad")

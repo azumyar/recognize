@@ -14,9 +14,9 @@ from typing import Any, Callable, Iterable, Optional, NamedTuple
 
 
 from src import Logger, Enviroment, db2rms, rms2db
+import src.interface as inf
 import src.microphone
 import src.recognition as recognition
-import src.recognition_translate as recognition_translate
 import src.output as output
 import src.output_subtitle as output_subtitle
 import src.val as val
@@ -28,8 +28,8 @@ from src.main_common import Record, save_wav
 
 def run(
     mic:src.microphone.Microphone,
-    recognition_model:recognition.RecognitionModel,
-    translate_model:None|recognition_translate.TranslateModel,
+    recognition_model:inf.RecognitionModel,
+    translate_model:None|inf.TranslateModel,
     filter_transcribe:filter_t.TranscribeFilter,
     outputers:list[output.RecognitionOutputer],
     record:Record,
@@ -122,7 +122,7 @@ def run(
                     translate_model.required_sample_rate,
                     None)
             r = performance(lambda: recognition_model.transcribe(np.frombuffer(d, np.int16).flatten()))
-            assert(isinstance(r.result, recognition.TranscribeResult)) # ジェネリクス使った型定義の方法がわかってないのでassert置いて型を確定させる
+            assert(isinstance(r.result, inf.TranscribeResult)) # ジェネリクス使った型定義の方法がわかってないのでassert置いて型を確定させる
             if r.result.transcribe not in ["", " ", "\n", None]:
                 def green(o:object, dg:str = "") -> str:
                     return f"{val.Console.Green.value}{o}{dg}{val.Console.Reset.value}"
@@ -132,7 +132,7 @@ def run(
 
                 if translate_model != None:
                     rr = performance(lambda: translate_model.translate(np.frombuffer(dd, np.int16).flatten(), r.result.transcribe )) # type: ignore
-                    assert(isinstance(rr.result, recognition_translate.TranslateResult))
+                    assert(isinstance(rr.result, inf.TranslateResult))
                     translate = rr.result.translate
 
                     if env.verbose == val.VERBOSE_INFO:
@@ -197,7 +197,7 @@ def run(
             log_insert:str
             log_en_info = " - "
             if not r.result is None:
-                assert(isinstance(r.result, recognition.TranscribeResult)) # ジェネリクス使った型定義の方法がわかってないのでassert置いて型を確定させる
+                assert(isinstance(r.result, inf.TranscribeResult)) # ジェネリクス使った型定義の方法がわかってないのでassert置いて型を確定させる
                 if r.result.transcribe not in ["", " ", "\n", None]:
                     log_transcribe = r.result.transcribe
                 if not r.result.extend_data is None:
@@ -205,7 +205,7 @@ def run(
                 log_time = f"{round(r.time, 2)}s {round(r.time/pcm_sec, 2)}tps"
                 log_transcribe_filter = transcribe_filter
             if not rr.result is None:
-                assert(isinstance(rr.result, recognition_translate.TranslateResult))
+                assert(isinstance(rr.result, inf.TranslateResult))
                 log_translate = rr.result.translate
                 log_time_translate = f"{round(rr.time, 2)}s {round(rr.time/pcm_sec, 2)}tps"
             if not log_exception is None:
