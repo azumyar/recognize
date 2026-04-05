@@ -26,6 +26,37 @@ import src.filter_transcribe as filter_t
 from src.cancellation import CancellationObject
 from src.main_common import Record, save_wav
 
+def __fill_right(text:str) -> str:
+    import re
+    l = sum(map(lambda x: 1 if ord(x) < 256 else 2, re.sub("\033\\[[^m]+m", "", text)))
+    if l < 80:
+        return text + "".join(map(lambda _: " ", range(80 - l)))
+    else:
+        return text
+
+def __filter(
+    index:int,
+    transcribe:str,
+    filter_transcribe:filter_t.TranscribeFilter,
+    env:Enviroment,
+    logger:Logger) -> str:
+
+    if not filter_transcribe.has_rule:
+        return transcribe
+
+    transcribe_filter = filter_transcribe.filter(transcribe)
+    if env.verbose == val.VERBOSE_INFO:
+        logger.notice(f"#{index}", end=" ")
+    logger.notice(__fill_right(f"フィルタ: {transcribe_filter}"))
+    return transcribe_filter
+
+def __output(transcribe:str, translate:str, outputers:list[output.RecognitionOutputer]) -> None:
+    if transcribe == "":
+        return
+
+    for ot in outputers:
+        ot.output(transcribe, translate)
+
 def run(
     mic:src.microphone.Microphone,
     recognition_model:inf.RecognitionModel,
@@ -42,21 +73,69 @@ def run(
     """
 
     thread_pool = ThreadPoolExecutor(max_workers=1)
-    def onrecord(index:int, param:src.microphone.ListenResultParam) -> None:
+    def onrecord(index:int, param:str|src.microphone.ListenResultParam) -> None:
         """
         マイク認識データが返るコールバック関数
         """
+        try:
+            if isinstance(param, str):
+                logger.debug(
+                    f"#録音データ取得(#{index}, time={dt.datetime.now()})",
+                    console=val.Console.DefaultColor,
+                    reset_console=True)
+                if env.verbose == val.VERBOSE_INFO:
+                    logger.notice(f"#{index}", end=" ")
+                transcribe, _ =  onrecord_str(index, param)
+                logger.notice(transcribe)
+                return
+
+            if isinstance(param, src.microphone.ListenResultParam):
+                insert:str
+                if 0 < mic.start_insert_sec or 0 < mic.end_insert_sec:
+                    insert = f", {round(mic.start_insert_sec, 2)}s+{round(mic.end_insert_sec, 2)}s挿入"
+                else:
+                    insert = ""
+                data = param.pcm
+                pcm_sec = len(data) / 2 / mic.sample_rate
+                logger.debug(
+                    f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)}, {round(pcm_sec, 2)}s{insert})",
+                    console=val.Console.DefaultColor,
+                    reset_console=True)
+                onrecord_device(index, param)
+                return
+        finally:
+            logger.debug(f"#認識終了(#{index}, time={dt.datetime.now()})", console=val.Console.DefaultColor, reset_console=True)
+
+    def onrecord_str(index:int, param:str) -> tuple[str, str]:
+        transcribe_filter = ""
+        translate = ""
+        try:
+            transcribe_filter = __filter(index, param, filter_transcribe, env, logger)
+            __output(transcribe_filter, translate, outputers)
+        except output.WsOutputException as e:
+            log_exception = e
+            logger.info("!!!!連携失敗!!!!", console=val.Console.Red)
+            logger.info(e.message, console=val.Console.Red, reset_console=True)
+            if not e.inner is None:
+                logger.trace(f"$ => {type(e.inner)}:{e.inner}", console=val.Console.Red, reset_console=True)
+        except Exception as e:
+            log_exception = e
+            logger.error([
+                f"!!!!意図しない例外!!!!",
+                f"{type(e)}:{e}",
+                traceback.format_exc()
+            ])
+        logger.print(val.Console.Reset.value, end="")
+        return transcribe_filter, translate
+
+
+    def onrecord_device(index:int, param:src.microphone.ListenResultParam) -> tuple[str, str]:
         class PerformanceResult(NamedTuple):
             result:Any
             time:float
         
         def fill_right(text:str) -> str:
-            import re
-            l = sum(map(lambda x: 1 if ord(x) < 256 else 2, re.sub("\033\\[[^m]+m", "", text)))
-            if l < 80:
-                return text + "".join(map(lambda _: " ", range(80 - l)))
-            else:
-                return text
+            return __fill_right(text)
 
         def performance(func:Callable[[], Any]) ->  PerformanceResult:
             """
@@ -70,20 +149,10 @@ def run(
         log_info_mic = f"current energy_threshold = {mic.energy_threshold}"
         log_info_recognition = recognition_model.get_log_info()
 
-        insert:str
-        if 0 < mic.start_insert_sec or 0 < mic.end_insert_sec:
-            insert = f", {round(mic.start_insert_sec, 2)}s+{round(mic.end_insert_sec, 2)}s挿入"
-        else:
-            insert = ""
-
         #if not param.energy is None:
         #    insert = f"{insert}, dB={rms2db(param.energy.value):.2f}"
         data = param.pcm
         pcm_sec = len(data) / 2 / mic.sample_rate
-        logger.debug(
-            f"#録音データ取得(#{index}, time={dt.datetime.now()}, pcm={(int)(len(data)/2)}, {round(pcm_sec, 2)}s{insert})",
-            console=val.Console.DefaultColor,
-            reset_console=True)
         r = PerformanceResult(None, -1)
         rr:PerformanceResult =  PerformanceResult(None, -1)
         translate = ""
@@ -141,15 +210,8 @@ def run(
             if not r.result.extend_data is None:
                 logger.trace(f"${r.result.extend_data}")
 
-            transcribe_filter:str = r.result.transcribe
-            if filter_transcribe.has_rule:
-                transcribe_filter = filter_transcribe.filter(r.result.transcribe)
-                if env.verbose == val.VERBOSE_INFO:
-                    logger.notice(f"#{index}", end=" ")
-                logger.notice(fill_right(f"フィルタ: {transcribe_filter}"))
-            if transcribe_filter != "":
-                for ot in outputers:
-                    ot.output(transcribe_filter, translate)
+            transcribe_filter = __filter(index, r.result.transcribe, filter_transcribe, env, logger)
+            __output(transcribe_filter, translate, outputers)
         except recognition.TranscribeException as e:
             if env.verbose == val.VERBOSE_INFO:
                 logger.notice(f"#{index}", end=" ")
@@ -184,7 +246,6 @@ def run(
                 traceback.format_exc()
             ])
         logger.print(val.Console.Reset.value, end="") # まとめてコンソールの設定を解除する
-        logger.debug(f"#認識終了(#{index}, time={dt.datetime.now()})", console=val.Console.DefaultColor, reset_console=True)
 
         # ログ出力
         try:
@@ -243,8 +304,9 @@ def run(
                 f"({type(e_)}:{e_})",
                 traceback.format_exc()
              ])
+        return transcribe_filter, translate
 
-    def onrecord_async(index:int, data:src.microphone.ListenResultParam) -> None:
+    def onrecord_async(index:int, data:str|src.microphone.ListenResultParam) -> None:
         """
         マイク認識データが返るコールバック関数の非同期版
         """

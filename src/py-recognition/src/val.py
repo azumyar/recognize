@@ -5,7 +5,6 @@ from enum import Enum
 import importlib.util
 import ctypes
 
-
 def __is_available_cuda():
     try:
         cuda_device_count = ctypes.c_uint32()
@@ -59,7 +58,7 @@ def __choice_method() -> list[str]:
     if SUPPORT_LIB_WHISPER_KOTOBA:
         r.append(METHOD_VALUE_WHISPER_KOTOBA)
 
-    return r + [METHOD_VALUE_GOOGLE, METHOD_VALUE_GOOGLE_DUPLEX, METHOD_VALUE_GOOGLE_MIX, METHOD_VALUE_CHROME]
+    return r + [METHOD_VALUE_GOOGLE, METHOD_VALUE_GOOGLE_DUPLEX, METHOD_VALUE_GOOGLE_MIX]
 
 def __choice_translate() -> list[str]:
     r = [ "" ]
@@ -175,13 +174,21 @@ ARG_CHOICE_TEST = [
     TEST_VALUE_ILLUMINATE,
 ]
 
+
+MODE_VALUE_BUILT_IN = "builtin"
+MODE_VALUE_BROWSER = "browser"
+MODE_VALUE_DEFAULT = MODE_VALUE_BUILT_IN
+ARG_CHOICE_MODE = [
+    MODE_VALUE_BUILT_IN,
+    MODE_VALUE_BROWSER,
+]
+
 METHOD_VALUE_WHISPER = "whisper"
 METHOD_VALUE_WHISPER_FASTER = "faster_whisper"
 METHOD_VALUE_WHISPER_KOTOBA = "kotoba_whisper"
 METHOD_VALUE_GOOGLE= "google"
 METHOD_VALUE_GOOGLE_DUPLEX = "google_duplex"
 METHOD_VALUE_GOOGLE_MIX = "google_mix"
-METHOD_VALUE_CHROME = "chrome"
 DEFALUT_METHOD_VALUE = __default_method_value()
 ARG_CHOICE_METHOD = __choice_method()
 
@@ -215,6 +222,16 @@ ARG_CHOICE_VAD = [
     VAD_VALUE_YAMNET,
 ]
 
+
+CHROME_RECOG_PROC_WEB = "web"
+CHROME_RECOG_PROC_LOCAL = "local"
+CHROME_RECOG_PROC_DEFAULT = CHROME_RECOG_PROC_LOCAL
+ARG_CHOICE_CHROME_RECOG_PROC = [
+    CHROME_RECOG_PROC_WEB,
+    CHROME_RECOG_PROC_LOCAL,
+]
+
+
 OUT_VALUE_PRINT = "print"
 OUT_VALUE_YUKARINETTE = "yukarinette"
 OUT_VALUE_YUKACONE = "yukacone"
@@ -231,6 +248,34 @@ ARG_CHOICE_OUT = [
     OUT_VALUE_FILE,
     OUT_VALUE_VRC,
 ]
+
+
+HTTP_PORT = 40426
+RESOURCE_RECOGNIZE_HTML = "src/resources/html.dat"
+
+def get_localhost_address() -> str:
+    import socket
+    if socket.has_ipv6:
+        return "::1"
+    else:
+        return "127.0.0.1"
+
+
+def get_recognize_html() -> str:
+    from src import ilm_enviroment
+    import os
+
+    if ilm_enviroment.is_exe:
+        return os.path.join(
+            ilm_enviroment.project_root,
+            "_internal",
+            RESOURCE_RECOGNIZE_HTML)
+
+    else:
+        return os.path.join(
+            ilm_enviroment.project_root,
+            RESOURCE_RECOGNIZE_HTML)
+
 
 LANGUAGE_CODES = [
     "",

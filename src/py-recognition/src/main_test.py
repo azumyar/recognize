@@ -25,13 +25,16 @@ def run_mic(
     """
     マイクテスト
     """
-    def onend(index:int, param:src.microphone.ListenResultParam|None) -> None:
+    def onend(index:int, param:str|src.microphone.ListenResultParam|None) -> None:
         """
         マイク認識結果が返るコールバック関数
         """
         def energy(v:float|None) -> float: return v if not v is None else -1.
         if param is None:
             # 認識しなかった場合今のところ何もしない
+            return
+
+        if isinstance(param, str):
             return
 
         sec = len(param.pcm) / 2 / mic.sample_rate

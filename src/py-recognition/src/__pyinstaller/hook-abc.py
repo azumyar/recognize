@@ -11,6 +11,7 @@ hiddenimports = [
 
 
 datas = []
+datas += collect_data_files("src.resources")
 datas += collect_data_files("silero_vad")
 
 
