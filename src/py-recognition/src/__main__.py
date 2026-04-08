@@ -249,11 +249,13 @@ def main(
         os.environ["TORCH_HOME"] = \
             os.environ['TFHUB_CACHE_DIR'] = \
             f"{ilm_enviroment.root}{os.sep}.cache"
+        os.environ[f"{'moonshine_voice'.upper()}_CACHE"] = f"{ilm_enviroment.root}{os.sep}.cache{os.sep}moonshine_voice"
         os.environ["HF_HOME"] = f"{ilm_enviroment.root}{os.sep}.cache{os.sep}huggingface"
     else:
         os.environ["TORCH_HOME"] = \
             os.environ['TFHUB_CACHE_DIR'] = \
             f"{torch_cache}{os.sep}.cache"     
+        os.environ[f"{'moonshine_voice'.upper()}_CACHE"] = f"{torch_cache}{os.sep}.cache{os.sep}moonshine_voice"
         os.environ["HF_HOME"] = f"{torch_cache}{os.sep}.cache{os.sep}huggingface"
 
     if out_illuminate_exe == "":
@@ -354,6 +356,7 @@ def main(
                 val.METHOD_VALUE_GOOGLE: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
                 val.METHOD_VALUE_GOOGLE_DUPLEX: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
                 val.METHOD_VALUE_GOOGLE_MIX: lambda: recognition.GoogleMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
+                val.METHOD_VALUE_MOONSHINE: lambda: recognition.MoonShineMicrophoneConfig(mic_head_insert_duration, mic_tail_insert_duration),
             }[method]()
 
             def mp_value(db, en): return db if en is None else en
@@ -444,6 +447,7 @@ def main(
                     challenge=google_error_retry,
                     parallel_max_duplex=google_duplex_parallel_max,
                     parallel_reduce_count_duplex=google_duplex_parallel_reduce_count),
+                val.METHOD_VALUE_MOONSHINE: lambda: recognition.RecognitionModelMoonShine(),
             }[method]()
             ilm_logger.debug(f"#認識モデルは{type(recognition_model)}を使用", reset_console=True)
 

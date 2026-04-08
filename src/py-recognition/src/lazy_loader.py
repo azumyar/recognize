@@ -48,3 +48,8 @@ def tensorflow():
 @lazyobject
 def tensorflow_hub():
     return importlib.import_module("tensorflow_hub")
+
+
+@lazyobject
+def moonshine_voice():
+    return importlib.import_module("moonshine_voice")

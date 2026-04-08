@@ -6,14 +6,14 @@ import speech_recognition as sr
 import urllib.error as urlerr
 import requests.exceptions
 import concurrent.futures
-from typing import Any, NamedTuple, Callable
+from typing import Any, NamedTuple, Callable, Iterator
 
 import src.interface as inf
 import src.exception as ex
 import src.google_recognizers as google
 import src.val
 
-from src.lazy_loader import whisper, faster_whisper, transformers, torch
+from src.lazy_loader import whisper, faster_whisper, transformers, torch, moonshine_voice
 
 
 class GoogleTranscribeExtend(NamedTuple):
@@ -61,6 +61,16 @@ class GoogleMicrophoneConfig(RecognizeMicrophoneConfig):
         super().__init__(
             head_insert_duration if not head_insert_duration is None else GoogleMicrophoneConfig.__DEFAULT_HEAD_DULATION,
             tail_insert_duration if not tail_insert_duration is None else GoogleMicrophoneConfig.__DEFAULT_TAIL_DULATION)
+
+class MoonShineMicrophoneConfig(RecognizeMicrophoneConfig):
+    __DEFAULT_HEAD_DULATION = 0
+    __DEFAULT_TAIL_DULATION = 0
+
+    def __init__(self, head_insert_duration:float | None = None, tail_insert_duration:float | None = None) -> None:
+        super().__init__(
+            head_insert_duration if not head_insert_duration is None else MoonShineMicrophoneConfig.__DEFAULT_HEAD_DULATION,
+            tail_insert_duration if not tail_insert_duration is None else MoonShineMicrophoneConfig.__DEFAULT_TAIL_DULATION)
+
 
 class RecognitionModelGoogleApi(inf.RecognitionModel):
     """
@@ -646,6 +656,32 @@ if src.val.SUPPORT_LIB_WHISPER_KOTOBA:
             output = self.__pipe(text=messages, max_new_tokens=200) #type: ignore
             r:str = output[0]["generated_text"][-1]["content"] #type: ignore
             return inf.TranslateResult(r, output)
+
+#import moonshine_voice
+
+class RecognitionModelMoonShine(inf.RecognitionModel):
+    SAMPLE_RATE = 16000
+
+    def __init__(self) -> None:
+        model_path, model_arch = moonshine_voice.get_model_for_language("ja")
+        self.__transcriber = moonshine_voice.Transcriber(
+            model_path=model_path,
+            model_arch=model_arch)
+
+    @property
+    def required_sample_rate(self) -> int | None:
+        return RecognitionModelMoonShine.SAMPLE_RATE
+
+    def get_verbose(self, verbose:int) -> str | None:
+        return None
+
+    def get_log_info(self) -> str | None:
+        return None
+
+    def transcribe(self, audio_data:np.ndarray) -> inf.TranscribeResult:
+        ret = self.__transcriber.transcribe_without_streaming(
+             (audio_data.astype(np.float32) / float(np.iinfo(np.int16).max)).tolist())
+        return inf.TranscribeResult("".join(f"{line.text}" for line in ret.lines), ret)
 
 
 class TranscribeException(ex.IlluminateException):

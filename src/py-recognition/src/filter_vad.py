@@ -1,13 +1,12 @@
 
 import io
 import numpy 
-import torchaudio
 import scipy
 import csv
 from silero_vad import load_silero_vad, get_speech_timestamps
 
 import src.interface as inf
-from src.lazy_loader import tensorflow, tensorflow_hub
+from src.lazy_loader import torch, tensorflow, tensorflow_hub
 
 
 class VadFrame(object):
@@ -43,7 +42,7 @@ class SileroVadFilter(inf.VoiceActivityDetectorFilter):
         )
         scipy.io.wavfile.write(bytes_io, 16000, raw_data)
 
-        auido, _ = torchaudio.load(bytes_io)
+        auido = torch.from_numpy(raw_data.astype(numpy.float16) / float(numpy.iinfo(numpy.int16).max))
         speech_timestamps = get_speech_timestamps(
             auido,
             self.__model,
