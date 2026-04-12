@@ -137,7 +137,8 @@ def __whiper_help(s:str) -> str:
 
 @click.option("--filter_hpf", default=None, help="ハイパスフィルタのカットオフ周波数を設定、ハイパスフィルタを有効化", type=int)
 
-@click.option("--vad", default=val.VAD_VALUE_SILERO, help="VADエンジンの選択", type=click.Choice(val.ARG_CHOICE_VAD))
+@click.option("--vad", default=val.VAD_VALUE_DEFAULT, help="VADエンジンの選択", type=click.Choice(val.ARG_CHOICE_VAD))
+@click.option("--vad_webrtc_mode", default=0, help="-",type=int)
 @click.option("--vad_silero_threshold", default=0.5, help="-",type=float)
 @click.option("--vad_silero_min_speech_duration", default=0.25, help="-",type=float)
 
@@ -222,6 +223,7 @@ def main(
 
     filter_hpf:Optional[int],
     vad:str,
+    vad_webrtc_mode:int,
     vad_silero_threshold:float,
     vad_silero_min_speech_duration:float,
     verbose:str,
@@ -339,6 +341,9 @@ def main(
                 filters.append(filter_highPass)
             # VADフィルタの準備
             filter_vad_inst:inf.VoiceActivityDetectorFilter = {
+                val.VAD_VALUE_WEBRTC: lambda: filter_vad.WebRtcVadFilter(
+                    val.MIC_SAMPLE_RATE,
+                    vad_webrtc_mode),
                 val.VAD_VALUE_SILERO: lambda: filter_vad.SileroVadFilter(
                     val.MIC_SAMPLE_RATE,
                     vad_silero_threshold),
