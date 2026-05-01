@@ -44,14 +44,14 @@ class RecognizeMicrophoneConfig:
         return self.__tail_insert_duration
 
 
-class WhisperMicrophoneConfig(RecognizeMicrophoneConfig):
+class DefaultMicrophoneConfig(RecognizeMicrophoneConfig):
     __DEFAULT_HEAD_DULATION = 0.
     __DEFAULT_TAIL_DULATION = 0.
 
     def __init__(self, head_insert_duration:float | None = None, tail_insert_duration:float | None = None) -> None:
         super().__init__(
-            head_insert_duration if not head_insert_duration is None else WhisperMicrophoneConfig.__DEFAULT_HEAD_DULATION,
-            tail_insert_duration if not tail_insert_duration is None else WhisperMicrophoneConfig.__DEFAULT_TAIL_DULATION)
+            head_insert_duration if not head_insert_duration is None else DefaultMicrophoneConfig.__DEFAULT_HEAD_DULATION,
+            tail_insert_duration if not tail_insert_duration is None else DefaultMicrophoneConfig.__DEFAULT_TAIL_DULATION)
 
 class GoogleMicrophoneConfig(RecognizeMicrophoneConfig):
     __DEFAULT_HEAD_DULATION = 0.2
@@ -61,15 +61,6 @@ class GoogleMicrophoneConfig(RecognizeMicrophoneConfig):
         super().__init__(
             head_insert_duration if not head_insert_duration is None else GoogleMicrophoneConfig.__DEFAULT_HEAD_DULATION,
             tail_insert_duration if not tail_insert_duration is None else GoogleMicrophoneConfig.__DEFAULT_TAIL_DULATION)
-
-class MoonShineMicrophoneConfig(RecognizeMicrophoneConfig):
-    __DEFAULT_HEAD_DULATION = 0
-    __DEFAULT_TAIL_DULATION = 0
-
-    def __init__(self, head_insert_duration:float | None = None, tail_insert_duration:float | None = None) -> None:
-        super().__init__(
-            head_insert_duration if not head_insert_duration is None else MoonShineMicrophoneConfig.__DEFAULT_HEAD_DULATION,
-            tail_insert_duration if not tail_insert_duration is None else MoonShineMicrophoneConfig.__DEFAULT_TAIL_DULATION)
 
 
 class RecognitionModelGoogleApi(inf.RecognitionModel):
@@ -657,7 +648,6 @@ if src.val.SUPPORT_LIB_WHISPER_KOTOBA:
             r:str = output[0]["generated_text"][-1]["content"] #type: ignore
             return inf.TranslateResult(r, output)
 
-#import moonshine_voice
 
 class RecognitionModelMoonShine(inf.RecognitionModel):
     SAMPLE_RATE = 16000
@@ -682,6 +672,134 @@ class RecognitionModelMoonShine(inf.RecognitionModel):
         ret = self.__transcriber.transcribe_without_streaming(
              (audio_data.astype(np.float32) / float(np.iinfo(np.int16).max)).tolist())
         return inf.TranscribeResult("".join(f"{line.text}" for line in ret.lines), ret)
+
+
+from dataclasses import dataclass
+@dataclass
+class ReazonSpeechKSubword:
+    """A subword with timestamp"""
+    # Currently Subword only has a single-point timestamp.
+    # Theoretically, we should be able to compute time ranges.
+    seconds: float
+    token: str
+
+
+class RecognitionModelReazonSpeechK2(inf.RecognitionModel):
+    SAMPLE_RATE = 16000
+
+    def __init__(self) -> None:
+        self.__model = RecognitionModelReazonSpeechK2._load_model()
+
+
+    @property
+    def required_sample_rate(self) -> int | None:
+        return RecognitionModelMoonShine.SAMPLE_RATE
+
+    def get_verbose(self, verbose:int) -> str | None:
+        return None
+
+    def get_log_info(self) -> str | None:
+        return None
+
+    def transcribe(self, audio_data:np.ndarray) -> inf.TranscribeResult:
+        # TODO: 30秒警告の処理をいれる
+        stream = self.__model.create_stream()
+        stream.accept_waveform(
+            RecognitionModelReazonSpeechK2.SAMPLE_RATE,
+            (audio_data.astype(np.float32) / float(np.iinfo(np.int16).max)).tolist())
+        self.__model.decode_stream(stream)
+
+        subwords = []
+        for t, s in zip(stream.result.tokens, stream.result.timestamps):
+            subwords.append(ReazonSpeechKSubword(token=t, seconds=s))
+
+        return inf.TranscribeResult(stream.result.text, subwords)
+
+
+    # https://github.com/reazon-research/ReazonSpeech/blob/master/pkg/k2-asr/src/transcribe.py
+    # The following definitions should match the repository layout
+    # on Hugging Face Hub. Whenever the HF repo is changed, this
+    # file should be updated accordingly.
+    #
+    # Multi lingual also has precision fp16, but is currently not
+    # in use.
+    #
+    # https://huggingface.co/reazon-research/reazonspeech-k2-v2
+    # https://huggingface.co/reazon-research/reazonspeech-k2-v2-ja-en
+    # https://huggingface.co/reazon-research/reazonspeech-k2-v2-ja-en-mls-5k-corrected
+    @staticmethod
+    def _load_model(device="cpu", precision="fp32", language="ja"):
+        import os
+        import huggingface_hub
+        import huggingface_hub.errors
+        import sherpa_onnx
+        """Load ReazonSpeech model from Hugging Face
+
+        Args:
+        device (str): "cpu", "cuda" or "coreml"
+        precision (str): Whether to load quantized model ("fp32", "int8" or "int8-fp32")
+        language (str): Whether to use japanese or bi-lingual model ("ja" or "ja-en" or "ja-en-mls-5k") 
+
+        Returns:
+        sherpa_onnx.OfflineRecognizer
+        """
+
+        if language == "ja":
+            hf_repo_id = "reazon-research/reazonspeech-k2-v2"
+            epochs = 99
+        elif language == "ja-en":
+            hf_repo_id = "reazon-research/reazonspeech-k2-v2-ja-en"
+            epochs = 35
+        elif language == "ja-en-mls-5k":
+            hf_repo_id = "reazon-research/reazonspeech-k2-v2-ja-en-mls-5k-corrected"
+            epochs = 21
+        else:
+            raise ValueError(f"Unknown language: '{language}'")
+
+        hf_repo_files = {
+            "fp32": {
+                "tokens": "tokens.txt",
+                "encoder": f"encoder-epoch-{epochs}-avg-1.onnx",
+                "decoder": f"decoder-epoch-{epochs}-avg-1.onnx",
+                "joiner": f"joiner-epoch-{epochs}-avg-1.onnx",
+            },
+            "int8": {
+                "tokens": "tokens.txt",
+                "encoder": f"encoder-epoch-{epochs}-avg-1.int8.onnx",
+                "decoder": f"decoder-epoch-{epochs}-avg-1.int8.onnx",
+                "joiner": f"joiner-epoch-{epochs}-avg-1.int8.onnx",
+            },
+            "int8-fp32": {
+                "tokens": "tokens.txt",
+                "encoder": f"encoder-epoch-{epochs}-avg-1.int8.onnx",
+                "decoder": f"decoder-epoch-{epochs}-avg-1.onnx",
+                "joiner": f"joiner-epoch-{epochs}-avg-1.int8.onnx",
+            }
+        }
+
+        if precision not in hf_repo_files:
+            raise ValueError("Unknown precision: '%s'" % precision)
+
+        files = hf_repo_files[precision]
+
+        # If the model is found in the local cache, do not connect
+        # to Hugging Face.
+        try:
+            basedir = huggingface_hub.snapshot_download(hf_repo_id, local_files_only=True)
+        except huggingface_hub.errors.LocalEntryNotFoundError:
+            basedir = huggingface_hub.snapshot_download(hf_repo_id)
+
+        return sherpa_onnx.OfflineRecognizer.from_transducer(
+            tokens=os.path.join(basedir, files["tokens"]),
+            encoder=os.path.join(basedir, files['encoder']),
+            decoder=os.path.join(basedir, files['decoder']),
+            joiner=os.path.join(basedir, files['joiner']),
+            num_threads=1,
+            sample_rate=16000,
+            feature_dim=80,
+            decoding_method="greedy_search",
+            provider=device,
+        )
 
 
 class TranscribeException(ex.IlluminateException):

@@ -39,6 +39,8 @@ huggingface-hub = "*"
 lazyasd = "*"
 moonshine-voice = "*"
 webrtcvad = "*"
+sherpa-onnx = "*"
+sherpa-onnx-bin = "*"
 
 [dev-packages]
 pyinstaller = "==6.18.0"
