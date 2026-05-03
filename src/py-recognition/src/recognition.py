@@ -62,6 +62,16 @@ class GoogleMicrophoneConfig(RecognizeMicrophoneConfig):
             head_insert_duration if not head_insert_duration is None else GoogleMicrophoneConfig.__DEFAULT_HEAD_DULATION,
             tail_insert_duration if not tail_insert_duration is None else GoogleMicrophoneConfig.__DEFAULT_TAIL_DULATION)
 
+class ReazonSpeechMicrophoneConfig(RecognizeMicrophoneConfig):
+    __DEFAULT_HEAD_DULATION = 0.3
+    __DEFAULT_TAIL_DULATION = 0.
+
+    def __init__(self, head_insert_duration:float | None = None, tail_insert_duration:float | None = None) -> None:
+        super().__init__(
+            head_insert_duration if not head_insert_duration is None else ReazonSpeechMicrophoneConfig.__DEFAULT_HEAD_DULATION,
+            tail_insert_duration if not tail_insert_duration is None else ReazonSpeechMicrophoneConfig.__DEFAULT_TAIL_DULATION)
+
+
 
 class RecognitionModelGoogleApi(inf.RecognitionModel):
     """

@@ -355,7 +355,9 @@ def main(
             ilm_logger.print("マイクの初期化")
             def __get_microphone_config(m, head, tail) -> recognition.RecognizeMicrophoneConfig:
                 if m in [val.METHOD_VALUE_GOOGLE, val.METHOD_VALUE_GOOGLE_DUPLEX, val.METHOD_VALUE_GOOGLE_MIX]:
-                    return recognition.GoogleMicrophoneConfig(head, tail)
+                  return recognition.GoogleMicrophoneConfig(head, tail)
+                if m in [val.METHOD_VALUE_REAZON_SPEECH]:
+                    return recognition.ReazonSpeechMicrophoneConfig(head, tail)
                 return recognition.DefaultMicrophoneConfig(head, tail)
             mp_recog_conf:recognition.RecognizeMicrophoneConfig = __get_microphone_config(
                 method,
@@ -451,7 +453,7 @@ def main(
                     parallel_max_duplex=google_duplex_parallel_max,
                     parallel_reduce_count_duplex=google_duplex_parallel_reduce_count),
                 val.METHOD_VALUE_MOONSHINE: lambda: recognition.RecognitionModelMoonShine(),
-                val.METHOD_VALUE_REAZON: lambda:recognition.RecognitionModelReazonSpeechK2(),
+                val.METHOD_VALUE_REAZON_SPEECH: lambda:recognition.RecognitionModelReazonSpeechK2(),
             }[method]()
             ilm_logger.debug(f"#認識モデルは{type(recognition_model)}を使用", reset_console=True)
 
