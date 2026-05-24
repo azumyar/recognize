@@ -41,6 +41,12 @@ def __support_whisper_kotoba() -> bool:
     else:
         return True
 
+def __support_moonshine_voice() -> bool:
+    if importlib.util.find_spec("moonshine_voice") is None:
+        return False
+    else:
+        return True
+
 
 def __default_method_value() -> str:
     if __support_whisper_faster():
@@ -58,11 +64,15 @@ def __choice_method() -> list[str]:
     if SUPPORT_LIB_WHISPER_KOTOBA:
         r.append(METHOD_VALUE_WHISPER_KOTOBA)
 
-    return r + [
-        METHOD_VALUE_GOOGLE, METHOD_VALUE_GOOGLE_DUPLEX, METHOD_VALUE_GOOGLE_MIX,
-        METHOD_VALUE_MOONSHINE,
-        METHOD_VALUE_REAZON_SPEECH
-    ]
+    r.append(METHOD_VALUE_GOOGLE)
+    r.append(METHOD_VALUE_GOOGLE_DUPLEX)
+    r.append(METHOD_VALUE_GOOGLE_MIX)
+
+    if SUPPORT_MOONSHINE_VOICE:
+        r.append(METHOD_VALUE_MOONSHINE)
+    r.append(METHOD_VALUE_REAZON_SPEECH)
+    return r
+
 
 def __choice_translate() -> list[str]:
     r = [ "" ]
@@ -146,6 +156,7 @@ SUPPORT_LIB_WHISPER = __support_whisper()
 SUPPORT_LIB_WHISPER_FASTER = __support_whisper_faster()
 SUPPORT_LIB_WHISPER_KOTOBA = __support_whisper_kotoba()
 SUPPORT_WHISPER = SUPPORT_LIB_WHISPER or SUPPORT_LIB_WHISPER_FASTER or SUPPORT_LIB_WHISPER_KOTOBA
+SUPPORT_MOONSHINE_VOICE = __support_moonshine_voice()
 
 VERBOSE_MIN = 0
 VERBOSE_INFO = 1

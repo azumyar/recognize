@@ -7,7 +7,8 @@ hiddenimports = [
     "torch",
     "tensorflow",
     "tensorflow_hub",
-    "moonshine_voice",
+#    "moonshine_voice",
+    "charset_normalizer",
 ]
 
 

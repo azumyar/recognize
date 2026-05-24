@@ -37,14 +37,14 @@ tensorflow-hub = "*"
 tensorflow = "*"
 huggingface-hub = "*"
 lazyasd = "*"
-moonshine-voice = "*"
 webrtcvad = "*"
 sherpa-onnx = "*"
 sherpa-onnx-bin = "*"
+charset-normalizer = "*"
 
 [dev-packages]
-pyinstaller = "==6.18.0"
-pyinstaller-hooks-contrib = "==2025.11"
+pyinstaller = "==6.20.0"
+pyinstaller-hooks-contrib = "==2026.5"
 nuitka = "*"
 #[requires]
 #python_version = "3.10"
