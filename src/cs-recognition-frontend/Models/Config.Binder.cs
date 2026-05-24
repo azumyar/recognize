@@ -26,7 +26,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 	private readonly (string Name, bool Enabled)[] TranscribeModels = [
 		("設定しない", true),
 		("AI音声認識(Whisper)", CanUsedCuda()),
-		("AI音声認識(ReasonSpeech)", true),
+		("AI音声認識(ReazonSpeech)", true),
 		("google音声認識", true),
 	];
 	public const int TranscribeIndexNull = 0;
