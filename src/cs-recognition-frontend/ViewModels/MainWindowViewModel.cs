@@ -529,7 +529,7 @@ public class MainWindowViewModel : BindableBase {
 
 
 	private void OnConnectWhisper() {
-		this.ConfigBinder.TranscribeModeIndex.Value = ConfigBinder.TranscribeIndexAi;
+		this.ConfigBinder.TranscribeModeIndex.Value = ConfigBinder.TranscribeIndexAiWhisper;
 		this.ConfigBinder.HpfParamaterIndex.Value = ConfigBinder.HpfIndexHi;
 		this.ConfigBinder.MicrophoneRecordMinDurationBinder.Value = "0.8";
 	}
