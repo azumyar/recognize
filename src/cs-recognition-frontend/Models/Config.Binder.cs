@@ -152,7 +152,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.TranscribeModelsBinder.AddRangeOnScheduler(TranscribeModels.Select(x => new TranscribeItem(x.Name, x.Enabled)));
 		this.TranscribeModeIndex = new(initialValue: config.TranscribeModel switch {
 			"kotoba_whisper" => TranscribeIndexAiWhisper,
-			"reason" => TranscribeIndexAiReasonSpeech,
+			"reazon" => TranscribeIndexAiReasonSpeech,
 			"google_mix" => TranscribeIndexGoogle,
 			_ => TranscribeIndexNull
 		});
