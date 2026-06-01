@@ -140,7 +140,7 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 
 				foreach (var it in rls) {
 					if ((it != null) && Marshal.IsComObject(it)) {
-						Marshal.ReleaseComObject(it);
+						Marshal.FinalReleaseComObject(it);
 					}
 				}
 			}
