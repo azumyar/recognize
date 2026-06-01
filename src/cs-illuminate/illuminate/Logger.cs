@@ -25,6 +25,7 @@ class Logger {
 		this.logStream = new FileStream(
 			Path.Combine(AppContext.BaseDirectory, logFileName ?? DefaultLogFile),
 			FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
+		this.logStream.SetLength(0);
 		if(0 < this.memoryStream.Position) {
 			var ary = this.memoryStream.ToArray();
 			this.memoryStream.Seek(0, SeekOrigin.Begin);
