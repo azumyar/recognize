@@ -83,6 +83,8 @@ class ObsV5SubtitleOutputer(SubtitleOutputer):
             password:str,
             target_text_ja:str | None,
             target_text_en:str | None,
+            closed_caption_ja:bool | None,
+            closed_caption_en:bool | None,
             target_starts_with:bool,
             truncate_sec:float,
             logger:Logger) -> None:
@@ -91,6 +93,8 @@ class ObsV5SubtitleOutputer(SubtitleOutputer):
         self.__host = host
         self.__port = port
         self.__password = password
+        self.__closed_caption_ja = closed_caption_ja
+        self.__closed_caption_en = closed_caption_en
         self.__target_text_ja = target_text_ja
         self.__target_text_en = target_text_en
         self.__target_starts_with = target_starts_with
@@ -129,6 +133,10 @@ class ObsV5SubtitleOutputer(SubtitleOutputer):
                     else:
                         self.__setInputSettings(self.__target_text_en, text_en)
 
+                if (self.__closed_caption_en is not None) and self.__closed_caption_en:
+                    self.__obs.call(obswebsocket.requests.SendStreamCaption(
+                        captionText = text_en,
+                        ))
             except websocket._exceptions.WebSocketConnectionClosedException:
                 self.__obs = None
                 self._logger.error("OBSとの接続が閉じられました")
