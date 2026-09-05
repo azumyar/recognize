@@ -812,6 +812,45 @@ class RecognitionModelReazonSpeechK2(inf.RecognitionModel):
         )
 
 
+class RecognitionModelKodamaStreaming(inf.RecognitionModel):
+    SAMPLE_RATE = 16000
+    MODEL_ID = "ayousanz/kodama-ja-streaming-small"
+
+    def __init__(self) -> None:
+        #self.__device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        self.__device = "cpu"
+
+        self.__model = transformers.MoonshineStreamingForConditionalGeneration \
+            .from_pretrained(RecognitionModelKodamaStreaming.MODEL_ID) \
+            .to(self.__device)
+        self.__processor = transformers.AutoProcessor \
+            .from_pretrained(RecognitionModelKodamaStreaming.MODEL_ID)
+
+
+    @property
+    def required_sample_rate(self) -> int | None:
+        return RecognitionModelKodamaStreaming.SAMPLE_RATE
+
+    def get_verbose(self, verbose:int) -> str | None:
+        return None
+
+    def get_log_info(self) -> str | None:
+        return None
+
+    def transcribe(self, audio_data:np.ndarray) -> inf.TranscribeResult:
+        inputs = self.__processor(
+            ((audio_data.astype(np.float32) / float(np.iinfo(np.int16).max)).tolist()),
+            return_tensors="pt",
+            sampling_rate=RecognitionModelKodamaStreaming.SAMPLE_RATE).to(self.__device)
+
+        token_limit_factor = 6.5 / self.__processor.feature_extractor.sampling_rate
+        max_length = int((inputs.attention_mask.sum(dim=-1) * token_limit_factor).max().item())
+
+        ids = self.__model.generate(**inputs, max_length=max_length)
+        ret = self.__processor.decode(ids[0], skip_special_tokens=True)
+        return inf.TranscribeResult(ret, ret)
+
+
 class TranscribeException(ex.IlluminateException):
     """
     認識に失敗した際なげる例外

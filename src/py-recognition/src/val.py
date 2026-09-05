@@ -71,6 +71,7 @@ def __choice_method() -> list[str]:
     if SUPPORT_MOONSHINE_VOICE:
         r.append(METHOD_VALUE_MOONSHINE)
     r.append(METHOD_VALUE_REAZON_SPEECH)
+    r.append(METHOD_VALUE_KODAMA_STREAMING)
     return r
 
 
@@ -206,6 +207,7 @@ METHOD_VALUE_GOOGLE_DUPLEX = "google_duplex"
 METHOD_VALUE_GOOGLE_MIX = "google_mix"
 METHOD_VALUE_MOONSHINE = "moonshine"
 METHOD_VALUE_REAZON_SPEECH = "reazon"
+METHOD_VALUE_KODAMA_STREAMING = "kodama"
 DEFALUT_METHOD_VALUE = __default_method_value()
 ARG_CHOICE_METHOD = __choice_method()
 
